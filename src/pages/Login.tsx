@@ -226,6 +226,8 @@ export function Login() {
                     className="pl-12 pr-12 w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                     placeholder="••••••••"
                     autoComplete="current-password"
+                    aria-label="Şifre"
+                    data-lpignore="true"
                   />
                   <button
                     type="button"

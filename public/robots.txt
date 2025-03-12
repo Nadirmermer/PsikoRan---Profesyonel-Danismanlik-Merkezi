@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: ${import.meta.env.VITE_APP_URL}/sitemap.xml 

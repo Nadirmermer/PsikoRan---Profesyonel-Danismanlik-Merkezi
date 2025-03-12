@@ -5,10 +5,6 @@ import { AVAILABLE_TESTS } from '../data/tests';
 import { useAuth } from '../lib/auth';
 import { generateEncryptionKey, generateIV, encryptData } from '../utils/encryption';
 
-// Sabit admin bilgileri (gerçek uygulamada .env dosyasında saklanmalıdır)
-const ADMIN_EMAIL = 'admin@example.com';
-const ADMIN_PASSWORD = 'password';
-
 // LocalStorage keys
 const STORAGE_KEY_PREFIX = 'test_progress_';
 const getStorageKey = (testId: string, clientId: string) => `${STORAGE_KEY_PREFIX}${testId}_${clientId}`;
@@ -37,12 +33,27 @@ export function Test() {
   const [authorized, setAuthorized] = useState(false);
   const [testCompleted, setTestCompleted] = useState(false);
   const [testData, setTestData] = useState<any>(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
   
   // Timer state'leri
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [timerActive, setTimerActive] = useState(false);
+
+  // Tema değişikliğini izle ve uygula
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
 
   // Test ilerlemesini kaydet
   const saveProgress = () => {
@@ -285,8 +296,9 @@ export function Test() {
           return false;
         }
         
-        // Secret key kontrolü
-        if (secretKey !== "psy_secure_test_token_key") {
+        // Secret key kontrolü - çevre değişkeninden al
+        const testTokenSecretKey = import.meta.env.VITE_TEST_TOKEN_SECRET_KEY;
+        if (!testTokenSecretKey || secretKey !== testTokenSecretKey) {
           console.error("Geçersiz güvenlik anahtarı");
           return false;
         }
@@ -394,15 +406,7 @@ export function Test() {
       // Test verilerini state'e kaydet
       setTestData(testResultData);
       
-      // Token ile erişimde, test sonuçlarını kaydetmek yerine tamamlandı sayfasına yönlendir
-      if (token) {
-        console.log("Token ile erişimde test tamamlandı, veriler:", testResultData);
-        setTestCompleted(true);
-        setLoading(false);
-        return;
-      }
-      
-      // Ruh sağlığı uzmanı olarak erişimde, test sonuçlarını kaydet
+      // Her durumda test sonuçlarını kaydet
       const { data, error } = await supabase
         .from('test_results')
         .insert(testResultData)
@@ -415,7 +419,15 @@ export function Test() {
 
       console.log("Test başarıyla kaydedildi:", data);
       
-      // Test sonuçları sayfasına yönlendir
+      // Token ile erişimde tamamlandı sayfasına yönlendir
+      if (token) {
+        console.log("Token ile erişimde test tamamlandı");
+        setTestCompleted(true);
+        setLoading(false);
+        return;
+      }
+      
+      // Ruh sağlığı uzmanı olarak erişimde, test sonuçları sayfasına yönlendir
       navigate(`/clients/${clientId}?tab=test-results`);
     } catch (error) {
       console.error('Error submitting test:', error);
@@ -522,20 +534,22 @@ export function Test() {
                 Testi tamamladığınız için teşekkür ederiz. Cevaplarınız başarıyla kaydedildi.
               </p>
 
-              <div className="grid grid-cols-2 gap-4 my-6">
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
-                  <div className="text-sm text-blue-600 dark:text-blue-400">Test Süresi</div>
-                  <div className="text-lg font-medium text-blue-700 dark:text-blue-300">
-                    {formatTime(elapsedTime)}
+              {professional && (
+                <div className="grid grid-cols-2 gap-4 my-6">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                    <div className="text-sm text-blue-600 dark:text-blue-400">Test Süresi</div>
+                    <div className="text-lg font-medium text-blue-700 dark:text-blue-300">
+                      {formatTime(elapsedTime)}
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-100 dark:border-purple-800/30">
+                    <div className="text-sm text-purple-600 dark:text-purple-400">Tamamlanma Zamanı</div>
+                    <div className="text-lg font-medium text-purple-700 dark:text-purple-300">
+                      {new Date().toLocaleTimeString()}
+                    </div>
                   </div>
                 </div>
-                <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-100 dark:border-purple-800/30">
-                  <div className="text-sm text-purple-600 dark:text-purple-400">Tamamlanma Zamanı</div>
-                  <div className="text-lg font-medium text-purple-700 dark:text-purple-300">
-                    {new Date().toLocaleTimeString()}
-                  </div>
-                </div>
-              </div>
+              )}
 
               <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
                 <p className="text-blue-700 dark:text-blue-300">
@@ -544,19 +558,6 @@ export function Test() {
               </div>
               <p className="text-sm">
                 Bu pencereyi güvenle kapatabilirsiniz.
-              </p>
-            </div>
-
-            <div className="mt-8 space-y-4">
-              <button
-                onClick={() => window.close()}
-                className="w-full px-6 py-3 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Pencereyi Kapat
-              </button>
-              
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-4">
-                Gizliliğiniz bizim için önemlidir. Test yanıtlarınız güvenli bir şekilde şifrelenerek saklanmaktadır ve sadece ruh sağlığı uzmanınız tarafından görüntülenebilir.
               </p>
             </div>
           </div>
@@ -574,7 +575,22 @@ export function Test() {
               {selectedTest.name}
             </h2>
             <div className="flex items-center space-x-4">
-              {!showIntro && (
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                aria-label={darkMode ? 'Aydınlık temaya geç' : 'Karanlık temaya geç'}
+              >
+                {darkMode ? (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
+              {!showIntro && professional && (
                 <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   Süre: {formatTime(elapsedTime)}
                 </div>
