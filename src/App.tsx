@@ -26,6 +26,11 @@ import { Help } from './pages/Help';
 import { Test } from './pages/Test';
 import { TestCompleted } from './pages/TestCompleted';
 import React from 'react';
+import { UNSAFE_DataRouterContext, UNSAFE_DataRouterStateContext, UNSAFE_NavigationContext, UNSAFE_RouteContext } from 'react-router-dom';
+
+// React Router v7 için future flag'leri
+const v7_startTransition = true;
+const v7_relativeSplatPath = true;
 
 // Global loading state için context oluştur
 export const LoadingContext = React.createContext({
@@ -186,7 +191,7 @@ export function App() {
 
   return (
     <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
-      <Router>
+      <Router future={{ v7_startTransition, v7_relativeSplatPath }}>
         {isInitialLoading ? (
           <AppLoader />
         ) : (

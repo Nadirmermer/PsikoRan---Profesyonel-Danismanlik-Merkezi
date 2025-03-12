@@ -885,55 +885,174 @@ export function Dashboard() {
     try {
       if (!professional?.id) return;
 
+      // Doğrudan veriyi çekmeye çalış
       const { data, error } = await supabase
         .from('professional_working_hours')
         .select('*')
         .eq('professional_id', professional.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) {
+        console.error('Profesyonel çalışma saatleri yüklenirken hata:', error);
+        // Hata durumunda varsayılan değerleri kullan
+        setProfessionalWorkingHours({
+          pazartesi: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: true
+          },
+          sali: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: true
+          },
+          carsamba: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: true
+          },
+          persembe: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: true
+          },
+          cuma: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: true
+          },
+          cumartesi: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: false
+          },
+          pazar: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: false
+          }
+        });
+        return;
+      }
 
       if (data) {
         setProfessionalWorkingHours({
           pazartesi: {
-            opening: data.opening_time_monday,
-            closing: data.closing_time_monday,
+            opening: data.opening_time_monday || '09:00',
+            closing: data.closing_time_monday || '18:00',
             isOpen: data.is_open_monday ?? true
           },
           sali: {
-            opening: data.opening_time_tuesday,
-            closing: data.closing_time_tuesday,
+            opening: data.opening_time_tuesday || '09:00',
+            closing: data.closing_time_tuesday || '18:00',
             isOpen: data.is_open_tuesday ?? true
           },
           carsamba: {
-            opening: data.opening_time_wednesday,
-            closing: data.closing_time_wednesday,
+            opening: data.opening_time_wednesday || '09:00',
+            closing: data.closing_time_wednesday || '18:00',
             isOpen: data.is_open_wednesday ?? true
           },
           persembe: {
-            opening: data.opening_time_thursday,
-            closing: data.closing_time_thursday,
+            opening: data.opening_time_thursday || '09:00',
+            closing: data.closing_time_thursday || '18:00',
             isOpen: data.is_open_thursday ?? true
           },
           cuma: {
-            opening: data.opening_time_friday,
-            closing: data.closing_time_friday,
+            opening: data.opening_time_friday || '09:00',
+            closing: data.closing_time_friday || '18:00',
             isOpen: data.is_open_friday ?? true
           },
           cumartesi: {
-            opening: data.opening_time_saturday,
-            closing: data.closing_time_saturday,
+            opening: data.opening_time_saturday || '09:00',
+            closing: data.closing_time_saturday || '18:00',
             isOpen: data.is_open_saturday ?? false
           },
           pazar: {
-            opening: data.opening_time_sunday,
-            closing: data.closing_time_sunday,
+            opening: data.opening_time_sunday || '09:00',
+            closing: data.closing_time_sunday || '18:00',
             isOpen: data.is_open_sunday ?? false
+          }
+        });
+      } else {
+        // Veri yoksa varsayılan değerleri kullan
+        setProfessionalWorkingHours({
+          pazartesi: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: true
+          },
+          sali: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: true
+          },
+          carsamba: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: true
+          },
+          persembe: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: true
+          },
+          cuma: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: true
+          },
+          cumartesi: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: false
+          },
+          pazar: {
+            opening: '09:00',
+            closing: '18:00',
+            isOpen: false
           }
         });
       }
     } catch (error) {
-      console.error('Error loading professional working hours:', error);
+      console.error('Profesyonel çalışma saatleri yüklenirken hata:', error);
+      // Hata durumunda varsayılan değerleri kullan
+      setProfessionalWorkingHours({
+        pazartesi: {
+          opening: '09:00',
+          closing: '18:00',
+          isOpen: true
+        },
+        sali: {
+          opening: '09:00',
+          closing: '18:00',
+          isOpen: true
+        },
+        carsamba: {
+          opening: '09:00',
+          closing: '18:00',
+          isOpen: true
+        },
+        persembe: {
+          opening: '09:00',
+          closing: '18:00',
+          isOpen: true
+        },
+        cuma: {
+          opening: '09:00',
+          closing: '18:00',
+          isOpen: true
+        },
+        cumartesi: {
+          opening: '09:00',
+          closing: '18:00',
+          isOpen: false
+        },
+        pazar: {
+          opening: '09:00',
+          closing: '18:00',
+          isOpen: false
+        }
+      });
     }
   }
 

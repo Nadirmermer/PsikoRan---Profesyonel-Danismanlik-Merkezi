@@ -1181,18 +1181,10 @@ export function Settings() {
                     Asistan: {clinicInfo.assistant_name}
                   </p>
                 )}
-                {clinicInfo.assistant_phone && (
-                  <p className="flex items-center text-gray-600 dark:text-gray-400">
-                    <Phone className="h-5 w-5 mr-2" />
-                    {clinicInfo.assistant_phone}
-                  </p>
-                )}
-                {!clinicInfo.assistant_phone && (
-                  <p className="flex items-center text-gray-600 dark:text-gray-400">
-                    <Phone className="h-5 w-5 mr-2" />
-                    -
-                  </p>
-                )}
+                <p className="flex items-center text-gray-600 dark:text-gray-400">
+                  <Phone className="h-5 w-5 mr-2" />
+                  {clinicInfo.assistant_phone || '-'}
+                </p>
               </>
             ) : (
               <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">

@@ -708,11 +708,11 @@ export function CreateAppointmentModal({
                                 margin: '0'
                               },
                               day: {
-                                '&[data-selected]': {
+                                '&[data-selected="true"]': {
                                   backgroundColor: 'var(--mantine-color-blue-6)',
                                   color: 'var(--mantine-color-white)'
                                 },
-                                '&[data-disabled]': {
+                                '&[data-disabled="true"]': {
                                   color: 'var(--mantine-color-gray-4)',
                                   backgroundColor: 'transparent'
                                 }
