@@ -52,6 +52,7 @@ interface AssistantData {
 interface ClinicInfo {
   clinic_name: string | null;
   assistant_name: string | null;
+  assistant_phone: string | null; // Asistan telefon numarası için yeni alan
 }
 
 interface Room extends Omit<DatabaseRoom, 'description' | 'capacity'> {
@@ -155,98 +156,132 @@ export function Settings() {
   const [clinicInfo, setClinicInfo] = useState<ClinicInfo>({
     clinic_name: null,
     assistant_name: null,
+    assistant_phone: null, // Yeni alan için başlangıç değeri
   });
 
   useEffect(() => {
-    if (professional) {
-      // Ruh sağlığı uzmanı için sadece gerekli fonksiyonları çağır
-      loadClinicInfo(); // Asistan ve klinik bilgilerini yükle
-      loadProfessionalData(); // Profesyonel bilgilerini yükle
-      loadProfessionalWorkingHours(); // Çalışma saatlerini yükle
-      loadClinicHours(); // Klinik çalışma saatlerini yükle
-      // loadRooms() fonksiyonunu çağırmıyoruz çünkü bu asistan için gerekli
-    } else if (assistant) {
-      // Asistan için gerekli fonksiyonları çağır
-      loadRooms(); // Odaları yükle
-      loadClinicHours(); // Klinik çalışma saatlerini yükle
-      loadClinicInfo(); // Klinik bilgilerini yükle
-      loadAssistantData(); // Asistan bilgilerini yükle
-    }
-  }, [professional?.id, assistant?.id]);
+    if (loading) return;
 
+    const initializePage = async () => {
+      try {
+        if (professional) {
+          await loadClinicInfo();
+          await loadProfessionalData();
+          await loadClinicHours();
+          await loadRooms();
+          await loadProfessionalWorkingHours();
+        } else if (assistant) {
+          await loadClinicInfo();
+          await loadAssistantData();
+          await loadClinicHours();
+          await loadRooms();
+        } else {
+          console.error('No professional or assistant data found');
+        }
+      } catch (error) {
+        console.error('Error initializing page:', error);
+      }
+    };
+
+    initializePage();
+  }, [loading, professional, assistant]);
+
+  // Tüm fonksiyonları tanımla
   async function loadClinicInfo() {
     try {
-      // Asistan ise, kendi bilgilerini yükle
-      if (assistant?.id) {
+      if (professional) {
+        const { data: profData, error: profError } = await supabase
+          .from('professionals')
+          .select('*')
+          .eq('id', professional.id)
+          .maybeSingle();
+
+        if (profError) {
+          setClinicInfo({
+            clinic_name: 'Profesyonel bilgilerine erişilemiyor',
+            assistant_name: 'Lütfen sistem yöneticinizle iletişime geçin',
+            assistant_phone: '-'
+          });
+          return;
+        }
+
+        if (!profData) {
+          setClinicInfo({
+            clinic_name: 'Profesyonel bilgileri bulunamadı',
+            assistant_name: 'Lütfen sistem yöneticinizle iletişime geçin',
+            assistant_phone: '-'
+          });
+          return;
+        }
+
+        if (profData.assistant_id) {
+          try {
+            const { data: assistantData, error: assistantError } = await supabase
+              .from('assistants')
+              .select('*')
+              .eq('id', profData.assistant_id)
+              .maybeSingle();
+
+            if (assistantError && assistantError.code !== 'PGRST116') {
+              setClinicInfo({
+                clinic_name: 'Asistan bilgilerine erişilemiyor',
+                assistant_name: 'Lütfen sistem yöneticinizle iletişime geçin',
+                assistant_phone: '-'
+              });
+              return;
+            }
+
+            if (assistantData) {
+              setClinicInfo({
+                clinic_name: assistantData.clinic_name || 'Klinik adı belirtilmemiş',
+                assistant_name: assistantData.full_name || 'İsim belirtilmemiş',
+                assistant_phone: assistantData.phone || '-'
+              });
+            } else {
+              setClinicInfo({
+                clinic_name: 'Asistan bulunamadı',
+                assistant_name: 'Lütfen sistem yöneticinizle iletişime geçin',
+                assistant_phone: '-'
+              });
+            }
+          } catch (error) {
+            setClinicInfo({
+              clinic_name: 'Asistan bilgilerine erişilemiyor',
+              assistant_name: 'Lütfen sistem yöneticinizle iletişime geçin',
+              assistant_phone: '-'
+            });
+          }
+        } else if (assistant) {
+          setClinicInfo({
+            clinic_name: assistant.clinic_name || 'Klinik adı belirtilmemiş',
+            assistant_name: assistant.full_name || 'İsim belirtilmemiş',
+            assistant_phone: assistant.phone || '-'
+          });
+        } else {
+          setClinicInfo({
+            clinic_name: 'Asistan atanmamış',
+            assistant_name: 'Lütfen sistem yöneticinizle iletişime geçin',
+            assistant_phone: '-'
+          });
+        }
+      } else if (assistant) {
         setClinicInfo({
           clinic_name: assistant.clinic_name || 'Klinik adı belirtilmemiş',
           assistant_name: assistant.full_name || 'İsim belirtilmemiş',
+          assistant_phone: assistant.phone || '-'
         });
-        return;
-      }
-      
-      // Profesyonel ise, bağlı olduğu asistanın bilgilerini yükle
-      if (!professional?.id) return;
-
-      // Ruh sağlığı uzmanının bağlı olduğu asistanı al
-      const { data: profData, error: profError } = await supabase
-        .from('professionals')
-        .select('assistant_id')
-        .eq('id', professional.id)
-        .single();
-
-      if (profError) {
-        console.error('Error loading professional:', profError);
+      } else {
         setClinicInfo({
-          clinic_name: 'Profesyonel bilgilerine erişilemiyor',
+          clinic_name: 'Kullanıcı bilgisi bulunamadı',
           assistant_name: 'Lütfen sistem yöneticinizle iletişime geçin',
+          assistant_phone: '-'
         });
-        return;
       }
-
-      if (!profData?.assistant_id) {
-        console.log('No assistant_id found for professional');
-        setClinicInfo({
-          clinic_name: 'Asistan bilgisi bulunamadı',
-          assistant_name: 'Lütfen sistem yöneticinizle iletişime geçin',
-        });
-        return;
-      }
-
-      // Asistan bilgilerini al
-      const { data: assistantData, error: assistantError } = await supabase
-        .from('assistants')
-        .select('full_name, clinic_name')
-        .eq('id', profData.assistant_id)
-        .single();
-
-      if (assistantError) {
-        console.error('Error loading assistant:', assistantError);
-        setClinicInfo({
-          clinic_name: 'Asistan bilgilerine erişilemiyor',
-          assistant_name: 'Lütfen sistem yöneticinizle iletişime geçin',
-        });
-        return;
-      }
-
-      if (!assistantData) {
-        console.log('No assistant data found');
-        setClinicInfo({
-          clinic_name: 'Asistan kaydı bulunamadı',
-          assistant_name: 'Lütfen sistem yöneticinizle iletişime geçin',
-        });
-        return;
-      }
-
-      setClinicInfo({
-        clinic_name: assistantData.clinic_name || 'Klinik adı belirtilmemiş',
-        assistant_name: assistantData.full_name || 'Asistan adı belirtilmemiş',
-      });
     } catch (error) {
-      console.error('Error loading clinic info:', error);
       setClinicInfo({
-        clinic_name: 'Bilgiler yüklenirken hata oluştu',
-        assistant_name: 'Lütfen daha sonra tekrar deneyin',
+        clinic_name: 'Klinik bilgilerine erişilemiyor',
+        assistant_name: 'Lütfen sistem yöneticinizle iletişime geçin',
+        assistant_phone: '-'
       });
     }
   }
@@ -275,83 +310,144 @@ export function Settings() {
 
   async function loadClinicHours() {
     try {
-      let query = supabase.from('clinic_settings').select('*');
-      
       if (professional) {
-        // Önce ruh sağlığı uzmanının bağlı olduğu asistanı bul
         const { data: prof, error: profError } = await supabase
           .from('professionals')
-          .select('assistant_id')
+          .select('*')
           .eq('id', professional.id)
-          .single();
-          
+          .maybeSingle();
+
         if (profError) {
-          console.error('Error loading professional:', profError);
+          console.error('Error loading professional for clinic hours:', profError);
           return;
         }
 
-        if (!prof?.assistant_id) {
-          console.log('No assistant_id found for professional');
+        if (!prof) {
+          console.error('Professional data not found for clinic hours');
           return;
         }
 
-        query = query.eq('assistant_id', prof.assistant_id);
-      } else if (assistant) {
-        query = query.eq('assistant_id', assistant.id);
-      } else {
-        return;
-      }
+        if (prof.assistant_id) {
+          const { data: assistantExists, error: assistantError } = await supabase
+            .from('assistants')
+            .select('id')
+            .eq('id', prof.assistant_id)
+            .maybeSingle();
 
-      query = query.order('created_at', { ascending: false }).limit(1);
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Error loading clinic hours:', error);
-        return;
-      }
-
-      if (data && data.length > 0) {
-        setClinicHours({
-          pazartesi: {
-            opening: data[0].opening_time_monday,
-            closing: data[0].closing_time_monday,
-            isOpen: data[0].is_open_monday ?? true
-          },
-          sali: {
-            opening: data[0].opening_time_tuesday,
-            closing: data[0].closing_time_tuesday,
-            isOpen: data[0].is_open_tuesday ?? true
-          },
-          carsamba: {
-            opening: data[0].opening_time_wednesday,
-            closing: data[0].closing_time_wednesday,
-            isOpen: data[0].is_open_wednesday ?? true
-          },
-          persembe: {
-            opening: data[0].opening_time_thursday,
-            closing: data[0].closing_time_thursday,
-            isOpen: data[0].is_open_thursday ?? true
-          },
-          cuma: {
-            opening: data[0].opening_time_friday,
-            closing: data[0].closing_time_friday,
-            isOpen: data[0].is_open_friday ?? true
-          },
-          cumartesi: {
-            opening: data[0].opening_time_saturday,
-            closing: data[0].closing_time_saturday,
-            isOpen: data[0].is_open_saturday ?? false
-          },
-          pazar: {
-            opening: data[0].opening_time_sunday,
-            closing: data[0].closing_time_sunday,
-            isOpen: data[0].is_open_sunday ?? false
+          if (assistantError && assistantError.code !== 'PGRST116') {
+            console.error('Error checking assistant existence:', assistantError);
+            return;
           }
-        });
+
+          if (!assistantExists) {
+            return;
+          }
+
+          const { data: clinicSettings, error: settingsError } = await supabase
+            .from('clinic_settings')
+            .select('*')
+            .eq('assistant_id', prof.assistant_id)
+            .maybeSingle();
+
+          if (settingsError) {
+            console.error('Error loading clinic settings:', settingsError);
+            return;
+          }
+
+          if (clinicSettings) {
+            setClinicHours({
+              pazartesi: {
+                opening: clinicSettings.opening_time_monday || '09:00',
+                closing: clinicSettings.closing_time_monday || '18:00',
+                isOpen: clinicSettings.is_open_monday || false
+              },
+              sali: {
+                opening: clinicSettings.opening_time_tuesday || '09:00',
+                closing: clinicSettings.closing_time_tuesday || '18:00',
+                isOpen: clinicSettings.is_open_tuesday || false
+              },
+              carsamba: {
+                opening: clinicSettings.opening_time_wednesday || '09:00',
+                closing: clinicSettings.closing_time_wednesday || '18:00',
+                isOpen: clinicSettings.is_open_wednesday || false
+              },
+              persembe: {
+                opening: clinicSettings.opening_time_thursday || '09:00',
+                closing: clinicSettings.closing_time_thursday || '18:00',
+                isOpen: clinicSettings.is_open_thursday || false
+              },
+              cuma: {
+                opening: clinicSettings.opening_time_friday || '09:00',
+                closing: clinicSettings.closing_time_friday || '18:00',
+                isOpen: clinicSettings.is_open_friday || false
+              },
+              cumartesi: {
+                opening: clinicSettings.opening_time_saturday || '09:00',
+                closing: clinicSettings.closing_time_saturday || '18:00',
+                isOpen: clinicSettings.is_open_saturday || false
+              },
+              pazar: {
+                opening: clinicSettings.opening_time_sunday || '09:00',
+                closing: clinicSettings.closing_time_sunday || '18:00',
+                isOpen: clinicSettings.is_open_sunday || false
+              }
+            });
+          }
+        }
+      } else if (assistant) {
+        const { data: clinicSettings, error: settingsError } = await supabase
+          .from('clinic_settings')
+          .select('*')
+          .eq('assistant_id', assistant.id)
+          .maybeSingle();
+
+        if (settingsError) {
+          console.error('Error loading clinic settings for assistant:', settingsError);
+          return;
+        }
+
+        if (clinicSettings) {
+          setClinicHours({
+            pazartesi: {
+              opening: clinicSettings.opening_time_monday || '09:00',
+              closing: clinicSettings.closing_time_monday || '18:00',
+              isOpen: clinicSettings.is_open_monday || false
+            },
+            sali: {
+              opening: clinicSettings.opening_time_tuesday || '09:00',
+              closing: clinicSettings.closing_time_tuesday || '18:00',
+              isOpen: clinicSettings.is_open_tuesday || false
+            },
+            carsamba: {
+              opening: clinicSettings.opening_time_wednesday || '09:00',
+              closing: clinicSettings.closing_time_wednesday || '18:00',
+              isOpen: clinicSettings.is_open_wednesday || false
+            },
+            persembe: {
+              opening: clinicSettings.opening_time_thursday || '09:00',
+              closing: clinicSettings.closing_time_thursday || '18:00',
+              isOpen: clinicSettings.is_open_thursday || false
+            },
+            cuma: {
+              opening: clinicSettings.opening_time_friday || '09:00',
+              closing: clinicSettings.closing_time_friday || '18:00',
+              isOpen: clinicSettings.is_open_friday || false
+            },
+            cumartesi: {
+              opening: clinicSettings.opening_time_saturday || '09:00',
+              closing: clinicSettings.closing_time_saturday || '18:00',
+              isOpen: clinicSettings.is_open_saturday || false
+            },
+            pazar: {
+              opening: clinicSettings.opening_time_sunday || '09:00',
+              closing: clinicSettings.closing_time_sunday || '18:00',
+              isOpen: clinicSettings.is_open_sunday || false
+            }
+          });
+        }
       }
     } catch (error) {
-      console.error('Error loading clinic hours:', error);
+      console.error('Error in loadClinicHours:', error);
     }
   }
 
@@ -1073,29 +1169,41 @@ export function Settings() {
             Klinik Bilgileri
           </h2>
           <div className="space-y-2">
-                {clinicInfo.clinic_name && clinicInfo.clinic_name !== 'Asistan kaydı bulunamadı' ? (
-                  <>
-              <p className="flex items-center text-gray-600 dark:text-gray-400">
-                <Building2 className="h-5 w-5 mr-2" />
-                {clinicInfo.clinic_name}
-              </p>
-            {clinicInfo.assistant_name && (
-              <p className="flex items-center text-gray-600 dark:text-gray-400">
-                <User className="h-5 w-5 mr-2" />
-                Asistan: {clinicInfo.assistant_name}
-              </p>
-            )}
-                  </>
-                ) : (
-                  <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                    <p className="text-yellow-700 dark:text-yellow-400 font-medium">
-                      Henüz bir asistana bağlı değilsiniz
-                    </p>
-                    <p className="text-yellow-600 dark:text-yellow-300 text-sm mt-1">
-                      Bir asistan tarafından sisteme eklenmeniz gerekiyor. Lütfen klinik yöneticinizle iletişime geçin.
-                    </p>
-                  </div>
+            {clinicInfo.clinic_name && clinicInfo.clinic_name !== 'Asistan kaydı bulunamadı' ? (
+              <>
+                <p className="flex items-center text-gray-600 dark:text-gray-400">
+                  <Building2 className="h-5 w-5 mr-2" />
+                  {clinicInfo.clinic_name}
+                </p>
+                {clinicInfo.assistant_name && (
+                  <p className="flex items-center text-gray-600 dark:text-gray-400">
+                    <User className="h-5 w-5 mr-2" />
+                    Asistan: {clinicInfo.assistant_name}
+                  </p>
                 )}
+                {clinicInfo.assistant_phone && (
+                  <p className="flex items-center text-gray-600 dark:text-gray-400">
+                    <Phone className="h-5 w-5 mr-2" />
+                    {clinicInfo.assistant_phone}
+                  </p>
+                )}
+                {!clinicInfo.assistant_phone && (
+                  <p className="flex items-center text-gray-600 dark:text-gray-400">
+                    <Phone className="h-5 w-5 mr-2" />
+                    -
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                <p className="text-yellow-700 dark:text-yellow-400 font-medium">
+                  Henüz bir asistana bağlı değilsiniz
+                </p>
+                <p className="text-yellow-600 dark:text-yellow-300 text-sm mt-1">
+                  Bir asistan tarafından sisteme eklenmeniz gerekiyor. Lütfen klinik yöneticinizle iletişime geçin.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1172,21 +1280,17 @@ export function Settings() {
             </div>
           </div>
               ) : (
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50">
-                    <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                      Klinik Çalışma Saatleri
-                    </h2>
-                  </div>
-                  <div className="p-6">
-                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                      <p className="text-yellow-700 dark:text-yellow-400">
-                        Klinik çalışma saatleri görüntülenemiyor
-                      </p>
-                      <p className="text-yellow-600 dark:text-yellow-300 text-sm mt-1">
-                        Bir kliniğe bağlı olmadığınız için klinik çalışma saatleri görüntülenemiyor.
-                      </p>
-                    </div>
+                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
+                  <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
+                    Klinik Çalışma Saatleri
+                  </h2>
+                  <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                    <p className="text-yellow-700 dark:text-yellow-400 font-medium">
+                      Klinik çalışma saatleri bilgisi bulunamadı
+                    </p>
+                    <p className="text-yellow-600 dark:text-yellow-300 text-sm mt-1">
+                      Bir asistana bağlı olduğunuzda klinik çalışma saatlerini görebilirsiniz.
+                    </p>
                   </div>
                 </div>
               )}
@@ -1260,7 +1364,7 @@ export function Settings() {
       </div>
 
       {/* Çalışma Saatleri */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
           <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
             Çalışma Saatleri
@@ -1298,7 +1402,7 @@ export function Settings() {
       </div>
 
       {/* Odalar */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
             Odalar

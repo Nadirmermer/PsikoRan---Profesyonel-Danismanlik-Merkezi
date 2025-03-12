@@ -261,6 +261,11 @@ CREATE POLICY "Allow anon to insert assistants during signup" ON assistants
   FOR INSERT TO anon
   WITH CHECK (true);
 
+-- Profesyonellerin kendi asistanlarının verilerine erişebilmesi için politika
+CREATE POLICY "Professionals can view any assistant" ON assistants
+  FOR SELECT TO authenticated
+  USING (true);  -- Tüm asistanlara erişim ver (geliştirme aşamasında)
+
 -- Professional policies
 CREATE POLICY "View professionals policy" ON professionals
   FOR SELECT TO authenticated

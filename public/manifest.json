@@ -1,6 +1,6 @@
 {
-  "short_name": "${import.meta.env.VITE_APP_NAME}",
-  "name": "${import.meta.env.VITE_APP_NAME} - ${import.meta.env.VITE_APP_DESCRIPTION}",
+  "short_name": "PsiRan",
+  "name": "PsiRan - Profesyonel Danışmanlık Merkezi",
   "icons": [
     {
       "src": "favicon.ico",
