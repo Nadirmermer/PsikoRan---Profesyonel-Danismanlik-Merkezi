@@ -1297,7 +1297,7 @@ export function Dashboard() {
             <CreateAppointmentModal
               isOpen={showCreateModal}
               onClose={() => setShowCreateModal(false)}
-              onSuccess={() => {
+              onAppointmentCreated={() => {
                 if (professional) {
                   loadProfessionalData();
                 } else if (assistant) {
@@ -1545,7 +1545,7 @@ export function Dashboard() {
           <CreateAppointmentModal
             isOpen={showCreateModal}
             onClose={() => setShowCreateModal(false)}
-            onSuccess={() => {
+            onAppointmentCreated={() => {
               if (professional) {
                 loadProfessionalData();
               } else if (assistant) {

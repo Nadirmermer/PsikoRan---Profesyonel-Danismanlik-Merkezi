@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { format, addWeeks, addMonths, startOfToday, isBefore, isAfter, isSameDay, addMinutes } from 'date-fns';
-import { Search, Calendar, Clock, Users, Home, FileText, RefreshCw, X } from 'react-feather';
+import { Search, Calendar, Clock, Users, Home, FileText, RefreshCw, X, ArrowRight } from 'react-feather';
+import { MantineProvider } from '@mantine/core';
 import { DatePicker } from '@mantine/dates';
-import { MantineProvider, MantineTheme, createTheme } from '@mantine/core';
 import { tr } from 'date-fns/locale';
 import dayjs from 'dayjs';
 import 'dayjs/locale/tr';
@@ -16,7 +16,7 @@ dayjs.locale('tr');
 interface CreateAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onAppointmentCreated: () => void;
   clinicHours: {
     pazartesi: { opening: string; closing: string; isOpen: boolean };
     sali: { opening: string; closing: string; isOpen: boolean };
@@ -45,11 +45,18 @@ interface ProfessionalWorkingHours {
   pazar: { opening: string; closing: string; isOpen: boolean };
 }
 
+// Room tipini tanımla
+interface Room {
+  id: number;
+  name: string;
+  capacity?: number;
+}
+
 function AlertModal({ isOpen, onClose, title, message }: AlertModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-md p-6 border border-gray-200/50 dark:border-gray-700/50">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
@@ -84,10 +91,27 @@ function isTimeBeforeCurrent(time: string, selectedDate: Date | null) {
   
   const now = new Date();
   const [hours, minutes] = time.split(':').map(Number);
+  
+  // Seçilen tarihi al ve saat bilgisini ayarla
   const timeDate = new Date(selectedDate);
   timeDate.setHours(hours, minutes, 0, 0);
 
-  return timeDate <= now;
+  // Sadece tarihleri karşılaştır (saat bilgisi olmadan)
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const selectedDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+  
+  // Eğer seçilen tarih bugünden sonra ise, hiçbir saat devre dışı bırakılmamalı
+  if (selectedDay > today) {
+    return false;
+  }
+  
+  // Eğer seçilen tarih bugün ise, sadece şu anki saatten önceki saatler devre dışı bırakılmalı
+  if (selectedDay.getTime() === today.getTime()) {
+    return timeDate <= now;
+  }
+  
+  // Eğer seçilen tarih bugünden önce ise, tüm saatler devre dışı bırakılmalı
+  return true;
 }
 
 // Yardımcı fonksiyon: Ruh sağlığı uzmanının belirli bir zaman diliminde randevusu var mı kontrol et
@@ -100,21 +124,28 @@ function hasProfessionalAppointment(
 ) {
   if (!professionalId) return false;
 
+  // Seçilen zaman aralığını oluştur
   const appointmentStart = new Date(selectedDate);
   const [hours, minutes] = time.split(':').map(Number);
   appointmentStart.setHours(hours, minutes, 0, 0);
   
   const appointmentEnd = new Date(appointmentStart.getTime() + parseInt(duration) * 60000);
 
+  // Mevcut randevulardan çakışma olup olmadığını kontrol et
   return existingAppointments.some(appointment => {
+    // Ruh sağlığı uzmanı ID'sini karşılaştır
     if (appointment.professional_id !== professionalId) return false;
 
     const existingStart = new Date(appointment.start_time);
     const existingEnd = new Date(appointment.end_time);
 
+    // Zaman çakışması kontrolü
     return (
+      // Başlangıç saati mevcut bir randevunun içinde mi?
       (appointmentStart >= existingStart && appointmentStart < existingEnd) ||
+      // Bitiş saati mevcut bir randevunun içinde mi?
       (appointmentEnd > existingStart && appointmentEnd <= existingEnd) ||
+      // Mevcut randevu yeni randevunun içinde mi?
       (appointmentStart <= existingStart && appointmentEnd >= existingEnd)
     );
   });
@@ -123,7 +154,7 @@ function hasProfessionalAppointment(
 export function CreateAppointmentModal({
   isOpen,
   onClose,
-  onSuccess,
+  onAppointmentCreated,
   clinicHours,
 }: CreateAppointmentModalProps) {
   const [loading, setLoading] = useState(false);
@@ -135,9 +166,9 @@ export function CreateAppointmentModal({
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>('');
-  const [selectedRoom, setSelectedRoom] = useState<string>('');
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
-  const [availableRooms, setAvailableRooms] = useState<any[]>([]);
+  const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
   const [existingAppointments, setExistingAppointments] = useState<any[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
   const [alertModal, setAlertModal] = useState<{
@@ -215,40 +246,80 @@ export function CreateAppointmentModal({
 
   async function loadExistingAppointments(date: string) {
     try {
+      console.log(`${date} tarihindeki randevular yükleniyor...`);
+      
+      // Tarih aralığını genişlet (seçilen günün tamamı)
       const startTime = new Date(date);
       startTime.setHours(0, 0, 0, 0);
-      
+
       const endTime = new Date(date);
       endTime.setHours(23, 59, 59, 999);
 
-      // Temel sorguyu oluştur
-      const baseQuery = supabase
+      // Supabase sorgusu
+      let query = supabase
         .from('appointments')
-        .select(`
-          id,
-          start_time,
-          end_time,
-          room_id,
-          professional_id,
-          client:clients(id, full_name),
-          professional:professionals(id, full_name),
-          room:rooms(id, name, capacity)
-        `)
+        .select('*, client:clients(full_name)')
         .gte('start_time', startTime.toISOString())
         .lte('start_time', endTime.toISOString())
         .eq('status', 'scheduled');
 
-      // Ruh sağlığı uzmanı ise sadece kendi randevularını görsün
-      const query = professional 
-        ? baseQuery.eq('professional_id', professional.id)
-        : baseQuery;
+      // Eğer bir profesyonel seçilmişse, sadece onun randevularını getir
+      if (selectedProfessionalId) {
+        query = query.eq('professional_id', selectedProfessionalId);
+      }
 
       const { data, error } = await query;
-      if (error) throw error;
 
+      if (error) {
+        console.error('Randevular yüklenirken hata:', error);
+        throw error;
+      }
+
+      console.log(`${date} tarihinde ${data?.length || 0} randevu bulundu`);
+      
+      if (selectedProfessionalId) {
+        const professionalAppointments = data?.filter(
+          appointment => appointment.professional_id === selectedProfessionalId
+        ) || [];
+        
+        console.log(`${selectedProfessionalId} ID'li ruh sağlığı uzmanının ${professionalAppointments.length} randevusu var`);
+      }
+
+      // Mevcut randevuları state'e kaydet
       setExistingAppointments(data || []);
+      
+      // Eğer tarih ve saat seçilmişse, müsait saatleri ve odaları güncelle
+      if (selectedDate && selectedTime) {
+        const availableTimes = calculateAvailableTimeSlots(selectedDate);
+        setAvailableTimeSlots(availableTimes);
+        
+        // Eğer seçilen saat artık müsait değilse, seçimi temizle
+        if (selectedTime && !availableTimes.includes(selectedTime)) {
+          setSelectedTime('');
+          setSelectedRoom(null);
+          setAlertModal({
+            isOpen: true,
+            title: 'Uyarı',
+            message: 'Seçtiğiniz saat artık müsait değil. Lütfen başka bir saat seçin.'
+          });
+        } else if (selectedTime) {
+          // Seçilen saatte müsait odaları hesapla
+          const availableRooms = calculateAvailableRooms(selectedDate, selectedTime);
+          setAvailableRooms(availableRooms);
+          
+          // Eğer seçilen oda artık müsait değilse, seçimi temizle
+          if (selectedRoom && !availableRooms.some(room => room.id === selectedRoom.id)) {
+            setSelectedRoom(null);
+            setAlertModal({
+              isOpen: true,
+              title: 'Uyarı',
+              message: 'Seçtiğiniz oda artık müsait değil. Lütfen başka bir oda seçin.'
+            });
+          }
+        }
+      }
     } catch (error) {
-      console.error('Error loading existing appointments:', error);
+      console.error('Randevular yüklenirken hata:', error);
       setAlertModal({
         isOpen: true,
         title: 'Hata',
@@ -267,7 +338,7 @@ export function CreateAppointmentModal({
   };
 
   useEffect(() => {
-    if (searchTerm) {
+    if (searchTerm && !selectedClient) {
       const filtered = clients.filter(client =>
         client.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -275,53 +346,147 @@ export function CreateAppointmentModal({
         client.professional?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredClients(filtered);
-    } else {
+    } else if (!searchTerm) {
       setFilteredClients(clients);
+    } else {
+      // Eğer bir danışan seçilmişse ve arama terimi varsa, filtreleme listesini temizle
+      setFilteredClients([]);
     }
-  }, [searchTerm, clients]);
+  }, [searchTerm, clients, selectedClient]);
 
   function calculateAvailableTimeSlots(date: Date) {
     const dayOfWeek = date.getDay();
     const days = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'] as const;
     const currentDay = days[dayOfWeek];
     
-    let openingHour, closingHour;
-
+    console.log(`${date.toLocaleDateString()} (${currentDay}) için müsait saatler hesaplanıyor...`);
+    
     // Hem ruh sağlığı uzmanı hem de klinik saatlerini kontrol et
     const profHours = professionalWorkingHours?.[currentDay];
     const clinicDayHours = clinicHours[currentDay];
 
-    if (!profHours?.isOpen || !clinicDayHours.isOpen) return [];
+    // Eğer herhangi biri çalışmıyorsa, boş liste döndür
+    if (!profHours?.isOpen || !clinicDayHours.isOpen) {
+      console.log(`Klinik veya ruh sağlığı uzmanı ${currentDay} günü çalışmıyor. Klinik: ${clinicDayHours.isOpen ? 'Açık' : 'Kapalı'}, Uzman: ${profHours?.isOpen ? 'Açık' : 'Kapalı'}`);
+      return [];
+    }
 
     // En geç başlangıç ve en erken bitiş saatlerini al
-    const [profOpenHour] = profHours.opening.split(':').map(Number);
-    const [profCloseHour] = profHours.closing.split(':').map(Number);
-    const [clinicOpenHour] = clinicDayHours.opening.split(':').map(Number);
-    const [clinicCloseHour] = clinicDayHours.closing.split(':').map(Number);
+    // Örneğin ruh sağlığı uzmanı 10:00-18:00, klinik 09:00-17:00 arası açıksa,
+    // müsait saatler 10:00-17:00 arasında olmalı
+    const [profOpenHour, profOpenMinute = 0] = profHours.opening.split(':').map(Number);
+    const [profCloseHour, profCloseMinute = 0] = profHours.closing.split(':').map(Number);
+    const [clinicOpenHour, clinicOpenMinute = 0] = clinicDayHours.opening.split(':').map(Number);
+    const [clinicCloseHour, clinicCloseMinute = 0] = clinicDayHours.closing.split(':').map(Number);
 
-    openingHour = Math.max(profOpenHour, clinicOpenHour);
-    closingHour = Math.min(profCloseHour, clinicCloseHour);
+    console.log(`Ruh sağlığı uzmanı çalışma saatleri: ${profHours.opening}-${profHours.closing}`);
+    console.log(`Klinik çalışma saatleri: ${clinicDayHours.opening}-${clinicDayHours.closing}`);
 
+    // Başlangıç saati: Ruh sağlığı uzmanı ve klinik açılış saatlerinden en geç olanı
+    let openingHour, openingMinute;
+    if (profOpenHour > clinicOpenHour || (profOpenHour === clinicOpenHour && profOpenMinute > clinicOpenMinute)) {
+      openingHour = profOpenHour;
+      openingMinute = profOpenMinute;
+    } else {
+      openingHour = clinicOpenHour;
+      openingMinute = clinicOpenMinute;
+    }
+
+    // Bitiş saati: Ruh sağlığı uzmanı ve klinik kapanış saatlerinden en erken olanı
+    let closingHour, closingMinute;
+    if (profCloseHour < clinicCloseHour || (profCloseHour === clinicCloseHour && profCloseMinute < clinicCloseMinute)) {
+      closingHour = profCloseHour;
+      closingMinute = profCloseMinute;
+    } else {
+      closingHour = clinicCloseHour;
+      closingMinute = clinicCloseMinute;
+    }
+
+    console.log(`Hesaplanan çalışma saatleri: ${openingHour.toString().padStart(2, '0')}:${openingMinute.toString().padStart(2, '0')}-${closingHour.toString().padStart(2, '0')}:${closingMinute.toString().padStart(2, '0')}`);
+
+    // Mevcut randevuları zaman aralıklarına çevir
+    const bookedTimeRanges: Array<{start: Date, end: Date}> = [];
+    
+    // Ruh sağlığı uzmanının randevularını bul
+    if (existingAppointments && selectedProfessionalId) {
+      const professionalAppointments = existingAppointments.filter(
+        appointment => appointment.professional_id === selectedProfessionalId
+      );
+      
+      console.log(`Ruh sağlığı uzmanının ${professionalAppointments.length} randevusu var`);
+      
+      professionalAppointments.forEach(appointment => {
+        const start = new Date(appointment.start_time);
+        const end = new Date(appointment.end_time);
+        console.log(`Mevcut randevu: ${start.toLocaleTimeString()} - ${end.toLocaleTimeString()} (${appointment.client?.full_name || 'İsimsiz'})`);
+        
+        bookedTimeRanges.push({
+          start,
+          end
+        });
+      });
+    }
+
+    // Müsait zaman dilimlerini oluştur (15'er dakikalık aralıklarla)
     const slots: string[] = [];
+    const unavailableSlots: string[] = [];
     let currentHour = openingHour;
-    let currentMinute = 0;
+    let currentMinute = openingMinute;
+    
+    // Dakikaları 15'in katına yuvarla
+    currentMinute = Math.ceil(currentMinute / 15) * 15;
+    if (currentMinute >= 60) {
+      currentHour += 1;
+      currentMinute = 0;
+    }
 
-    while (currentHour < closingHour || (currentHour === closingHour && currentMinute === 0)) {
+    // Şu anki saat
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const selectedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const isToday = selectedDay.getTime() === today.getTime();
+
+    // Bitiş saati kontrolü için
+    const endTimeInMinutes = closingHour * 60 + closingMinute;
+
+    while (currentHour * 60 + currentMinute < endTimeInMinutes) {
       const timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
       
-      // Ruh sağlığı uzmanının bu saatte başka randevusu var mı kontrol et
-      const hasConflict = hasProfessionalAppointment(
-        timeString,
-        date,
-        existingAppointments,
-        selectedProfessionalId,
-        duration
-      );
+      // Bu saat diliminde randevu oluştur
+      const appointmentStart = new Date(date);
+      appointmentStart.setHours(currentHour, currentMinute, 0, 0);
+      const appointmentEnd = new Date(appointmentStart.getTime() + parseInt(duration) * 60000);
+      
+      // Geçmiş saat kontrolü
+      let isPastTime = false;
+      if (isToday) {
+        isPastTime = appointmentStart <= now;
+        if (isPastTime) {
+          unavailableSlots.push(`${timeString} (geçmiş saat)`);
+        }
+      }
+      
+      // Çakışma kontrolü yap
+      const hasConflict = bookedTimeRanges.some(range => {
+        const conflict = (
+          (appointmentStart >= range.start && appointmentStart < range.end) ||
+          (appointmentEnd > range.start && appointmentEnd <= range.end) ||
+          (appointmentStart <= range.start && appointmentEnd >= range.end)
+        );
+        
+        if (conflict) {
+          unavailableSlots.push(`${timeString} (çakışma: ${range.start.toLocaleTimeString()}-${range.end.toLocaleTimeString()})`);
+        }
+        
+        return conflict;
+      });
 
-      if (!hasConflict) {
+      // Eğer çakışma yoksa ve geçmiş saat değilse, zaman dilimini ekle
+      if (!hasConflict && !isPastTime) {
         slots.push(timeString);
       }
 
+      // 15 dakika ekle
       currentMinute += 15;
       if (currentMinute >= 60) {
         currentHour += 1;
@@ -329,44 +494,68 @@ export function CreateAppointmentModal({
       }
     }
 
+    console.log(`Müsait olmayan saatler (${unavailableSlots.length}):`, unavailableSlots);
+    console.log(`Müsait saatler (${slots.length}):`, slots);
+
     return slots;
   }
 
-  function calculateAvailableRooms(date: string, timeSlot: string) {
-    if (!rooms.length || !date || !timeSlot) return [];
-
-    const startTime = new Date(date);
-    const [hours, minutes] = timeSlot.split(':').map(Number);
-    startTime.setHours(hours, minutes, 0, 0);
+  function calculateAvailableRooms(date: Date, time: string) {
+    console.log(`${date.toLocaleDateString()} ${time} için müsait odalar hesaplanıyor...`);
     
-    const endTime = new Date(startTime.getTime() + parseInt(duration) * 60000);
+    if (!date || !time) {
+      console.log('Tarih veya saat seçilmediği için odalar hesaplanamıyor');
+      return [];
+    }
 
-    return rooms.filter(room => {
-      // O saatteki randevuları bul
-      const overlappingAppointments = existingAppointments.filter(appointment => {
-        const appointmentStart = new Date(appointment.start_time);
-        const appointmentEnd = new Date(appointment.end_time);
+    // Seçilen tarih ve saate göre randevu başlangıç ve bitiş zamanlarını hesapla
+    const appointmentStart = new Date(date);
+    const [hours, minutes] = time.split(':').map(Number);
+    appointmentStart.setHours(hours, minutes, 0, 0);
+    const appointmentEnd = new Date(appointmentStart.getTime() + parseInt(duration) * 60000);
 
-        // Zaman çakışması kontrolü
-        const hasTimeOverlap = (
-          (startTime >= appointmentStart && startTime < appointmentEnd) ||
-          (endTime > appointmentStart && endTime <= appointmentEnd) ||
-          (startTime <= appointmentStart && endTime >= appointmentEnd)
+    console.log(`Randevu süresi: ${duration} dakika`);
+    console.log(`Randevu başlangıç: ${appointmentStart.toLocaleString()}`);
+    console.log(`Randevu bitiş: ${appointmentEnd.toLocaleString()}`);
+
+    // Tüm odaları al
+    const allRooms = rooms || [];
+    console.log(`Toplam oda sayısı: ${allRooms.length}`);
+
+    // Dolu odaları bul
+    const bookedRooms: number[] = [];
+    
+    if (existingAppointments) {
+      // Seçilen zaman aralığında çakışan randevuları bul
+      const conflictingAppointments = existingAppointments.filter(appointment => {
+        const start = new Date(appointment.start_time);
+        const end = new Date(appointment.end_time);
+        
+        return (
+          (appointmentStart >= start && appointmentStart < end) ||
+          (appointmentEnd > start && appointmentEnd <= end) ||
+          (appointmentStart <= start && appointmentEnd >= end)
         );
-
-        // Aynı oda kontrolü
-        return appointment.room_id === room.id && hasTimeOverlap;
       });
+      
+      console.log(`Bu zaman aralığında ${conflictingAppointments.length} çakışan randevu var`);
+      
+      // Çakışan randevuların odalarını listeye ekle
+      conflictingAppointments.forEach(appointment => {
+        if (appointment.room_id) {
+          console.log(`Dolu oda: ${appointment.room_id} (${appointment.client?.full_name || 'İsimsiz'} - ${new Date(appointment.start_time).toLocaleTimeString()}-${new Date(appointment.end_time).toLocaleTimeString()})`);
+          bookedRooms.push(appointment.room_id);
+        }
+      });
+    }
 
-      // Oda kapasitesi kontrolü
-      if (room.capacity === 1) {
-        return overlappingAppointments.length === 0;
-      }
-
-      // Çoklu kapasiteli odalar için
-      const availableCapacity = room.capacity - overlappingAppointments.length;
-      return availableCapacity > 0;
-    });
+    // Müsait odaları hesapla
+    const availableRooms = allRooms.filter(room => !bookedRooms.includes(room.id));
+    
+    console.log(`Dolu odalar (${bookedRooms.length}):`, bookedRooms);
+    console.log(`Müsait odalar (${availableRooms.length}):`, availableRooms.map(r => r.name));
+    
+    return availableRooms;
   }
 
   const handleClientSelect = async (client: any) => {
@@ -374,7 +563,7 @@ export function CreateAppointmentModal({
     setSearchTerm(client.full_name);
     setSelectedDate(null);
     setSelectedTime('');
-    setSelectedRoom('');
+    setSelectedRoom(null);
     setFilteredClients([]);
     
     // Seçilen danışanın ruh sağlığı uzmanının ID'sini kaydet
@@ -383,7 +572,16 @@ export function CreateAppointmentModal({
     
     // Ruh sağlığı uzmanının çalışma saatlerini yükle
     if (professionalId) {
-      await loadProfessionalWorkingHours(professionalId);
+      try {
+        await loadProfessionalWorkingHours(professionalId);
+      } catch (error) {
+        console.error('Error loading professional working hours:', error);
+        setAlertModal({
+          isOpen: true,
+          title: 'Hata',
+          message: 'Ruh sağlığı uzmanının çalışma saatleri yüklenirken bir hata oluştu.'
+        });
+      }
     } else {
       setAlertModal({
         isOpen: true,
@@ -393,16 +591,55 @@ export function CreateAppointmentModal({
     }
   };
 
+  // Günün müsait olup olmadığını kontrol eden fonksiyon
+  const isDateAvailable = (date: Date) => {
+    // Danışan seçilmemişse, tarih müsait değil
+    if (!selectedClient) return false;
+    
+    // Ruh sağlığı uzmanı bilgileri yoksa, tarih müsait değil
+    if (!selectedProfessionalId || !professionalWorkingHours) return false;
+
+    const dayOfWeek = date.getDay();
+    const days = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'] as const;
+    const currentDay = days[dayOfWeek];
+    
+    // Klinik ve ruh sağlığı uzmanı için o günün çalışma bilgilerini al
+    const clinicDay = clinicHours[currentDay];
+    const profDay = professionalWorkingHours[currentDay];
+
+    // İkisinden biri çalışmıyorsa veya bilgileri yoksa, tarih müsait değil
+    if (!clinicDay || !profDay) return false;
+    
+    // İkisi de çalışıyorsa, tarih müsait
+    return clinicDay.isOpen && profDay.isOpen;
+  };
+
   const handleDateSelect = async (date: Date | null) => {
     if (!date) return;
     
+    // Danışan seçilmemişse işlemi durdur
+    if (!selectedClient) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Danışan Seçilmedi',
+        message: 'Lütfen önce bir danışan seçin. Randevu oluşturmak için öncelikle danışan seçilmelidir.'
+      });
+      return;
+    }
+    
     // Önce tarihin geçerli olup olmadığını kontrol et
     const now = new Date();
-    if (date < now) {
+    
+    // Sadece tarihleri karşılaştır (saat bilgisi olmadan)
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const selectedDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    // Geçmiş tarih kontrolü
+    if (selectedDay < today) {
       setAlertModal({
         isOpen: true,
         title: 'Geçersiz Tarih',
-        message: 'Geçmiş bir tarih seçemezsiniz.'
+        message: 'Geçmiş bir tarih seçemezsiniz. Lütfen bugün veya gelecek bir tarih seçin.'
       });
       return;
     }
@@ -412,209 +649,327 @@ export function CreateAppointmentModal({
       setAlertModal({
         isOpen: true,
         title: 'Uygun Değil',
-        message: 'Seçilen tarihte klinik veya ruh sağlığı uzmanı çalışmıyor.'
+        message: `Seçilen tarihte klinik veya ${selectedClient.professional?.full_name || 'ruh sağlığı uzmanı'} çalışmıyor.`
       });
       return;
     }
     
+    // Tarih seçimini kaydet ve diğer değerleri sıfırla
     setSelectedDate(date);
     setSelectedTime('');
-    setSelectedRoom('');
+    setSelectedRoom(null);
     
+    // Seçilen tarih için mevcut randevuları yükle
     try {
-      // Önce mevcut randevuları yükle
       await loadExistingAppointments(date.toISOString().split('T')[0]);
       
       // Müsait saatleri hesapla
-      const availableSlots = calculateAvailableTimeSlots(date);
-      setAvailableTimeSlots(availableSlots);
-
-      // Eğer müsait saat yoksa kullanıcıyı bilgilendir
-      if (availableSlots.length === 0) {
-        setAlertModal({
-          isOpen: true,
-          title: 'Müsait Saat Yok',
-          message: 'Seçilen tarihte müsait saat bulunmuyor. Lütfen başka bir tarih seçin.'
-        });
-      }
+      const availableTimes = calculateAvailableTimeSlots(date);
+      setAvailableTimeSlots(availableTimes);
+      
+      console.log(`${availableTimes.length} adet müsait saat bulundu:`, availableTimes);
     } catch (error) {
-      console.error('Error in handleDateSelect:', error);
+      console.error('Randevular yüklenirken hata:', error);
       setAlertModal({
         isOpen: true,
         title: 'Hata',
-        message: 'Müsait saatler hesaplanırken bir hata oluştu. Lütfen tekrar deneyin.'
+        message: 'Randevular yüklenirken bir hata oluştu.'
       });
     }
   };
 
-  const handleTimeSelect = (time: string) => {
-    // Geçmiş saat kontrolü
-    if (isTimeBeforeCurrent(time, selectedDate)) {
+  function handleTimeSelect(time: string) {
+    console.log(`Seçilen saat: ${time}`);
+    
+    // Seçilen saatin gerçekten müsait olup olmadığını kontrol et
+    const availableTimes = calculateAvailableTimeSlots(selectedDate);
+    
+    if (!availableTimes.includes(time)) {
+      console.error(`Seçilen saat (${time}) müsait değil!`);
       setAlertModal({
         isOpen: true,
-        title: 'Geçersiz Saat',
-        message: 'Geçmiş bir saat seçemezsiniz.'
+        title: 'Hata',
+        message: 'Bu saat dilimi dolu veya geçmiş bir zaman. Lütfen başka bir saat seçin.'
       });
       return;
     }
-
-    // Ruh sağlığı uzmanının müsaitlik kontrolü
-    const hasConflict = hasProfessionalAppointment(
-      time,
-      selectedDate!,
-      existingAppointments,
-      selectedProfessionalId,
-      duration
-    );
-
-    if (hasConflict) {
-      setAlertModal({
-        isOpen: true,
-        title: 'Uygun Değil',
-        message: 'Seçilen saatte ruh sağlığı uzmanının başka bir randevusu var.'
-      });
-      return;
-    }
-
+    
     setSelectedTime(time);
-    setSelectedRoom('');
-    if (selectedDate) {
-      const date = selectedDate.toISOString().split('T')[0];
-      const availableRooms = calculateAvailableRooms(date, time);
-      setAvailableRooms(availableRooms);
-
-      if (availableRooms.length === 0) {
-        setAlertModal({
-          isOpen: true,
-          title: 'Müsait Oda Yok',
-          message: 'Seçilen saatte müsait oda bulunmuyor. Lütfen başka bir saat seçin.'
-        });
+    
+    // Seçilen saatte müsait odaları hesapla
+    const availableRooms = calculateAvailableRooms(selectedDate, time);
+    setAvailableRooms(availableRooms);
+    
+    // Eğer hiç müsait oda yoksa, kullanıcıyı uyar
+    if (availableRooms.length === 0) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Müsait Oda Yok',
+        message: 'Seçilen saatte müsait oda bulunmamaktadır. Lütfen başka bir saat seçin.'
+      });
+      setSelectedRoom(null);
+    } else {
+      // Eğer daha önce seçilmiş bir oda varsa, hala müsait mi kontrol et
+      if (selectedRoom) {
+        const isRoomStillAvailable = availableRooms.some(room => room.id === selectedRoom.id);
+        if (!isRoomStillAvailable) {
+          setSelectedRoom(null);
+          console.log(`Önceden seçilen oda (${selectedRoom.name}) artık müsait değil`);
+          setAlertModal({
+            isOpen: true,
+            title: 'Oda Müsait Değil',
+            message: 'Önceden seçtiğiniz oda artık müsait değil. Lütfen başka bir oda seçin.'
+          });
+        }
       }
     }
-  };
+  }
+
+  function handleRoomSelect(room: Room) {
+    console.log(`Seçilen oda: ${room.name} (ID: ${room.id})`);
+    
+    // Seçilen odanın gerçekten müsait olup olmadığını kontrol et
+    const availableRooms = calculateAvailableRooms(selectedDate, selectedTime);
+    
+    const isRoomAvailable = availableRooms.some(r => r.id === room.id);
+    if (!isRoomAvailable) {
+      console.error(`Seçilen oda (${room.name}) müsait değil!`);
+      setAlertModal({
+        isOpen: true,
+        title: 'Hata',
+        message: 'Bu oda seçilen saat için müsait değil. Lütfen başka bir oda seçin.'
+      });
+      return;
+    }
+    
+    setSelectedRoom(room);
+  }
+
+  // Form alanlarını sıfırlama fonksiyonu
+  function resetForm() {
+    setSelectedClient(null);
+    setSelectedProfessionalId(null);
+    setSelectedDate(null);
+    setSelectedTime('');
+    setSelectedRoom(null);
+    setSearchTerm('');
+    setFilteredClients([]);
+    setAvailableTimeSlots([]);
+    setAvailableRooms([]);
+  }
 
   async function handleCreateAppointment() {
-    if (!selectedClient || !selectedDate || !selectedTime || !selectedRoom) return;
-
-    setLoading(true);
-    try {
-      const startDateTime = new Date(selectedDate);
-      const [hours, minutes] = selectedTime.split(':').map(Number);
-      startDateTime.setHours(hours, minutes, 0, 0);
+    console.log('Randevu oluşturma işlemi başlatılıyor...');
+    
+    // Tüm gerekli alanların doldurulduğunu kontrol et
+    if (!selectedClient || !selectedProfessionalId || !selectedDate || !selectedTime || !selectedRoom) {
+      console.error('Eksik bilgi var:', {
+        client: !!selectedClient,
+        professional: !!selectedProfessionalId,
+        date: !!selectedDate,
+        time: !!selectedTime,
+        room: !!selectedRoom
+      });
       
-      const endDateTime = new Date(startDateTime.getTime() + parseInt(duration) * 60000);
+      setAlertModal({
+        isOpen: true,
+        title: 'Eksik Bilgi',
+        message: 'Lütfen tüm alanları doldurun.'
+      });
+      return;
+    }
 
-      const appointment = {
-        client_id: selectedClient.id,
-        professional_id: professional?.id || selectedClient.professional_id,
-        room_id: selectedRoom,
-        start_time: startDateTime.toISOString(),
-        end_time: endDateTime.toISOString(),
-        status: 'scheduled'
-      };
-
-      const { error } = await supabase
-        .from('appointments')
-        .insert([appointment]);
-
-      if (error) {
+    try {
+      // Randevu başlangıç ve bitiş zamanlarını hesapla
+      const startTime = new Date(selectedDate);
+      const [hours, minutes] = selectedTime.split(':').map(Number);
+      startTime.setHours(hours, minutes, 0, 0);
+      const endTime = new Date(startTime.getTime() + parseInt(duration) * 60000);
+      
+      console.log(`Randevu zamanı: ${startTime.toLocaleString()} - ${endTime.toLocaleString()}`);
+      console.log(`Seçilen oda: ${selectedRoom.name} (ID: ${selectedRoom.id})`);
+      
+      // Son bir kez daha müsaitlik kontrolü yap
+      const availableTimes = calculateAvailableTimeSlots(selectedDate);
+      if (!availableTimes.includes(selectedTime)) {
+        console.error(`Seçilen saat (${selectedTime}) artık müsait değil!`);
         setAlertModal({
           isOpen: true,
-          title: 'Hata',
-          message: 'Randevu oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.'
+          title: 'Saat Müsait Değil',
+          message: 'Seçtiğiniz saat artık müsait değil. Lütfen başka bir saat seçin.'
+        });
+        return;
+      }
+      
+      const availableRooms = calculateAvailableRooms(selectedDate, selectedTime);
+      const isRoomAvailable = availableRooms.some(r => r.id === selectedRoom.id);
+      if (!isRoomAvailable) {
+        console.error(`Seçilen oda (${selectedRoom.name}) artık müsait değil!`);
+        setAlertModal({
+          isOpen: true,
+          title: 'Oda Müsait Değil',
+          message: 'Seçtiğiniz oda artık müsait değil. Lütfen başka bir oda seçin.'
         });
         return;
       }
 
-      onSuccess();
-      onClose();
+      // Randevu verilerini hazırla
+      const appointmentData = {
+        client_id: selectedClient.id,
+        professional_id: selectedProfessionalId,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        room_id: selectedRoom.id,
+        status: 'scheduled'
+      };
+      
+      console.log('Randevu verileri:', appointmentData);
+
+      // Randevuyu oluştur
+      const { data, error } = await supabase
+        .from('appointments')
+        .insert(appointmentData)
+        .select();
+
+      if (error) {
+        console.error('Randevu oluşturma hatası:', error);
+        setAlertModal({
+          isOpen: true,
+          title: 'Hata',
+          message: `Randevu oluşturulurken bir hata oluştu: ${error.message}`
+        });
+        return;
+      }
+
+      console.log('Randevu başarıyla oluşturuldu:', data);
+      
+      // Mevcut randevuları yeniden yükle
+      if (selectedDate) {
+        await loadExistingAppointments(selectedDate.toISOString().split('T')[0]);
+      }
+      
+      // Başarılı mesajı göster
+      setAlertModal({
+        isOpen: true,
+        title: 'Başarılı',
+        message: 'Randevu başarıyla oluşturuldu.'
+      });
+
+      // Formu sıfırla ve modalı kapat
+      resetForm();
+      onAppointmentCreated();
     } catch (error) {
-      console.error('Error creating appointment:', error);
+      console.error('Beklenmeyen hata:', error);
       setAlertModal({
         isOpen: true,
         title: 'Hata',
-        message: 'Randevu oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.'
+        message: 'Randevu oluşturulurken beklenmeyen bir hata oluştu.'
       });
-    } finally {
-      setLoading(false);
     }
   }
 
   // Ruh sağlığı uzmanının çalışma saatlerini yükleme fonksiyonu
   async function loadProfessionalWorkingHours(professionalId: string) {
     try {
+      console.log("Ruh sağlığı uzmanı çalışma saatleri yükleniyor, ID:", professionalId);
+      
       const { data, error } = await supabase
         .from('professional_working_hours')
         .select('*')
         .eq('professional_id', professionalId)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) {
+        console.error('Çalışma saatleri yüklenirken hata:', error);
+        
+        // Hata durumunda varsayılan çalışma saatleri oluştur
+        setProfessionalWorkingHours({
+          pazartesi: { opening: '09:00', closing: '18:00', isOpen: true },
+          sali: { opening: '09:00', closing: '18:00', isOpen: true },
+          carsamba: { opening: '09:00', closing: '18:00', isOpen: true },
+          persembe: { opening: '09:00', closing: '18:00', isOpen: true },
+          cuma: { opening: '09:00', closing: '18:00', isOpen: true },
+          cumartesi: { opening: '09:00', closing: '18:00', isOpen: false },
+          pazar: { opening: '09:00', closing: '18:00', isOpen: false }
+        });
+        
+        // Kullanıcıya bilgi ver ama işlemi engelleme
+        console.warn('Varsayılan çalışma saatleri kullanılıyor');
+        return;
+      }
 
       if (data) {
         setProfessionalWorkingHours({
           pazartesi: {
-            opening: data.opening_time_monday,
-            closing: data.closing_time_monday,
+            opening: data.opening_time_monday || '09:00',
+            closing: data.closing_time_monday || '18:00',
             isOpen: data.is_open_monday ?? true
           },
           sali: {
-            opening: data.opening_time_tuesday,
-            closing: data.closing_time_tuesday,
+            opening: data.opening_time_tuesday || '09:00',
+            closing: data.closing_time_tuesday || '18:00',
             isOpen: data.is_open_tuesday ?? true
           },
           carsamba: {
-            opening: data.opening_time_wednesday,
-            closing: data.closing_time_wednesday,
+            opening: data.opening_time_wednesday || '09:00',
+            closing: data.closing_time_wednesday || '18:00',
             isOpen: data.is_open_wednesday ?? true
           },
           persembe: {
-            opening: data.opening_time_thursday,
-            closing: data.closing_time_thursday,
+            opening: data.opening_time_thursday || '09:00',
+            closing: data.closing_time_thursday || '18:00',
             isOpen: data.is_open_thursday ?? true
           },
           cuma: {
-            opening: data.opening_time_friday,
-            closing: data.closing_time_friday,
+            opening: data.opening_time_friday || '09:00',
+            closing: data.closing_time_friday || '18:00',
             isOpen: data.is_open_friday ?? true
           },
           cumartesi: {
-            opening: data.opening_time_saturday,
-            closing: data.closing_time_saturday,
+            opening: data.opening_time_saturday || '09:00',
+            closing: data.closing_time_saturday || '18:00',
             isOpen: data.is_open_saturday ?? false
           },
           pazar: {
-            opening: data.opening_time_sunday,
-            closing: data.closing_time_sunday,
+            opening: data.opening_time_sunday || '09:00',
+            closing: data.closing_time_sunday || '18:00',
             isOpen: data.is_open_sunday ?? false
           }
+        });
+      } else {
+        // Veri yoksa varsayılan değerler kullan
+        setProfessionalWorkingHours({
+          pazartesi: { opening: '09:00', closing: '18:00', isOpen: true },
+          sali: { opening: '09:00', closing: '18:00', isOpen: true },
+          carsamba: { opening: '09:00', closing: '18:00', isOpen: true },
+          persembe: { opening: '09:00', closing: '18:00', isOpen: true },
+          cuma: { opening: '09:00', closing: '18:00', isOpen: true },
+          cumartesi: { opening: '09:00', closing: '18:00', isOpen: false },
+          pazar: { opening: '09:00', closing: '18:00', isOpen: false }
         });
       }
     } catch (error) {
       console.error('Error loading professional working hours:', error);
+      
+      // Hata durumunda varsayılan çalışma saatleri oluştur
+      setProfessionalWorkingHours({
+        pazartesi: { opening: '09:00', closing: '18:00', isOpen: true },
+        sali: { opening: '09:00', closing: '18:00', isOpen: true },
+        carsamba: { opening: '09:00', closing: '18:00', isOpen: true },
+        persembe: { opening: '09:00', closing: '18:00', isOpen: true },
+        cuma: { opening: '09:00', closing: '18:00', isOpen: true },
+        cumartesi: { opening: '09:00', closing: '18:00', isOpen: false },
+        pazar: { opening: '09:00', closing: '18:00', isOpen: false }
+      });
+      
+      // Kullanıcıya bilgi ver
       setAlertModal({
         isOpen: true,
-        title: 'Hata',
-        message: 'Ruh sağlığı uzmanının çalışma saatleri yüklenirken bir hata oluştu.'
+        title: 'Bilgi',
+        message: 'Ruh sağlığı uzmanının çalışma saatleri yüklenemedi. Varsayılan çalışma saatleri kullanılıyor.'
       });
     }
   }
-
-  // Günün müsait olup olmadığını kontrol eden fonksiyon
-  const isDateAvailable = (date: Date) => {
-    if (!selectedClient) return true;
-    if (!selectedProfessionalId || !professionalWorkingHours) return false;
-
-    const dayOfWeek = date.getDay();
-    const days = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'] as const;
-    const currentDay = days[dayOfWeek];
-    
-    const clinicDay = clinicHours[currentDay];
-    const profDay = professionalWorkingHours[currentDay];
-
-    if (!clinicDay || !profDay) return false;
-    return clinicDay.isOpen && profDay.isOpen;
-  };
 
   if (!isOpen) return null;
 
@@ -626,18 +981,18 @@ export function CreateAppointmentModal({
         title={alertModal.title}
         message={alertModal.message}
       />
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[9990]">
         <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-6xl p-6 space-y-6 max-h-[90vh] overflow-y-auto border border-gray-200/50 dark:border-gray-700/50">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4">
             <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-              Yeni Randevu
+              Yeni Randevu Oluştur
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors duration-200"
             >
-              <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <X className="h-6 w-6" />
             </button>
           </div>
 
@@ -646,106 +1001,213 @@ export function CreateAppointmentModal({
             {/* Sol Taraf - Danışan Seçimi */}
             <div className="space-y-6">
               {/* Danışan Arama */}
-              <div className="relative" ref={searchRef}>
+              <div ref={searchRef} className="relative">
                 <div className="flex items-center space-x-2 mb-3">
                   <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
                     <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <label className="text-base font-medium text-gray-900 dark:text-white">
-                    Danışan Ara
+                  <label className="text-lg font-medium text-gray-900 dark:text-white">
+                    Danışan Seç
                   </label>
                 </div>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="İsim, telefon veya ruh sağlığı uzmanı..."
-                  className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                />
-                {searchTerm && filteredClients.length > 0 && (
-                  <div className="absolute z-10 w-full mt-2 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-auto">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      if (selectedClient) {
+                        setSelectedClient(null);
+                        setSelectedDate(null);
+                        setSelectedTime('');
+                        setSelectedRoom(null);
+                      }
+                    }}
+                    placeholder="Danışan ara..."
+                    className="w-full px-4 py-3 pl-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent"
+                  />
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                </div>
+
+                {/* Arama Sonuçları */}
+                {searchTerm && !selectedClient && filteredClients.length > 0 && (
+                  <div className="absolute z-10 w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                     {filteredClients.map((client) => (
-                      <div
+                      <button
                         key={client.id}
                         onClick={() => handleClientSelect(client)}
-                        className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-0"
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center justify-between group"
                       >
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {client.full_name}
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {client.full_name}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {client.professional?.full_name || 'Ruh sağlığı uzmanı atanmamış'}
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          {client.phone && `Tel: ${client.phone}`}
-                          {client.professional?.full_name && ` • Uzman: ${client.professional.full_name}`}
-                        </div>
-                      </div>
+                        <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-all duration-200" />
+                      </button>
                     ))}
                   </div>
                 )}
               </div>
 
+              {/* Seçilen Danışan */}
+              {selectedClient && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {selectedClient.full_name}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {selectedClient.professional?.full_name || 'Ruh sağlığı uzmanı atanmamış'}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedClient(null);
+                        setSelectedDate(null);
+                        setSelectedTime('');
+                        setSelectedRoom(null);
+                        setSearchTerm('');
+                      }}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+                    >
+                      <X className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Tarih Seçimi */}
               <div>
                 <div className="flex items-center space-x-2 mb-3">
-                  <div className="p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg">
-                    <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                    <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <label className="text-base font-medium text-gray-900 dark:text-white">
+                  <label className="text-lg font-medium text-gray-900 dark:text-white">
                     Tarih Seç
                   </label>
                 </div>
-                <div className="flex justify-center">
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden w-full max-w-[320px]">
-                    <MantineProvider
-                      theme={createTheme({
-                        components: {
-                          DatePicker: {
-                            styles: {
-                              calendar: { 
-                                margin: '0',
-                                backgroundColor: 'var(--mantine-color-body)'
-                              },
-                              calendarHeader: { 
-                                margin: '0'
-                              },
-                              day: {
-                                '&[data-selected="true"]': {
-                                  backgroundColor: 'var(--mantine-color-blue-6)',
-                                  color: 'var(--mantine-color-white)'
-                                },
-                                '&[data-disabled="true"]': {
-                                  color: 'var(--mantine-color-gray-4)',
-                                  backgroundColor: 'transparent'
-                                }
-                              }
-                            }
+                <div className={`bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden w-full max-w-[320px] ${!selectedClient ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <MantineProvider>
+                    <DatePicker
+                      value={selectedDate}
+                      onChange={(date) => {
+                        if (date && selectedClient) {
+                          handleDateSelect(date);
+                        } else if (date && !selectedClient) {
+                          setAlertModal({
+                            isOpen: true,
+                            title: 'Danışan Seçilmedi',
+                            message: 'Lütfen önce bir danışan seçin.'
+                          });
+                        }
+                      }}
+                      minDate={new Date()}
+                      excludeDate={(date) => {
+                        // Bugünden önceki tarihleri devre dışı bırak
+                        const now = new Date();
+                        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        const checkDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                        
+                        // Geçmiş tarihleri her zaman devre dışı bırak
+                        if (checkDate < today) {
+                          return true;
+                        }
+                        
+                        // Eğer danışan seçilmişse ve ruh sağlığı uzmanı bilgileri varsa
+                        // ruh sağlığı uzmanının ve kliniğin çalışma günlerine göre filtreleme yap
+                        if (selectedClient && selectedProfessionalId && professionalWorkingHours) {
+                          // isDateAvailable fonksiyonu hem ruh sağlığı uzmanı hem de klinik çalışma günlerini kontrol eder
+                          return !isDateAvailable(date);
+                        }
+                        
+                        // Danışan seçilmemişse tüm günler devre dışı olmalı
+                        if (!selectedClient) {
+                          return true;
+                        }
+                        
+                        // Varsayılan olarak sadece klinik çalışma günlerini kontrol et
+                        return !isClinicOpen(date);
+                      }}
+                      locale="tr"
+                      size="md"
+                      className="w-full"
+                      styles={(theme) => ({
+                        calendarBase: {
+                          backgroundColor: document.documentElement.classList.contains('dark') ? 
+                            '#1f2937' : theme.white
+                        },
+                        calendarHeaderControl: {
+                          color: document.documentElement.classList.contains('dark') ? 
+                            '#e5e7eb' : theme.colors.gray[7]
+                        },
+                        calendarHeaderLevel: {
+                          color: document.documentElement.classList.contains('dark') ? 
+                            '#e5e7eb' : theme.colors.gray[7]
+                        },
+                        day: {
+                          color: document.documentElement.classList.contains('dark') ? 
+                            '#e5e7eb' : theme.colors.gray[7],
+                          ':hover': {
+                            backgroundColor: document.documentElement.classList.contains('dark') ? 
+                              '#374151' : theme.colors.gray[0]
+                          },
+                          '[data-selected="true"]': {
+                            backgroundColor: document.documentElement.classList.contains('dark') ? 
+                              '#3b82f6' : theme.colors.blue[6],
+                            color: theme.white
+                          },
+                          '[data-disabled="true"]': {
+                            color: document.documentElement.classList.contains('dark') ? 
+                              '#6b7280' : theme.colors.gray[4],
+                            backgroundColor: 'transparent'
                           }
+                        },
+                        weekday: {
+                          color: document.documentElement.classList.contains('dark') ? 
+                            '#9ca3af' : theme.colors.gray[6]
+                        },
+                        monthCell: {
+                          color: document.documentElement.classList.contains('dark') ? 
+                            '#e5e7eb' : theme.colors.gray[7],
+                          ':hover': {
+                            backgroundColor: document.documentElement.classList.contains('dark') ? 
+                              '#374151' : theme.colors.gray[0]
+                          },
+                          '[data-selected="true"]': {
+                            backgroundColor: document.documentElement.classList.contains('dark') ? 
+                              '#3b82f6' : theme.colors.blue[6],
+                            color: theme.white
+                          }
+                        },
+                        yearCell: {
+                          color: document.documentElement.classList.contains('dark') ? 
+                            '#e5e7eb' : theme.colors.gray[7],
+                          ':hover': {
+                            backgroundColor: document.documentElement.classList.contains('dark') ? 
+                              '#374151' : theme.colors.gray[0]
+                          },
+                          '[data-selected="true"]': {
+                            backgroundColor: document.documentElement.classList.contains('dark') ? 
+                              '#3b82f6' : theme.colors.blue[6],
+                            color: theme.white
+                          }
+                        },
+                        monthsList: {
+                          backgroundColor: document.documentElement.classList.contains('dark') ? 
+                            '#1f2937' : theme.white
+                        },
+                        yearsList: {
+                          backgroundColor: document.documentElement.classList.contains('dark') ? 
+                            '#1f2937' : theme.white
                         }
                       })}
-                    >
-                      <DatePicker
-                        value={selectedDate}
-                        onChange={(date) => {
-                          if (date) {
-                            if (!selectedClient || isDateAvailable(date)) {
-                              handleDateSelect(date);
-                            }
-                          }
-                        }}
-                        minDate={startOfToday()}
-                        excludeDate={(date) => {
-                          const now = startOfToday();
-                          return date < now;
-                        }}
-                        locale="tr"
-                        size="md"
-                        className="w-full"
-                        getDayProps={(date: Date) => ({
-                          disabled: selectedClient ? !isDateAvailable(date) : false,
-                          className: selectedClient && !isDateAvailable(date) ? 'opacity-30' : ''
-                        })}
-                      />
-                    </MantineProvider>
-                  </div>
+                    />
+                  </MantineProvider>
                 </div>
               </div>
             </div>
@@ -759,32 +1221,39 @@ export function CreateAppointmentModal({
                     <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
                       <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <label className="text-base font-medium text-gray-900 dark:text-white">
+                    <label className="text-lg font-medium text-gray-900 dark:text-white">
                       Saat Seç
                     </label>
                   </div>
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                      {availableTimeSlots.map((time) => {
-                        const isDisabled = isTimeBeforeCurrent(time, selectedDate);
-                        return (
+                    {availableTimeSlots.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        {availableTimeSlots.map((time) => (
                           <button
                             key={time}
-                            onClick={() => !isDisabled && handleTimeSelect(time)}
-                            disabled={isDisabled}
-                            className={`p-3 rounded-lg text-center transition-all duration-200 ${
-                              selectedTime === time
-                                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md'
-                                : isDisabled
-                                ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                                : 'bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm'
-                            }`}
+                            onClick={() => handleTimeSelect(time)}
+                            className={`
+                              px-4 py-2 rounded-lg text-sm font-medium
+                              ${selectedTime === time
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600/50'
+                              }
+                              transition-colors duration-200
+                            `}
                           >
                             {time}
                           </button>
-                        );
-                      })}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                        <div className="flex justify-center mb-2">
+                          <RefreshCw className="h-6 w-6 text-gray-400" />
+                        </div>
+                        <p>Seçilen tarihte müsait saat bulunmuyor.</p>
+                        <p className="text-sm mt-1">Lütfen başka bir tarih seçin.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -793,34 +1262,42 @@ export function CreateAppointmentModal({
               {selectedTime && (
                 <div>
                   <div className="flex items-center space-x-2 mb-3">
-                    <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-lg">
-                      <Home className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                      <Home className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     </div>
-                    <label className="text-base font-medium text-gray-900 dark:text-white">
+                    <label className="text-lg font-medium text-gray-900 dark:text-white">
                       Oda Seç
                     </label>
                   </div>
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {availableRooms.map((room) => (
-                        <button
-                          key={room.id}
-                          onClick={() => setSelectedRoom(room.id)}
-                          className={`p-4 rounded-xl text-center transition-all duration-200 ${
-                            selectedRoom === room.id
-                              ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md'
-                              : 'bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm'
-                          }`}
-                        >
-                          <div className="font-medium">{room.name}</div>
-                          {room.capacity > 1 && (
-                            <div className="text-sm mt-1 opacity-75">
-                              Kapasite: {room.capacity}
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                    {availableRooms.length > 0 ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {availableRooms.map((room) => (
+                          <button
+                            key={room.id}
+                            onClick={() => handleRoomSelect(room)}
+                            className={`
+                              px-4 py-2 rounded-lg text-sm font-medium
+                              ${selectedRoom?.id === room.id
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                              }
+                              transition-colors duration-200
+                            `}
+                          >
+                            {room.name}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                        <div className="flex justify-center mb-2">
+                          <RefreshCw className="h-6 w-6 text-gray-400" />
+                        </div>
+                        <p>Seçilen saatte müsait oda bulunmuyor.</p>
+                        <p className="text-sm mt-1">Lütfen başka bir saat seçin.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -828,23 +1305,30 @@ export function CreateAppointmentModal({
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-end space-x-4 border-t border-gray-200 dark:border-gray-700 pt-4">
             <button
               onClick={onClose}
-              className="px-6 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200"
+              className="px-6 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
             >
               İptal
             </button>
             <button
               onClick={handleCreateAppointment}
               disabled={!selectedClient || !selectedDate || !selectedTime || !selectedRoom || loading}
-              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20"
+              className="px-6 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2"
             >
-              {loading ? 'Oluşturuluyor...' : 'Randevu Oluştur'}
+              {loading ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+              ) : (
+                <>
+                  <span>Randevu Oluştur</span>
+                  <ArrowRight className="h-5 w-5" />
+                </>
+              )}
             </button>
           </div>
         </div>
       </div>
     </>
   );
-} 
+}
