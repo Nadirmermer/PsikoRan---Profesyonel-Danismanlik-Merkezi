@@ -1544,6 +1544,7 @@ export function Settings() {
                 onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                 className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
+                autoComplete="current-password"
               />
                     </div>
                         <div>
@@ -1556,7 +1557,8 @@ export function Settings() {
                 onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                 className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
-                          />
+                autoComplete="new-password"
+              />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1568,7 +1570,8 @@ export function Settings() {
                 onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                 className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
-                          />
+                autoComplete="new-password"
+              />
                         </div>
             <div className="flex justify-end space-x-2 mt-6">
                 <button
@@ -1906,6 +1909,7 @@ export function Settings() {
                 onChange={(e) => setDeleteAccountPassword(e.target.value)}
                 className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
+                autoComplete="current-password"
               />
           </div>
             <div className="flex justify-end space-x-2 mt-6">

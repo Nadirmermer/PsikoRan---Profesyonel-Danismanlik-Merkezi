@@ -856,6 +856,7 @@ export function Professionals() {
                   onChange={(e) => setDeletePassword(e.target.value)}
                   className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white px-4 py-2.5 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
                   placeholder="Şifrenizi girin"
+                  autoComplete="current-password"
                 />
               </div>
 
