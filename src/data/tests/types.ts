@@ -5,27 +5,39 @@ export interface Question {
     value: number;
     text: string;
   }>;
+  moduleId?: string;
 }
 
-interface TestReport {
-  totalScore: number;
+export interface Module {
+  id: string;
+  name: string;
+  description?: string;
+  questions?: string[];
+}
+
+export interface TestReport {
+  score: number;
+  factorAverages: Record<string, number>;
+  factorScores?: Record<string, number>;
+  factorNoScores?: Record<string, number>;
+  factorUnknownCounts?: Record<string, number>;
   severityLevel: string;
   requiresTreatment: boolean;
-  factorScores: Record<string, number>;
-  factorAverages: Record<string, number>;
   riskFactors: string[];
-  prominentSymptoms: Array<{
-    question: number;
-    severity: number;
-    response?: string;
-  }>;
-  interpretation: {
-    overall: string;
-    factors: string;
-    risks: string;
-    symptoms: string;
-    recommendations: string[];
+  solvedModules?: string[];
+  chartData?: {
+    labels: string[];
+    datasets: Array<{
+      label: string;
+      data: number[];
+      backgroundColor: { r: number; g: number; b: number };
+    }>;
   };
+  pieChartData?: Array<{
+    moduleName: string;
+    data: number[];
+    colors: Array<{ r: number; g: number; b: number }>;
+  }>;
 }
 
 export interface Test {
@@ -35,6 +47,8 @@ export interface Test {
   instructions?: string;
   infoText?: string;
   questions: Question[];
+  modules?: Module[];
+  isModular?: boolean;
   calculateScore: (answers: Record<string, number>) => number;
   interpretScore: (score: number) => string;
   generateReport?: (answers: Record<string, number>) => TestReport;

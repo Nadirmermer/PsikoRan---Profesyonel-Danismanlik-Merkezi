@@ -95,7 +95,7 @@ interface TestResult {
 }
 
 type TabType = 'details' | 'appointments' | 'notes' | 'tests' | 'test-results';
-type TestCategory = 'anxiety' | 'depression' | 'other';
+type TestCategory = 'anxiety' | 'depression' | 'personality' | 'other';
 
 interface TestType {
   id: string;
@@ -117,6 +117,7 @@ const TABS = [
 const TEST_CATEGORIES = [
   { id: 'depression', name: 'Depresyon Testleri', tests: ['beck-depression', 'edinburgh'] },
   { id: 'anxiety', name: 'Anksiyete Testleri', tests: ['beck-anxiety', 'child-social-anxiety'] },
+  { id: 'personality', name: 'Kişilik ve Tanı Testleri', tests: ['scid-5-cv', 'scid-5-pd', 'scid-5-spq'] },
   { id: 'other', name: 'Diğer Testler', tests: ['beck-hopelessness', 'beck-suicide', 'ytt40', 'scl90r'] }
 ];
 
@@ -1382,14 +1383,18 @@ export function ClientDetails() {
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{test.name}</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{test.description}</div>
                         <div className="flex justify-end space-x-2 mt-4">
-                          <button
-                            onClick={async () => {
-                              await handleShareTest(test.id);
-                            }}
-                            className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                          >
-                            Paylaş
-                          </button>
+                                                   {/* SCID-5-CV ve SCID-5-PD testleri için paylaşım butonu gösterme */}
+                                                   {test.id !== 'scid-5-cv' && test.id !== 'scid-5-pd' && (
+
+                            <button
+                              onClick={async () => {
+                                await handleShareTest(test.id);
+                              }}
+                              className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            >
+                              Paylaş
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               window.open(`/test/${test.id}/${id}`, '_blank');

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { AVAILABLE_TESTS } from '../data/tests';
 import { useAuth } from '../lib/auth';
 import { generateEncryptionKey, generateIV, encryptData } from '../utils/encryption';
+import { Module } from '../data/tests/types';
 
 // LocalStorage keys
 const STORAGE_KEY_PREFIX = 'test_progress_';
@@ -15,6 +16,7 @@ interface TestProgress {
   startTime: string | null;
   elapsedTime: number;
   notes?: string;
+  selectedModules?: string[];
 }
 
 export function Test() {
@@ -44,6 +46,11 @@ export function Test() {
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [timerActive, setTimerActive] = useState(false);
 
+  // Modül seçimi için state'ler
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+  const [filteredQuestions, setFilteredQuestions] = useState<any[]>([]);
+  const [showModuleSelection, setShowModuleSelection] = useState(false);
+
   // Tema değişikliğini izle ve uygula
   useEffect(() => {
     if (darkMode) {
@@ -64,7 +71,8 @@ export function Test() {
       currentQuestionIndex,
       startTime: startTime?.toISOString() || null,
       elapsedTime,
-      notes: testNotes
+      notes: testNotes,
+      selectedModules
     };
     
     localStorage.setItem(getStorageKey(testId, clientId), JSON.stringify(progress));
@@ -83,6 +91,11 @@ export function Test() {
       setTestAnswers(progress.answers);
       setCurrentQuestionIndex(progress.currentQuestionIndex);
       setTestNotes(progress.notes || '');
+      
+      if (progress.selectedModules && progress.selectedModules.length > 0) {
+        setSelectedModules(progress.selectedModules);
+        setShowModuleSelection(false);
+      }
       
       if (progress.startTime) {
         setStartTime(new Date(progress.startTime));
@@ -151,6 +164,20 @@ export function Test() {
       startTimer();
     }
   }, [showIntro, startTime]);
+
+  // Modül seçimi yapıldığında soruları filtrele
+  useEffect(() => {
+    if (selectedTest?.isModular && selectedModules.length > 0) {
+      // Seçilen modüllere ait soruları filtrele
+      const questions = selectedTest.questions.filter(q => 
+        q.moduleId && selectedModules.includes(q.moduleId)
+      );
+      setFilteredQuestions(questions);
+    } else if (selectedTest) {
+      // Modüler değilse veya hiç modül seçilmediyse tüm soruları göster
+      setFilteredQuestions(selectedTest.questions);
+    }
+  }, [selectedTest, selectedModules]);
 
   // Cevaplar değiştiğinde ilerlemeyi kaydet
   useEffect(() => {
@@ -364,14 +391,32 @@ export function Test() {
       stopTimer();
       const testDuration = endTime ? Math.floor((endTime.getTime() - startTime!.getTime()) / 1000) : elapsedTime;
       
-      const score = selectedTest.calculateScore(testAnswers);
+      // Modüler test için sadece seçilen modüllerin cevaplarını hesapla
+      let finalAnswers = testAnswers;
+      
+      if (selectedTest.isModular && selectedModules.length > 0) {
+        // Sadece seçilen modüllere ait soruların cevaplarını filtrele
+        finalAnswers = Object.entries(testAnswers).reduce((filtered, [questionId, answer]) => {
+          // Soruyu bul
+          const question = selectedTest.questions.find(q => q.id === questionId);
+          
+          // Soru bir modüle ait ve seçilen modüller içindeyse ekle
+          if (question && question.moduleId && selectedModules.includes(question.moduleId)) {
+            filtered[questionId] = answer;
+          }
+          
+          return filtered;
+        }, {} as Record<string, any>);
+      }
+      
+      const score = selectedTest.calculateScore(finalAnswers);
       
       // Şifreleme anahtarları oluştur
       const key = generateEncryptionKey();
       const iv = generateIV();
 
       // Test cevaplarını şifrele
-      const encryptedAnswers = await encryptData(testAnswers, key, iv);
+      const encryptedAnswers = await encryptData(finalAnswers, key, iv);
 
       // Professional ID'yi belirle
       let professionalId = professional?.id;
@@ -393,14 +438,17 @@ export function Test() {
         professional_id: professionalId,
         test_type: selectedTest.id,
         score,
-        answers: testAnswers,
+        answers: finalAnswers,
         encrypted_answers: encryptedAnswers,
         encryption_key: key,
         iv: iv,
         notes: testNotes || null,
         duration_seconds: testDuration,
         started_at: startTime?.toISOString(),
-        completed_at: endTime?.toISOString()
+        completed_at: endTime?.toISOString(),
+        // selected_modules alanı veritabanında olmadığı için kaldırıldı
+        // Veritabanına bu sütun eklendiğinde aşağıdaki satır aktif edilebilir
+        // selected_modules: selectedTest.isModular ? selectedModules : null
       };
       
       // Test verilerini state'e kaydet
@@ -444,11 +492,37 @@ export function Test() {
     }));
     
     // Otomatik olarak sonraki soruya geç
-    if (currentQuestionIndex < selectedTest.questions.length - 1) {
+    if (currentQuestionIndex < filteredQuestions.length - 1) {
       setTimeout(() => {
         setCurrentQuestionIndex(prev => prev + 1);
       }, 300); // 300ms gecikme ile geçiş yap
     }
+  }
+
+  // Modül seçimini tamamla ve teste başla
+  function handleModuleSelectionComplete() {
+    if (selectedModules.length === 0) {
+      // Hiç modül seçilmediyse uyarı göster
+      alert('Lütfen en az bir modül seçiniz.');
+      return;
+    }
+    
+    // Modül seçimini tamamla ve teste başla
+    setShowModuleSelection(false);
+    setShowIntro(false);
+    setCurrentQuestionIndex(0);
+  }
+
+  // Tüm modülleri seç
+  function selectAllModules() {
+    if (selectedTest?.modules) {
+      setSelectedModules(selectedTest.modules.map(m => m.id));
+    }
+  }
+
+  // Modül seçimini temizle
+  function clearModuleSelection() {
+    setSelectedModules([]);
   }
 
   // Oturum yükleme durumunda yükleniyor göster
@@ -534,6 +608,27 @@ export function Test() {
                 Testi tamamladığınız için teşekkür ederiz. Cevaplarınız başarıyla kaydedildi.
               </p>
 
+              {/* Modüler test için tamamlanan modülleri göster */}
+              {selectedTest?.isModular && selectedModules.length > 0 && (
+                <div className="mt-4 mb-6">
+                  <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">Tamamlanan Modüller</h3>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                    <ul className="text-left space-y-1">
+                      {selectedTest.modules
+                        ?.filter(module => selectedModules.includes(module.id))
+                        .map(module => (
+                          <li key={module.id} className="flex items-center">
+                            <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span className="text-blue-700 dark:text-blue-300">{module.name}</span>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
               {professional && (
                 <div className="grid grid-cols-2 gap-4 my-6">
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
@@ -590,7 +685,7 @@ export function Test() {
                   </svg>
                 )}
               </button>
-              {!showIntro && professional && (
+              {!showIntro && !showModuleSelection && professional && (
                 <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   Süre: {formatTime(elapsedTime)}
                 </div>
@@ -616,79 +711,306 @@ export function Test() {
               </div>
               <div className="flex justify-end">
                 <button
-                  onClick={() => setShowIntro(false)}
+                  onClick={() => {
+                    if (selectedTest.isModular) {
+                      setShowModuleSelection(true);
+                      setShowIntro(false);
+                    } else {
+                      setShowIntro(false);
+                    }
+                  }}
                   className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  Teste Başla
+                  {selectedTest.isModular ? 'Modül Seçimine Geç' : 'Teste Başla'}
                 </button>
+              </div>
+            </div>
+          ) : showModuleSelection ? (
+            <div className="space-y-6">
+              <div className="prose dark:prose-invert max-w-none">
+                <h3>Modül Seçimi</h3>
+                <p>Lütfen değerlendirmek istediğiniz modülleri seçiniz:</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {selectedTest.modules?.map((module: Module) => (
+                  <div 
+                    key={module.id}
+                    className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+                      selectedModules.includes(module.id)
+                        ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700'
+                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                    }`}
+                    onClick={() => {
+                      if (selectedModules.includes(module.id)) {
+                        setSelectedModules(prev => prev.filter(id => id !== module.id));
+                      } else {
+                        setSelectedModules(prev => [...prev, module.id]);
+                      }
+                    }}
+                  >
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedModules.includes(module.id)}
+                          onChange={() => {}}
+                          className="h-5 w-5 text-blue-600 dark:text-blue-400 border-2 border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                        />
+                      </div>
+                      <div className="ml-3">
+                        <h4 className={`text-base font-medium ${
+                          selectedModules.includes(module.id)
+                            ? 'text-blue-900 dark:text-blue-100'
+                            : 'text-gray-900 dark:text-gray-100'
+                        }`}>
+                          {module.name}
+                        </h4>
+                        {module.description && (
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            {module.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex flex-wrap gap-3 justify-between">
+                <div className="space-x-3">
+                  <button
+                    onClick={selectAllModules}
+                    className="px-4 py-2 text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                  >
+                    Tümünü Seç
+                  </button>
+                  <button
+                    onClick={clearModuleSelection}
+                    className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/20 hover:bg-gray-100 dark:hover:bg-gray-700/30 rounded-lg transition-colors"
+                  >
+                    Temizle
+                  </button>
+                </div>
+                <div className="space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowModuleSelection(false);
+                      setShowIntro(true);
+                    }}
+                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-lg transition-colors"
+                  >
+                    Geri
+                  </button>
+                  <button
+                    onClick={handleModuleSelectionComplete}
+                    disabled={selectedModules.length === 0}
+                    className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                  >
+                    Teste Başla
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
             <div className="space-y-8">
               <div className="flex justify-between items-center">
                 <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Soru {currentQuestionIndex + 1} / {selectedTest.questions.length}
+                  Soru {currentQuestionIndex + 1} / {filteredQuestions.length}
                 </div>
                 <div className="h-2 flex-1 mx-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-300"
-                    style={{ width: `${((currentQuestionIndex + 1) / selectedTest.questions.length) * 100}%` }}
+                    style={{ width: `${((currentQuestionIndex + 1) / filteredQuestions.length) * 100}%` }}
                   />
                 </div>
               </div>
 
-              <div key={selectedTest.questions[currentQuestionIndex].id} className="space-y-4">
-                <p className="text-lg text-gray-900 dark:text-white">
-                  {currentQuestionIndex + 1}. {selectedTest.questions[currentQuestionIndex].text}
-                </p>
-                <div className="space-y-3">
-                  {selectedTest.questions[currentQuestionIndex].options.map((option) => {
-                    const questionId = selectedTest.questions[currentQuestionIndex].id;
-                    const optionId = `${questionId}_${option.value}`;
-                    const isSelected = testAnswers[questionId] === option.value;
+              {filteredQuestions.length > 0 && currentQuestionIndex < filteredQuestions.length ? (
+                <div key={filteredQuestions[currentQuestionIndex].id} className="space-y-4">
+                  <p className="text-lg text-gray-900 dark:text-white">
+                    {currentQuestionIndex + 1}. {filteredQuestions[currentQuestionIndex].text}
+                  </p>
+                  <div className="space-y-3">
+                    {filteredQuestions[currentQuestionIndex].options.map((option) => {
+                      const questionId = filteredQuestions[currentQuestionIndex].id;
+                      const optionId = `${questionId}_${option.value}`;
+                      const isSelected = testAnswers[questionId] === option.value;
 
-                    return (
-                      <label
-                        key={optionId}
-                        htmlFor={optionId}
-                        className={`block w-full cursor-pointer transition-all duration-200 ${
-                          isSelected 
-                            ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700' 
-                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                        } p-4 rounded-xl border`}
-                        onClick={() => {
-                          if (!isSelected) {
-                            handleAnswerChange(questionId, option.value);
-                          }
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <input
-                              type="radio"
-                              id={optionId}
-                              name={questionId}
-                              value={option.value}
-                              checked={isSelected}
-                              onChange={() => handleAnswerChange(questionId, option.value)}
-                              className="h-5 w-5 text-blue-600 dark:text-blue-400 border-2 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200"
-                            />
-                            <span className={`ml-4 text-base ${
-                              isSelected 
-                                ? 'text-blue-900 dark:text-blue-100 font-medium' 
-                                : 'text-gray-900 dark:text-gray-100'
-                            }`}>
+                      // SCID-5-SPQ testi için özel butonlar (Evet/Hayır/Bilmiyorum)
+                      if (selectedTest.id === 'scid-5-spq') {
+                        // Evet butonu (1)
+                        if (option.value === 1) {
+                          return (
+                            <button
+                              key={optionId}
+                              onClick={() => handleAnswerChange(questionId, option.value)}
+                              className={`w-full p-4 rounded-xl border transition-all duration-200 flex items-center justify-center ${
+                                isSelected 
+                                  ? 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-800 dark:text-green-200 font-medium' 
+                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-green-50 dark:hover:bg-green-900/20 text-gray-900 dark:text-gray-100'
+                              }`}
+                            >
+                              <span className="text-lg">✓</span>
+                              <span className="ml-2">{option.text}</span>
+                            </button>
+                          );
+                        }
+                        // Hayır butonu (0)
+                        else if (option.value === 0) {
+                          return (
+                            <button
+                              key={optionId}
+                              onClick={() => handleAnswerChange(questionId, option.value)}
+                              className={`w-full p-4 rounded-xl border transition-all duration-200 flex items-center justify-center ${
+                                isSelected 
+                                  ? 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-800 dark:text-red-200 font-medium' 
+                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-900 dark:text-gray-100'
+                              }`}
+                            >
+                              <span className="text-lg">✕</span>
+                              <span className="ml-2">{option.text}</span>
+                            </button>
+                          );
+                        }
+                        // Bilmiyorum butonu (2) - SCID-5-SPQ için ek seçenek
+                        else if (option.value === 2) {
+                          return (
+                            <button
+                              key={optionId}
+                              onClick={() => handleAnswerChange(questionId, option.value)}
+                              className={`w-full p-4 rounded-xl border transition-all duration-200 flex items-center justify-center ${
+                                isSelected 
+                                  ? 'bg-gray-200 dark:bg-gray-600 border-gray-300 dark:border-gray-500 text-gray-800 dark:text-gray-200 font-medium' 
+                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100'
+                              }`}
+                            >
+                              <span className="text-lg">?</span>
+                              <span className="ml-2">{option.text}</span>
+                            </button>
+                          );
+                        }
+                      }
+                      
+                      // SCID-5-CV testi için özel butonlar (1-Yok, 2-Eşik altı, 3-Eşik üstü, 0-Bilgi yetersiz)
+                      else if (selectedTest.id === 'scid-5-cv') {
+                        // Eşik veya eşik üstü (3) - Evet gibi yeşil
+                        if (option.value === 3) {
+                          return (
+                            <button
+                              key={optionId}
+                              onClick={() => handleAnswerChange(questionId, option.value)}
+                              className={`w-full p-4 rounded-xl border transition-all duration-200 ${
+                                isSelected 
+                                  ? 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-800 dark:text-green-200 font-medium' 
+                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-green-50 dark:hover:bg-green-900/20 text-gray-900 dark:text-gray-100'
+                              }`}
+                            >
                               {option.text}
-                            </span>
-                          </div>
-                        </div>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
+                            </button>
+                          );
+                        }
+                        // Yok veya eşik altı (1) - Hayır gibi kırmızı
+                        else if (option.value === 1) {
+                          return (
+                            <button
+                              key={optionId}
+                              onClick={() => handleAnswerChange(questionId, option.value)}
+                              className={`w-full p-4 rounded-xl border transition-all duration-200 ${
+                                isSelected 
+                                  ? 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-800 dark:text-red-200 font-medium' 
+                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-900 dark:text-gray-100'
+                              }`}
+                            >
+                              {option.text}
+                            </button>
+                          );
+                        }
+                        // Eşik altı (2) - Sarı/turuncu
+                        else if (option.value === 2) {
+                          return (
+                            <button
+                              key={optionId}
+                              onClick={() => handleAnswerChange(questionId, option.value)}
+                              className={`w-full p-4 rounded-xl border transition-all duration-200 ${
+                                isSelected 
+                                  ? 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-200 font-medium' 
+                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-gray-900 dark:text-gray-100'
+                              }`}
+                            >
+                              {option.text}
+                            </button>
+                          );
+                        }
+                        // Bilgi yetersiz (0) - Gri
+                        else if (option.value === 0) {
+                          return (
+                            <button
+                              key={optionId}
+                              onClick={() => handleAnswerChange(questionId, option.value)}
+                              className={`w-full p-4 rounded-xl border transition-all duration-200 ${
+                                isSelected 
+                                  ? 'bg-gray-200 dark:bg-gray-600 border-gray-300 dark:border-gray-500 text-gray-800 dark:text-gray-200 font-medium' 
+                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100'
+                              }`}
+                            >
+                              {option.text}
+                            </button>
+                          );
+                        }
+                      }
 
-              {currentQuestionIndex === selectedTest.questions.length - 1 && professional && (
+                      // Diğer testler için standart görünüm
+                      return (
+                        <label
+                          key={optionId}
+                          htmlFor={optionId}
+                          className={`block w-full cursor-pointer transition-all duration-200 ${
+                            isSelected 
+                              ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700' 
+                              : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                          } p-4 rounded-xl border`}
+                          onClick={() => {
+                            if (!isSelected) {
+                              handleAnswerChange(questionId, option.value);
+                            }
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <input
+                                type="radio"
+                                id={optionId}
+                                name={questionId}
+                                value={option.value}
+                                checked={isSelected}
+                                onChange={() => handleAnswerChange(questionId, option.value)}
+                                className="h-5 w-5 text-blue-600 dark:text-blue-400 border-2 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200"
+                              />
+                              <span className={`ml-4 text-base ${
+                                isSelected 
+                                  ? 'text-blue-900 dark:text-blue-100 font-medium' 
+                                  : 'text-gray-900 dark:text-gray-100'
+                              }`}>
+                                {option.text}
+                              </span>
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">Sorular yükleniyor...</p>
+                  </div>
+                </div>
+              )}
+
+              {currentQuestionIndex === filteredQuestions.length - 1 && professional && (
                 <div className="space-y-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Notlar (Opsiyonel)
@@ -712,10 +1034,10 @@ export function Test() {
                   Önceki Soru
                 </button>
                 
-                {currentQuestionIndex === selectedTest.questions.length - 1 && (
+                {currentQuestionIndex === filteredQuestions.length - 1 && (
                   <button
                     onClick={handleSubmitTest}
-                    disabled={Object.keys(testAnswers).length !== selectedTest.questions.length}
+                    disabled={Object.keys(testAnswers).length < filteredQuestions.length}
                     className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                   >
                     Testi Tamamla
@@ -728,4 +1050,4 @@ export function Test() {
       </div>
     </div>
   );
-} 
+}
