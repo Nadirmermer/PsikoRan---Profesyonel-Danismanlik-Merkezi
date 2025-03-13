@@ -325,7 +325,12 @@ export function Test() {
         
         // Secret key kontrolü - çevre değişkeninden al
         const testTokenSecretKey = import.meta.env.VITE_TEST_TOKEN_SECRET_KEY;
-        if (!testTokenSecretKey || secretKey !== testTokenSecretKey) {
+        if (!testTokenSecretKey) {
+          console.error("TEST_TOKEN_SECRET_KEY environment variable is not set");
+          return false;
+        }
+        
+        if (secretKey !== testTokenSecretKey) {
           console.error("Geçersiz güvenlik anahtarı");
           return false;
         }

@@ -709,30 +709,21 @@ export function ClientDetails() {
       console.log("testId:", testId);
       console.log("clientId:", id);
       
-      // Get current user info
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      console.log("Current user:", userData?.user);
-      
-      if (userError) {
-        console.error("Error getting current user:", userError);
-        throw userError;
+      if (!professional?.id || !id) {
+        throw new Error('Professional ID ve Client ID gerekli');
       }
       
-      // Kullanıcı rolünü kontrol et
-      const professionalId = professional?.id;
-      
-      if (!professionalId) {
-        throw new Error('Professional ID is required to generate a test token');
-      }
-      
-      // Güvenli bir token oluştur (veritabanına kaydetmeden)
-      // Bu yaklaşım, veritabanına kaydetmeden güvenli bir token oluşturur
-      // Format: base64(testId + clientId + professionalId + timestamp + secret)
+      // Güvenli bir token oluştur
       const timestamp = new Date().getTime();
-      const secretKey = "psy_secure_test_token_key"; // Uygulama genelinde sabit bir anahtar
+      const secretKey = import.meta.env.VITE_TEST_TOKEN_SECRET_KEY;
       
-      // Token için string oluştur
-      const tokenData = `${testId}:${id}:${professionalId}:${timestamp}:${secretKey}`;
+      if (!secretKey) {
+        throw new Error('TEST_TOKEN_SECRET_KEY environment variable is not set');
+      }
+      
+      // Token için string oluştur (format: testId:clientId:professionalId:timestamp:hash)
+      const dataToHash = `${testId}:${id}:${professional.id}:${timestamp}`;
+      const tokenData = `${dataToHash}:${secretKey}`;
       
       // Base64 kodlama
       const token = btoa(tokenData);
@@ -741,19 +732,30 @@ export function ClientDetails() {
       
       // Token nesnesini oluştur
       const tokenObject = {
-        id: crypto.randomUUID(),
         test_id: testId,
         client_id: id,
-        professional_id: professionalId,
+        professional_id: professional.id,
         token: token,
         created_at: new Date().toISOString(),
         expires_at: new Date(timestamp + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 gün geçerli
       };
+
+      // Token'ı veritabanına kaydet
+      const { data: savedToken, error: saveError } = await supabase
+        .from('test_tokens')
+        .insert(tokenObject)
+        .select()
+        .single();
+
+      if (saveError) {
+        console.error("Token kaydetme hatası:", saveError);
+        throw saveError;
+      }
       
-      console.log("Token object:", tokenObject);
+      console.log("Token saved to database:", savedToken);
       console.log("=== DEBUG: generateTestToken completed ===");
       
-      return tokenObject;
+      return savedToken;
     } catch (error) {
       console.error('Error in generateTestToken:', error);
       throw error;
