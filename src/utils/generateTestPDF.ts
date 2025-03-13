@@ -503,27 +503,36 @@ export function generateTestPDF(
   addModernFooter();
 
   // Çizgi grafiği çizme fonksiyonu
-  const drawLineChart = (x: number, y: number, width: number, height: number, labels: string[], data: number[], title: string, maxValue: number = 0) => {
+  const drawLineChart = (x: number, y: number, width: number, height: number, labels: string[], data: number[] | any, title: string, maxValue: number = 0) => {
+    // Veri kontrolü
+    if (!Array.isArray(data)) {
+      console.error('Data must be an array');
+      return;
+    }
+
+    // Veriyi number[] tipine dönüştür
+    const numericData = data.map(Number);
+    
     // Grafik alanı
     pdf.setDrawColor(200, 200, 200);
-      pdf.setLineWidth(0.5);
+    pdf.setLineWidth(0.5);
     pdf.rect(x, y, width, height);
     
     // X ekseni
     pdf.line(x, y + height - 30, x + width, y + height - 30);
       
-      // Y ekseni
+    // Y ekseni
     pdf.line(x + 50, y, x + 50, y + height);
     
     // Maksimum değer belirlenmemişse, veri içinden bul
     if (maxValue === 0) {
-      maxValue = Math.max(...data) * 1.2; // %20 marj ekle
+      maxValue = Math.max(...numericData) * 1.2; // %20 marj ekle
     }
       
-      // Y ekseni değerleri
-      pdf.setFont("times", "normal");
-      pdf.setFontSize(8);
-      pdf.setTextColor(100, 100, 100);
+    // Y ekseni değerleri
+    pdf.setFont("times", "normal");
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 100, 100);
       
     const yStep = maxValue / 5;
     for (let i = 0; i <= 5; i++) {
@@ -549,7 +558,7 @@ export function generateTestPDF(
     
     // Veri noktaları ve çizgi
     let points: [number, number][] = [];
-    data.forEach((value, index) => {
+    numericData.forEach((value, index) => {
       const xPos = x + 50 + (index * xStep);
       const yPos = y + height - 30 - ((value / maxValue) * (height - 40));
       
@@ -613,7 +622,8 @@ export function generateTestPDF(
         'Fobik Anksiyete', 'Paranoid Düşünce', 'Psikotizm', 'Ek Ölçek'
       ];
       
-      const factorScores = reportData.factorAverages;
+      // factorAverages'i diziye dönüştür ve number tipine zorla
+      const factorScores = Object.values(reportData.factorAverages).map(value => Number(value));
       
       // Grafik çizimi
       drawLineChart(chartX, chartY, chartWidth, chartHeight, factorNames, factorScores, 'Alt Ölçek Puanları', 4);
@@ -633,7 +643,7 @@ export function generateTestPDF(
       // Tablo içeriği
       pdf.setFont("times", "normal");
       factorNames.forEach((name, index) => {
-        const score = factorScores[index];
+        const score = Number(factorScores[index]);
         let evaluation = '';
         let evaluationColor = colors.success;
         
@@ -1332,8 +1342,8 @@ export function generateTestPDF(
       // Çubukları çiz
       data.forEach((value: number, index: number) => {
         const barWidth = (value / maxValue) * (width - 180);
-        const yPos = y + 15 + (index * barHeight) + (datasetIndex * (barHeight / datasets.length / 1.2));
         const xPos = x + 150;
+        const yPos = y + 15 + (index * barHeight) + (datasetIndex * (barHeight / datasets.length / 1.2));
         const individualBarHeight = (barHeight / datasets.length / 1.2);
         
         // Çubuk

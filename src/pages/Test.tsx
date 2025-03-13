@@ -6,10 +6,15 @@ import { useAuth } from '../lib/auth';
 import { generateEncryptionKey, generateIV, encryptData } from '../utils/encryption';
 import { Module } from '../data/tests/types';
 
-// LocalStorage keys
+// ============================================================================
+// CONSTANTS AND INTERFACES
+// ============================================================================
+
+// LocalStorage keys for saving test progress
 const STORAGE_KEY_PREFIX = 'test_progress_';
 const getStorageKey = (testId: string, clientId: string) => `${STORAGE_KEY_PREFIX}${testId}_${clientId}`;
 
+// Interface for test progress data structure
 interface TestProgress {
   answers: Record<string, any>;
   currentQuestionIndex: number;
@@ -19,39 +24,58 @@ interface TestProgress {
   selectedModules?: string[];
 }
 
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
 export function Test() {
+  // ============================================================================
+  // STATE MANAGEMENT
+  // ============================================================================
+  
+  // Route and navigation state
   const { testId, clientId, token } = useParams<{ testId: string; clientId: string; token: string }>();
   const navigate = useNavigate();
   const { professional, loading: authLoading } = useAuth();
+
+  // Test and question state
   const [selectedTest, setSelectedTest] = useState<typeof AVAILABLE_TESTS[0] | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [testAnswers, setTestAnswers] = useState<Record<string, any>>({});
   const [testNotes, setTestNotes] = useState('');
+  const [filteredQuestions, setFilteredQuestions] = useState<any[]>([]);
+
+  // UI state
   const [showIntro, setShowIntro] = useState(true);
+  const [showModuleSelection, setShowModuleSelection] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [client, setClient] = useState<any>(null);
-  const [tokenVerified, setTokenVerified] = useState(false);
-  const [authorized, setAuthorized] = useState(false);
   const [testCompleted, setTestCompleted] = useState(false);
-  const [testData, setTestData] = useState<any>(null);
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
-  
-  // Timer state'leri
+
+  // Authentication and client state
+  const [client, setClient] = useState<any>(null);
+  const [tokenVerified, setTokenVerified] = useState(false);
+  const [authorized, setAuthorized] = useState(false);
+  const [testData, setTestData] = useState<any>(null);
+
+  // Timer state
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [timerActive, setTimerActive] = useState(false);
 
-  // Modül seçimi için state'ler
+  // Module selection state
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
-  const [filteredQuestions, setFilteredQuestions] = useState<any[]>([]);
-  const [showModuleSelection, setShowModuleSelection] = useState(false);
 
-  // Tema değişikliğini izle ve uygula
+  // ============================================================================
+  // EFFECTS AND HANDLERS
+  // ============================================================================
+
+  // Theme management effect
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -530,7 +554,11 @@ export function Test() {
     setSelectedModules([]);
   }
 
-  // Oturum yükleme durumunda yükleniyor göster
+  // ============================================================================
+  // CONDITIONAL RENDERING
+  // ============================================================================
+
+  // Loading states
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -550,6 +578,7 @@ export function Test() {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -571,6 +600,7 @@ export function Test() {
     );
   }
 
+  // Test not found state
   if (!selectedTest) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -581,6 +611,7 @@ export function Test() {
     );
   }
 
+  // Unauthorized state
   if (!authorized) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -593,6 +624,7 @@ export function Test() {
     );
   }
 
+  // Test completed state
   if (testCompleted) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -665,6 +697,10 @@ export function Test() {
       </div>
     );
   }
+
+  // ============================================================================
+  // MAIN RENDER
+  // ============================================================================
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
