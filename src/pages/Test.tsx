@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { AVAILABLE_TESTS } from '../data/tests';
+import { AVAILABLE_TESTS } from '../data/tests/index';
 import { useAuth } from '../lib/auth';
 import { generateEncryptionKey, generateIV, encryptData } from '../utils/encryption';
-import { Module } from '../data/tests/types';
+import type { Module, Test as TestType } from '../data/tests/types';
 
 // ============================================================================
 // CONSTANTS AND INTERFACES
@@ -39,7 +39,7 @@ export function Test() {
   const { professional, loading: authLoading } = useAuth();
 
   // Test and question state
-  const [selectedTest, setSelectedTest] = useState<typeof AVAILABLE_TESTS[0] | null>(null);
+  const [selectedTest, setSelectedTest] = useState<TestType | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [testAnswers, setTestAnswers] = useState<Record<string, any>>({});
   const [testNotes, setTestNotes] = useState('');
@@ -55,6 +55,7 @@ export function Test() {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
+  const [isMobile, setIsMobile] = useState(false);
 
   // Authentication and client state
   const [client, setClient] = useState<any>(null);
@@ -85,6 +86,22 @@ export function Test() {
       localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
+
+  // Screen size detection for responsive UI
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    // Initial check
+    checkScreenSize();
+    
+    // Add event listener for resize
+    window.addEventListener('resize', checkScreenSize);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Test ilerlemesini kaydet
   const saveProgress = () => {
@@ -191,7 +208,15 @@ export function Test() {
 
   // Modül seçimi yapıldığında soruları filtrele
   useEffect(() => {
-    if (selectedTest?.isModular && selectedModules.length > 0) {
+    // Güvenlik kontrolü: selectedTest veya selectedModules undefined olabilir
+    if (!selectedTest) {
+      // Test henüz yüklenmemiş, boş bir array olarak başlat
+      setFilteredQuestions([]);
+      return;
+    }
+    
+    // Modüler testlerde, seçilen modül varsa onlara ait soruları filtrele
+    if (selectedTest.isModular && selectedModules && selectedModules.length > 0) {
       // Seçilen modüllere ait soruları filtrele
       const questions = selectedTest.questions.filter(q => 
         q.moduleId && selectedModules.includes(q.moduleId)
@@ -199,7 +224,7 @@ export function Test() {
       setFilteredQuestions(questions);
     } else if (selectedTest) {
       // Modüler değilse veya hiç modül seçilmediyse tüm soruları göster
-      setFilteredQuestions(selectedTest.questions);
+      setFilteredQuestions(selectedTest.questions || []);
     }
   }, [selectedTest, selectedModules]);
 
@@ -223,6 +248,80 @@ export function Test() {
 
     const initializeTest = async () => {
       try {
+        // Token ile gelen public test URL'si için kontrol
+        // /public-test/:token formatında URL
+        if (!testId && !clientId && token) {
+          console.log("Public test URL formatı algılandı, token ile test bilgileri alınıyor...");
+          
+          try {
+            // Veritabanında token ile ilişkili test ve client bilgilerini ara
+            const { data: tokenData, error: tokenError } = await supabase
+              .from('test_tokens')
+              .select('*')
+              .eq('token', token)
+              .single();
+              
+            if (tokenError) {
+              console.error("Token veritabanında bulunamadı:", tokenError);
+              setError('Geçersiz test linki veya süresi dolmuş.');
+              setLoading(false);
+              return;
+            }
+            
+            if (tokenData) {
+              console.log("Token bilgileri bulundu:", tokenData);
+              
+              // Token süresini kontrol et
+              const expiresAt = new Date(tokenData.expires_at);
+              if (expiresAt < new Date()) {
+                setError('Test linkinin süresi dolmuş.');
+                setLoading(false);
+                return;
+              }
+              
+              // URL parametreleri olmadığı için token içinden bilgileri al
+              const foundTestId = tokenData.test_id;
+              const foundClientId = tokenData.client_id;
+              
+              console.log("Token içinden çıkarılan bilgiler:", { 
+                testId: foundTestId, 
+                clientId: foundClientId
+              });
+              
+              // Test varlığını kontrol et
+              const test = AVAILABLE_TESTS.find(t => t.id === foundTestId);
+              if (!test) {
+                setError('Test bulunamadı.');
+                setLoading(false);
+                return;
+              }
+              
+              // Test ve client bilgilerini ayarla
+              setSelectedTest(test);
+              setTokenVerified(true);
+              setAuthorized(true);
+              
+              // Client bilgilerini yükle
+              await loadClientWithId(foundClientId);
+              
+              setLoading(false);
+              return;
+            } else {
+              setError('Geçersiz test linki.');
+              setLoading(false);
+              return;
+            }
+          } catch (error) {
+            console.error("Token sorgusu hatası:", error);
+            setError('Geçersiz test linki.');
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // Normal /test/:testId/:clientId formatı için doğrulama
+        // (Bu rotada token kullanılmaz, doğrudan profesyonel erişimi için)
+        
         // Test varlığını kontrol et
         const test = AVAILABLE_TESTS.find(t => t.id === testId);
         if (!test) {
@@ -232,44 +331,33 @@ export function Test() {
         }
         setSelectedTest(test);
 
-        // Token ile erişim kontrolü
-        if (token) {
-          // Token'ı doğrula
-          const isValid = await verifyTestToken();
-          if (!isValid) {
-            setError('Geçersiz test linki veya süresi dolmuş.');
-            setLoading(false);
-            return;
-          }
-          
-          setTokenVerified(true);
-          setAuthorized(true);
-        } else if (!professional) {
+        // Professional kontrolü
+        if (!professional) {
           setError('Bu sayfaya erişim yetkiniz yok. Lütfen giriş yapın veya geçerli bir test linki kullanın.');
           setLoading(false);
           return;
-        } else {
-          // Professional ise, client'ın kendisine ait olup olmadığını kontrol et
-          const { data, error } = await supabase
-            .from('clients')
-            .select('professional_id')
-            .eq('id', clientId)
-            .single();
-            
-          if (error || !data) {
-            setError('Danışan bilgilerine erişim yetkiniz yok.');
-            setLoading(false);
-            return;
-          }
-          
-          if (data.professional_id !== professional.id) {
-            setError('Bu danışan size ait değil.');
-            setLoading(false);
-            return;
-          }
-          
-          setAuthorized(true);
         }
+        
+        // Professional ise, client'ın kendisine ait olup olmadığını kontrol et
+        const { data, error } = await supabase
+          .from('clients')
+          .select('professional_id')
+          .eq('id', clientId)
+          .single();
+          
+        if (error || !data) {
+          setError('Danışan bilgilerine erişim yetkiniz yok.');
+          setLoading(false);
+          return;
+        }
+        
+        if (data.professional_id !== professional.id) {
+          setError('Bu danışan size ait değil.');
+          setLoading(false);
+          return;
+        }
+        
+        setAuthorized(true);
 
         // Client bilgilerini yükle
         await loadClient();
@@ -285,100 +373,12 @@ export function Test() {
 
     // Cleanup function
     return () => {
-      if (token && tokenVerified) {
+      // Eğer token ile giriş yapıldıysa oturumu kapat
+      if (token) {
         supabase.auth.signOut().catch(console.error);
       }
     };
   }, [testId, clientId, token, professional, authLoading]);
-
-  async function verifyTestToken() {
-    try {
-      console.log("Token doğrulanıyor:", token);
-      
-      if (!token || !testId || !clientId) {
-        console.error("Token, testId veya clientId eksik");
-        return false;
-      }
-      
-      // Önce veritabanında token kontrolü dene
-      try {
-        const { data: tokenData, error: tokenError } = await supabase
-          .from('test_tokens')
-          .select('*')
-          .eq('token', token)
-          .eq('test_id', testId)
-          .eq('client_id', clientId)
-          .single();
-          
-        if (!tokenError && tokenData) {
-          // Token'ın süresini kontrol et
-          const expiresAt = new Date(tokenData.expires_at);
-          if (expiresAt >= new Date()) {
-            console.log("Veritabanında geçerli token bulundu");
-            return true;
-          } else {
-            console.error("Token süresi dolmuş");
-            return false;
-          }
-        }
-      } catch (dbError) {
-        console.log("Veritabanında token bulunamadı, alternatif doğrulama deneniyor...");
-      }
-      
-      // Veritabanında bulunamadıysa, token formatını kontrol et (base64 encoded)
-      try {
-        // Base64 decode
-        const decodedToken = atob(token);
-        console.log("Decoded token:", decodedToken);
-        
-        // Token formatı: testId:clientId:professionalId:timestamp:secretKey
-        const parts = decodedToken.split(':');
-        
-        if (parts.length !== 5) {
-          console.error("Geçersiz token formatı");
-          return false;
-        }
-        
-        const [tokenTestId, tokenClientId, tokenProfessionalId, timestampStr, secretKey] = parts;
-        
-        // Test ID ve Client ID kontrolü
-        if (tokenTestId !== testId || tokenClientId !== clientId) {
-          console.error("Token bilgileri eşleşmiyor");
-          return false;
-        }
-        
-        // Secret key kontrolü - çevre değişkeninden al
-        const testTokenSecretKey = import.meta.env.VITE_TEST_TOKEN_SECRET_KEY;
-        if (!testTokenSecretKey) {
-          console.error("TEST_TOKEN_SECRET_KEY environment variable is not set");
-          return false;
-        }
-        
-        if (secretKey !== testTokenSecretKey) {
-          console.error("Geçersiz güvenlik anahtarı");
-          return false;
-        }
-        
-        // Süre kontrolü (7 gün)
-        const timestamp = parseInt(timestampStr);
-        const expiryTime = timestamp + (7 * 24 * 60 * 60 * 1000); // 7 gün
-        
-        if (expiryTime < Date.now()) {
-          console.error("Token süresi dolmuş");
-          return false;
-        }
-        
-        console.log("Token başarıyla doğrulandı");
-        return true;
-      } catch (decodeError) {
-        console.error("Token decode hatası:", decodeError);
-        return false;
-      }
-    } catch (error) {
-      console.error("Token doğrulama hatası:", error);
-      return false;
-    }
-  }
 
   async function loadClient() {
     try {
@@ -406,6 +406,28 @@ export function Test() {
       console.error('Error loading client:', error);
       setError('Danışan bilgileri yüklenirken bir hata oluştu.');
       throw error;
+    }
+  }
+
+  // Client bilgilerini sadece ID kullanarak yükle (public test URL'si için)
+  async function loadClientWithId(clientId: string) {
+    try {
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', clientId)
+        .single();
+
+      if (clientError) {
+        console.error("Client bilgileri alınamadı:", clientError);
+        setError('Danışan bilgileri bulunamadı.');
+        return;
+      }
+
+      setClient(clientData);
+    } catch (err) {
+      console.error("Client yükleme hatası:", err);
+      setError('Danışan bilgileri yüklenirken hata oluştu.');
     }
   }
 
@@ -515,16 +537,63 @@ export function Test() {
   }
 
   function handleAnswerChange(questionId: string, value: any) {
+    // Görsel geri bildirim için işlem başladığını gösteren bir state ekleyebiliriz
+    const selectedOption = document.getElementById(`${questionId}_${value}`);
+    if (selectedOption) {
+      // Önce seçim animasyonu göster
+      selectedOption.classList.add('ring-2', 'ring-blue-500', 'scale-[1.02]');
+    }
+    
+    // Sonra cevabı kaydet
     setTestAnswers(prev => ({
       ...prev,
       [questionId]: value
     }));
     
-    // Otomatik olarak sonraki soruya geç
+    // Otomatik ilerleme için - 500ms gecikme ile ilerle
+    // Sadece son soru değilse ilerle
     if (currentQuestionIndex < filteredQuestions.length - 1) {
+      // Önce bir kısa bekleme süresi koy, bu sırada yanıt kaydedilsin
       setTimeout(() => {
+        // Animasyonu kaldır
+        if (selectedOption) {
+          selectedOption.classList.remove('ring-2', 'ring-blue-500', 'scale-[1.02]');
+        }
+        // Bir sonraki soruya geç
         setCurrentQuestionIndex(prev => prev + 1);
-      }, 300); // 300ms gecikme ile geçiş yap
+      }, 300);
+    }
+  }
+
+  // Testi yeniden başlatma fonksiyonu
+  function handleRestartTest() {
+    if (window.confirm('Testi yeniden başlatmak istediğinize emin misiniz? Mevcut ilerlemeniz silinecektir.')) {
+      // Timer'ı durdur
+      if (timerActive) {
+        setTimerActive(false);
+      }
+      
+      // Verileri sıfırla
+      setTestAnswers({});
+      setCurrentQuestionIndex(0);
+      setTestNotes('');
+      
+      // Test ilerleme bilgisini temizle
+      clearProgress();
+      
+      // Giriş ekranına dön
+      setShowIntro(true);
+      setShowModuleSelection(false);
+      
+      // Modül seçimini temizle (eğer modüler test ise)
+      if (selectedTest?.isModular) {
+        setSelectedModules([]);
+      }
+      
+      // Timer'ı sıfırla
+      setStartTime(null);
+      setEndTime(null);
+      setElapsedTime(0);
     }
   }
 
@@ -627,38 +696,38 @@ export function Test() {
   // Test completed state
   if (testCompleted) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="max-w-md w-full mx-auto p-6">
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-xl p-8 text-center border border-gray-200/50 dark:border-gray-700/50">
-            <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/20 dark:to-green-800/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center py-4">
+        <div className="max-w-md w-full mx-auto p-3 sm:p-6">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-lg sm:rounded-2xl shadow-xl p-5 sm:p-8 text-center border border-gray-200/50 dark:border-gray-700/50">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-900/20 dark:to-green-800/20 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
             
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
-              Test Başarıyla Tamamlandı
+            <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-3 sm:mb-4">
+              {isMobile ? `${getTruncatedTestName(selectedTest.name)} Tamamlandı` : 'Test Başarıyla Tamamlandı'}
             </h2>
             
-            <div className="space-y-4 text-gray-600 dark:text-gray-400">
-              <p className="text-lg">
+            <div className="space-y-3 sm:space-y-4 text-gray-600 dark:text-gray-400 text-sm sm:text-base">
+              <p>
                 Testi tamamladığınız için teşekkür ederiz. Cevaplarınız başarıyla kaydedildi.
               </p>
 
               {/* Modüler test için tamamlanan modülleri göster */}
               {selectedTest?.isModular && selectedModules.length > 0 && (
-                <div className="mt-4 mb-6">
-                  <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">Tamamlanan Modüller</h3>
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                <div className="mt-3 mb-4 sm:mt-4 sm:mb-6">
+                  <h3 className="text-base sm:text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">Tamamlanan Modüller</h3>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-blue-100 dark:border-blue-800/30">
                     <ul className="text-left space-y-1">
                       {selectedTest.modules
                         ?.filter(module => selectedModules.includes(module.id))
                         .map(module => (
                           <li key={module.id} className="flex items-center">
-                            <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 mr-1.5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
-                            <span className="text-blue-700 dark:text-blue-300">{module.name}</span>
+                            <span className="text-blue-700 dark:text-blue-300 text-xs sm:text-sm">{module.name}</span>
                           </li>
                         ))}
                     </ul>
@@ -667,28 +736,28 @@ export function Test() {
               )}
 
               {professional && (
-                <div className="grid grid-cols-2 gap-4 my-6">
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
-                    <div className="text-sm text-blue-600 dark:text-blue-400">Test Süresi</div>
-                    <div className="text-lg font-medium text-blue-700 dark:text-blue-300">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 my-4 sm:my-6">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-blue-100 dark:border-blue-800/30">
+                    <div className="text-xs sm:text-sm text-blue-600 dark:text-blue-400">Test Süresi</div>
+                    <div className="text-sm sm:text-lg font-medium text-blue-700 dark:text-blue-300">
                       {formatTime(elapsedTime)}
                     </div>
                   </div>
-                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-100 dark:border-purple-800/30">
-                    <div className="text-sm text-purple-600 dark:text-purple-400">Tamamlanma Zamanı</div>
-                    <div className="text-lg font-medium text-purple-700 dark:text-purple-300">
+                  <div className="bg-purple-50 dark:bg-purple-900/20 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-purple-100 dark:border-purple-800/30">
+                    <div className="text-xs sm:text-sm text-purple-600 dark:text-purple-400">Tamamlanma Zamanı</div>
+                    <div className="text-sm sm:text-lg font-medium text-purple-700 dark:text-purple-300">
                       {new Date().toLocaleTimeString()}
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
-                <p className="text-blue-700 dark:text-blue-300">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg sm:rounded-xl border border-blue-100 dark:border-blue-800/30">
+                <p className="text-blue-700 dark:text-blue-300 text-xs sm:text-sm">
                   Test sonuçlarınız ruh sağlığı uzmanınız tarafından değerlendirilecek ve bir sonraki görüşmenizde sizinle paylaşılacaktır.
                 </p>
               </div>
-              <p className="text-sm">
+              <p className="text-xs sm:text-sm">
                 Bu pencereyi güvenle kapatabilirsiniz.
               </p>
             </div>
@@ -703,49 +772,93 @@ export function Test() {
   // ============================================================================
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-xl p-6 border border-gray-200/50 dark:border-gray-700/50">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-              {selectedTest.name}
-            </h2>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                className="p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                aria-label={darkMode ? 'Aydınlık temaya geç' : 'Karanlık temaya geç'}
-              >
-                {darkMode ? (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-12">
+      <div className="max-w-4xl mx-auto px-2 sm:px-4">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-lg sm:rounded-2xl shadow-xl p-3 sm:p-6 border border-gray-200/50 dark:border-gray-700/50">
+          {/* Fixed header with all controls and indicators */}
+          <div className="mb-4 sm:mb-6">
+            {/* Test title and controls row */}
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3 sm:mb-4">
+              <h2 className="text-base sm:text-lg font-medium sm:font-bold text-gray-700 sm:bg-gradient-to-r sm:from-blue-600 sm:to-purple-600 dark:text-gray-300 sm:dark:from-blue-400 sm:dark:to-purple-400 sm:bg-clip-text sm:text-transparent truncate max-w-[200px] sm:max-w-xs">
+                {selectedTest && (isMobile ? 
+                  getTruncatedTestName(selectedTest.name) : 
+                  selectedTest.name)}
+              </h2>
+              
+              <div className="flex items-center gap-2 sm:gap-3">
+                {!showIntro && !showModuleSelection && (
+                  <div className="flex items-center px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow-sm border border-blue-100 dark:border-blue-800/30 text-xs sm:text-sm text-blue-700 dark:text-blue-300 font-medium">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 text-blue-500 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Süre: {formatTime(elapsedTime)}</span>
+                  </div>
                 )}
-              </button>
-              {!showIntro && !showModuleSelection && professional && (
-                <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Süre: {formatTime(elapsedTime)}
-                </div>
-              )}
-              {client && (
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Danışan: {client.full_name}
-                </div>
-              )}
+                
+                {!showIntro && (
+                  <button
+                    onClick={handleRestartTest}
+                    className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 border border-red-100 dark:border-red-800/30 flex items-center justify-center"
+                    aria-label="Testi yeniden başlat"
+                  >
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => setDarkMode(!darkMode)}
+                  className="p-2 rounded-lg bg-gray-50 dark:bg-gray-700/30 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 border border-gray-200 dark:border-gray-700/50 flex items-center justify-center"
+                  aria-label={darkMode ? 'Aydınlık temaya geç' : 'Karanlık temaya geç'}
+                >
+                  {darkMode ? (
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
+
+            {/* Progress indicator - only show during test */}
+            {!showIntro && !showModuleSelection && filteredQuestions.length > 0 && (
+              <div className="flex items-center justify-between">
+                <div className="flex-1 flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
+                      Soru {currentQuestionIndex + 1} / {filteredQuestions.length}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 sm:h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-300"
+                      style={{ width: `${(Object.keys(testAnswers).length / filteredQuestions.length) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
+          
+          {/* Header divider */}
+          {!showIntro && !showModuleSelection && (
+            <div className="w-full h-px bg-gray-200 dark:bg-gray-700 mb-4 sm:mb-6"></div>
+          )}
 
           {showIntro ? (
-            <div className="space-y-6">
-              <div className="prose dark:prose-invert max-w-none">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="prose dark:prose-invert max-w-none text-sm sm:text-base">
                 <p>{selectedTest.description}</p>
                 {selectedTest.instructions && (
                   <>
-                    <h3>Yönerge</h3>
+                    <h3 className="text-sm sm:text-base font-medium sm:font-semibold text-gray-900 dark:text-white">
+                      {isMobile ? getTruncatedTestName(selectedTest.name) : selectedTest.name} Yönergesi
+                    </h3>
                     <p>{selectedTest.instructions}</p>
                   </>
                 )}
@@ -760,24 +873,31 @@ export function Test() {
                       setShowIntro(false);
                     }
                   }}
-                  className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                  className="px-3 sm:px-6 py-2 sm:py-2.5 text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg sm:rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-md flex items-center"
                 >
-                  {selectedTest.isModular ? 'Modül Seçimine Geç' : 'Teste Başla'}
+                  <span className="flex items-center">
+                    {selectedTest.isModular ? 'Modül Seçimine Geç' : 'Teste Başla'}
+                    <svg className="w-3 h-3 sm:w-5 sm:h-5 ml-1 sm:ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
                 </button>
               </div>
             </div>
           ) : showModuleSelection ? (
-            <div className="space-y-6">
-              <div className="prose dark:prose-invert max-w-none">
-                <h3>Modül Seçimi</h3>
+            <div className="space-y-4 sm:space-y-6">
+              <div className="prose dark:prose-invert max-w-none text-sm sm:text-base">
+                <h3 className="text-sm sm:text-base font-medium sm:font-semibold text-gray-900 dark:text-white">
+                  {isMobile ? getTruncatedTestName(selectedTest.name) : selectedTest.name} - Modül Seçimi
+                </h3>
                 <p>Lütfen değerlendirmek istediğiniz modülleri seçiniz:</p>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
                 {selectedTest.modules?.map((module: Module) => (
                   <div 
                     key={module.id}
-                    className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+                    className={`p-2.5 sm:p-4 rounded-lg sm:rounded-xl border transition-all duration-200 cursor-pointer ${
                       selectedModules.includes(module.id)
                         ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700'
                         : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
@@ -796,11 +916,11 @@ export function Test() {
                           type="checkbox"
                           checked={selectedModules.includes(module.id)}
                           onChange={() => {}}
-                          className="h-5 w-5 text-blue-600 dark:text-blue-400 border-2 border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                          className="h-3.5 sm:h-5 w-3.5 sm:w-5 text-blue-600 dark:text-blue-400 border-2 border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                         />
                       </div>
-                      <div className="ml-3">
-                        <h4 className={`text-base font-medium ${
+                      <div className="ml-2 sm:ml-3">
+                        <h4 className={`text-sm sm:text-base font-medium ${
                           selectedModules.includes(module.id)
                             ? 'text-blue-900 dark:text-blue-100'
                             : 'text-gray-900 dark:text-gray-100'
@@ -808,7 +928,7 @@ export function Test() {
                           {module.name}
                         </h4>
                         {module.description && (
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                             {module.description}
                           </p>
                         )}
@@ -818,61 +938,80 @@ export function Test() {
                 ))}
               </div>
               
-              <div className="flex flex-wrap gap-3 justify-between">
-                <div className="space-x-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-between">
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={selectAllModules}
-                    className="px-4 py-2 text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                    className="px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
                   >
-                    Tümünü Seç
+                    <span className="flex items-center">
+                      <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                      </svg>
+                      Tümünü Seç
+                    </span>
                   </button>
                   <button
                     onClick={clearModuleSelection}
-                    className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/20 hover:bg-gray-100 dark:hover:bg-gray-700/30 rounded-lg transition-colors"
+                    className="px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/20 hover:bg-gray-100 dark:hover:bg-gray-700/30 rounded-lg transition-colors"
                   >
-                    Temizle
+                    <span className="flex items-center">
+                      <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Temizle
+                    </span>
                   </button>
                 </div>
-                <div className="space-x-3">
+                <div className="flex justify-between sm:justify-end gap-2 mt-2 sm:mt-0">
                   <button
                     onClick={() => {
                       setShowModuleSelection(false);
                       setShowIntro(true);
                     }}
-                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-lg transition-colors"
+                    className="px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-lg transition-colors shadow-sm border border-gray-200 dark:border-gray-700 flex items-center"
                   >
+                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
                     Geri
                   </button>
                   <button
                     onClick={handleModuleSelectionComplete}
                     disabled={selectedModules.length === 0}
-                    className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                    className="px-3 sm:px-6 py-1 sm:py-2.5 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg sm:rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 shadow-md flex items-center"
                   >
-                    Teste Başla
+                    <span className="flex items-center">
+                      Teste Başla
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </span>
                   </button>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="space-y-8">
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Soru {currentQuestionIndex + 1} / {filteredQuestions.length}
-                </div>
-                <div className="h-2 flex-1 mx-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-300"
-                    style={{ width: `${((currentQuestionIndex + 1) / filteredQuestions.length) * 100}%` }}
-                  />
-                </div>
-              </div>
-
+            <div className="space-y-4 sm:space-y-6">
               {filteredQuestions.length > 0 && currentQuestionIndex < filteredQuestions.length ? (
-                <div key={filteredQuestions[currentQuestionIndex].id} className="space-y-4">
-                  <p className="text-lg text-gray-900 dark:text-white">
-                    {currentQuestionIndex + 1}. {filteredQuestions[currentQuestionIndex].text}
-                  </p>
-                  <div className="space-y-3">
+                <div key={filteredQuestions[currentQuestionIndex].id} className="space-y-4 sm:space-y-6">
+                  {/* Question section */}
+                  <div className="bg-white dark:bg-gray-800 p-3 sm:p-5 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <div className="flex items-start">
+                      <span className="inline-flex items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full h-6 w-6 sm:h-7 sm:w-7 text-xs sm:text-sm font-medium mr-2.5 sm:mr-3 flex-shrink-0 mt-0.5">
+                        {currentQuestionIndex + 1}
+                      </span>
+                      <p className="text-base sm:text-xl text-gray-900 dark:text-white leading-relaxed font-semibold flex-1">
+                        {filteredQuestions[currentQuestionIndex].text}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Divider between question and answers */}
+                  <div className="w-full h-px bg-gray-200 dark:bg-gray-700"></div>
+                  
+                  {/* Answers section */}
+                  <div className="space-y-2 sm:space-y-3 bg-gray-50/70 dark:bg-gray-800/30 p-3 sm:p-4 rounded-lg border border-gray-200 dark:border-gray-700">
                     {filteredQuestions[currentQuestionIndex].options.map((option) => {
                       const questionId = filteredQuestions[currentQuestionIndex].id;
                       const optionId = `${questionId}_${option.value}`;
@@ -885,14 +1024,15 @@ export function Test() {
                           return (
                             <button
                               key={optionId}
+                              id={optionId}
                               onClick={() => handleAnswerChange(questionId, option.value)}
-                              className={`w-full p-4 rounded-xl border transition-all duration-200 flex items-center justify-center ${
+                              className={`w-full p-2.5 sm:p-4 rounded-lg sm:rounded-xl border text-xs sm:text-base transition-all duration-200 flex items-center justify-center ${
                                 isSelected 
                                   ? 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-800 dark:text-green-200 font-medium' 
                                   : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-green-50 dark:hover:bg-green-900/20 text-gray-900 dark:text-gray-100'
                               }`}
                             >
-                              <span className="text-lg">✓</span>
+                              <span className="text-sm sm:text-lg">✓</span>
                               <span className="ml-2">{option.text}</span>
                             </button>
                           );
@@ -902,14 +1042,15 @@ export function Test() {
                           return (
                             <button
                               key={optionId}
+                              id={optionId}
                               onClick={() => handleAnswerChange(questionId, option.value)}
-                              className={`w-full p-4 rounded-xl border transition-all duration-200 flex items-center justify-center ${
+                              className={`w-full p-2.5 sm:p-4 rounded-lg sm:rounded-xl border text-xs sm:text-base transition-all duration-200 flex items-center justify-center ${
                                 isSelected 
                                   ? 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-800 dark:text-red-200 font-medium' 
                                   : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-900 dark:text-gray-100'
                               }`}
                             >
-                              <span className="text-lg">✕</span>
+                              <span className="text-sm sm:text-lg">✕</span>
                               <span className="ml-2">{option.text}</span>
                             </button>
                           );
@@ -919,14 +1060,15 @@ export function Test() {
                           return (
                             <button
                               key={optionId}
+                              id={optionId}
                               onClick={() => handleAnswerChange(questionId, option.value)}
-                              className={`w-full p-4 rounded-xl border transition-all duration-200 flex items-center justify-center ${
+                              className={`w-full p-2.5 sm:p-4 rounded-lg sm:rounded-xl border text-xs sm:text-base transition-all duration-200 flex items-center justify-center ${
                                 isSelected 
                                   ? 'bg-gray-200 dark:bg-gray-600 border-gray-300 dark:border-gray-500 text-gray-800 dark:text-gray-200 font-medium' 
                                   : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100'
                               }`}
                             >
-                              <span className="text-lg">?</span>
+                              <span className="text-sm sm:text-lg">?</span>
                               <span className="ml-2">{option.text}</span>
                             </button>
                           );
@@ -940,8 +1082,9 @@ export function Test() {
                           return (
                             <button
                               key={optionId}
+                              id={optionId}
                               onClick={() => handleAnswerChange(questionId, option.value)}
-                              className={`w-full p-4 rounded-xl border transition-all duration-200 ${
+                              className={`w-full p-2.5 sm:p-4 rounded-lg sm:rounded-xl border text-xs sm:text-base transition-all duration-200 ${
                                 isSelected 
                                   ? 'bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 text-green-800 dark:text-green-200 font-medium' 
                                   : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-green-50 dark:hover:bg-green-900/20 text-gray-900 dark:text-gray-100'
@@ -956,8 +1099,9 @@ export function Test() {
                           return (
                             <button
                               key={optionId}
+                              id={optionId}
                               onClick={() => handleAnswerChange(questionId, option.value)}
-                              className={`w-full p-4 rounded-xl border transition-all duration-200 ${
+                              className={`w-full p-2.5 sm:p-4 rounded-lg sm:rounded-xl border text-xs sm:text-base transition-all duration-200 ${
                                 isSelected 
                                   ? 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-800 dark:text-red-200 font-medium' 
                                   : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-900 dark:text-gray-100'
@@ -972,8 +1116,9 @@ export function Test() {
                           return (
                             <button
                               key={optionId}
+                              id={optionId}
                               onClick={() => handleAnswerChange(questionId, option.value)}
-                              className={`w-full p-4 rounded-xl border transition-all duration-200 ${
+                              className={`w-full p-2.5 sm:p-4 rounded-lg sm:rounded-xl border text-xs sm:text-base transition-all duration-200 ${
                                 isSelected 
                                   ? 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700 text-yellow-800 dark:text-yellow-200 font-medium' 
                                   : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 text-gray-900 dark:text-gray-100'
@@ -988,8 +1133,9 @@ export function Test() {
                           return (
                             <button
                               key={optionId}
+                              id={optionId}
                               onClick={() => handleAnswerChange(questionId, option.value)}
-                              className={`w-full p-4 rounded-xl border transition-all duration-200 ${
+                              className={`w-full p-2.5 sm:p-4 rounded-lg sm:rounded-xl border text-xs sm:text-base transition-all duration-200 ${
                                 isSelected 
                                   ? 'bg-gray-200 dark:bg-gray-600 border-gray-300 dark:border-gray-500 text-gray-800 dark:text-gray-200 font-medium' 
                                   : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100'
@@ -1005,12 +1151,13 @@ export function Test() {
                       return (
                         <label
                           key={optionId}
+                          id={optionId}
                           htmlFor={optionId}
                           className={`block w-full cursor-pointer transition-all duration-200 ${
                             isSelected 
-                              ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700' 
+                              ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 shadow-md' 
                               : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                          } p-4 rounded-xl border`}
+                          } p-3 sm:p-4 rounded-lg sm:rounded-xl border`}
                           onClick={() => {
                             if (!isSelected) {
                               handleAnswerChange(questionId, option.value);
@@ -1026,12 +1173,12 @@ export function Test() {
                                 value={option.value}
                                 checked={isSelected}
                                 onChange={() => handleAnswerChange(questionId, option.value)}
-                                className="h-5 w-5 text-blue-600 dark:text-blue-400 border-2 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200"
+                                className="h-4 sm:h-5 w-4 sm:w-5 text-blue-600 dark:text-blue-400 border-2 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200"
                               />
-                              <span className={`ml-4 text-base ${
+                              <span className={`ml-3 sm:ml-4 text-sm sm:text-base ${
                                 isSelected 
                                   ? 'text-blue-900 dark:text-blue-100 font-medium' 
-                                  : 'text-gray-900 dark:text-gray-100'
+                                  : 'text-gray-800 dark:text-gray-100'
                               }`}>
                                 {option.text}
                               </span>
@@ -1045,33 +1192,36 @@ export function Test() {
               ) : (
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white mx-auto mb-4" />
-                    <p className="text-gray-600 dark:text-gray-400">Sorular yükleniyor...</p>
+                    <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-gray-900 dark:border-white mx-auto mb-4" />
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Sorular yükleniyor...</p>
                   </div>
                 </div>
               )}
 
               {currentQuestionIndex === filteredQuestions.length - 1 && professional && (
-                <div className="space-y-4">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <div className="space-y-3 sm:space-y-4">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                     Notlar (Opsiyonel)
                   </label>
                   <textarea
                     value={testNotes}
                     onChange={(e) => setTestNotes(e.target.value)}
                     rows={3}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                     placeholder="Test ile ilgili notlarınızı buraya yazabilirsiniz..."
                   />
                 </div>
               )}
 
-              <div className="flex justify-between">
+              <div className="flex justify-between space-y-2 sm:space-y-0 gap-2 border-t border-gray-200 dark:border-gray-700 pt-4">
                 <button
                   onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                   disabled={currentQuestionIndex === 0}
-                  className="px-6 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-xl transition-all duration-200 disabled:opacity-50"
+                  className="px-3 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-lg sm:rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center justify-center shadow-sm border border-gray-200 dark:border-gray-700"
                 >
+                  <svg className="w-3 h-3 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
                   Önceki Soru
                 </button>
                 
@@ -1079,9 +1229,18 @@ export function Test() {
                   <button
                     onClick={handleSubmitTest}
                     disabled={Object.keys(testAnswers).length < filteredQuestions.length}
-                    className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                    className="px-4 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm text-white bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 rounded-lg sm:rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center shadow-md"
                   >
-                    Testi Tamamla
+                    <span className="flex items-center">
+                      {Object.keys(testAnswers).length < filteredQuestions.length ? 
+                        `Tamamlamak için ${filteredQuestions.length - Object.keys(testAnswers).length} soru daha yanıtlayın` : 
+                        'Testi Tamamla'}
+                      {Object.keys(testAnswers).length === filteredQuestions.length && (
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </span>
                   </button>
                 )}
               </div>
@@ -1091,4 +1250,18 @@ export function Test() {
       </div>
     </div>
   );
+}
+
+// Helper function to get truncated test name for mobile display
+function getTruncatedTestName(fullName: string): string {
+  // Special case for SCID tests - preserve the full format
+  if (fullName.startsWith('SCID-')) {
+    const parts = fullName.split(' ');
+    // Return first part (e.g., "SCID-5-CV" from "SCID-5-CV Klinik Versiyon")
+    return parts[0];
+  }
+  
+  // For other tests, return first word or first 10 chars if one long word
+  const firstWord = fullName.split(' ')[0];
+  return firstWord.length > 10 ? firstWord.substring(0, 10) + '...' : firstWord;
 }

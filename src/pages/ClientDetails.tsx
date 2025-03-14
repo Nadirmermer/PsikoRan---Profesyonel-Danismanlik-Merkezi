@@ -67,12 +67,6 @@ export function ClientDetails() {
   const [pastAppointments, setPastAppointments] = useState<any[]>([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [shareOptions, setShareOptions] = useState<any[]>([]);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
-  const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -130,8 +124,6 @@ export function ClientDetails() {
       setClient(clientData);
     } catch (error) {
       console.error('Error loading client:', error);
-      setErrorMessage('Danışan bilgileri yüklenirken bir hata oluştu.');
-      setIsErrorDialogOpen(true);
     } finally {
       setLoading(false);
     }
@@ -252,75 +244,6 @@ export function ClientDetails() {
     }
   }
 
-  async function handleShareTest(testId: string) {
-    try {
-      // Kullanıcı oturumunu kontrol et
-      const session = await supabase.auth.getSession();
-      if (!session.data.session) {
-        throw new Error('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
-      }
-
-      // Test token oluştur
-      const { data, error } = await supabase
-        .from('test_tokens')
-        .insert({
-        test_id: testId,
-        client_id: id,
-          professional_id: professional?.id,
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 gün
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error generating token:', error);
-        
-        if (error.code === 'PGRST301' || error.message.includes('policy')) {
-          throw new Error('Yetki hatası: Bu işlemi gerçekleştirme izniniz yok.');
-        }
-        
-        throw new Error('Token oluşturulurken bir hata oluştu.');
-      }
-
-      // Paylaşım seçeneklerini ayarla
-      const token = data.token;
-      const testUrl = `${window.location.origin}/public-test/${token}`;
-      
-      const shareOptions = [
-        {
-          name: 'Bağlantıyı Kopyala',
-          action: () => {
-            navigator.clipboard.writeText(testUrl);
-            setIsShareModalOpen(false);
-            setSuccessMessage('Bağlantı panoya kopyalandı!');
-          setIsSuccessDialogOpen(true);
-        },
-        },
-        {
-          name: 'WhatsApp ile Paylaş',
-          action: () => {
-            window.open(`https://wa.me/?text=${encodeURIComponent(testUrl)}`, '_blank');
-            setIsShareModalOpen(false);
-          },
-        },
-        {
-          name: 'E-posta ile Paylaş',
-          action: () => {
-            window.open(`mailto:?subject=Test Daveti&body=${encodeURIComponent(testUrl)}`, '_blank');
-            setIsShareModalOpen(false);
-          },
-        },
-      ];
-
-      setShareOptions(shareOptions);
-      setIsShareModalOpen(true);
-    } catch (error: any) {
-      console.error('Error sharing test:', error);
-      setErrorMessage(error.message || 'Test paylaşılırken bir hata oluştu.');
-      setIsErrorDialogOpen(true);
-    }
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -389,7 +312,8 @@ export function ClientDetails() {
       {activeTab === 'tests' && professional && (
         <TestsTab 
           clientId={id || ''} 
-          handleShareTest={handleShareTest} 
+          professional={professional}
+          supabase={supabase}
         />
       )}
 
@@ -397,188 +321,6 @@ export function ClientDetails() {
         <TestResultsTab 
           testResults={testResults} 
         />
-      )}
-
-      {/* Paylaşım Seçenekleri Modalı */}
-      {isShareModalOpen && (
-        <Transition appear show={isShareModalOpen} as={Fragment}>
-          <Dialog
-            as="div"
-            className="fixed inset-0 z-50 overflow-y-auto"
-            onClose={() => setIsShareModalOpen(false)}
-          >
-            <div className="min-h-screen px-4 text-center">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm" />
-              </Transition.Child>
-
-              <span
-                className="inline-block h-screen align-middle"
-                aria-hidden="true"
-              >
-                &#8203;
-                        </span>
-              
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <div className="inline-block w-full max-w-sm p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
-                  <Dialog.Title className="text-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
-                    Paylaşım Seçenekleri
-                  </Dialog.Title>
-
-                  <div className="space-y-3">
-                    {shareOptions.map((option, index) => (
-                    <button
-                        key={index}
-                        onClick={option.action}
-                        className="w-full text-left px-4 py-3 rounded-xl bg-gray-50/80 dark:bg-gray-700/80 hover:bg-gray-100/80 dark:hover:bg-gray-600/80 transition-colors text-gray-900 dark:text-white"
-                      >
-                        {option.name}
-                    </button>
-                    ))}
-                </div>
-              </div>
-              </Transition.Child>
-          </div>
-          </Dialog>
-        </Transition>
-      )}
-
-      {/* Başarı Modalı */}
-      {isSuccessDialogOpen && (
-        <Transition appear show={isSuccessDialogOpen} as={Fragment}>
-      <Dialog
-            as="div"
-        className="fixed inset-0 z-50 overflow-y-auto"
-            onClose={() => setIsSuccessDialogOpen(false)}
-          >
-            <div className="min-h-screen px-4 text-center">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm" />
-              </Transition.Child>
-
-              <span
-                className="inline-block h-screen align-middle"
-                aria-hidden="true"
-              >
-                &#8203;
-              </span>
-              
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <div className="inline-block w-full max-w-sm p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
-                  <Dialog.Title className="text-lg font-medium text-green-600 dark:text-green-400 mb-2">
-              Başarılı!
-                  </Dialog.Title>
-                  
-                  <p className="text-gray-700 dark:text-gray-300 mb-4">
-              {successMessage}
-            </p>
-
-                  <div className="flex justify-end">
-              <button
-                onClick={() => setIsSuccessDialogOpen(false)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Tamam
-              </button>
-            </div>
-          </div>
-              </Transition.Child>
-        </div>
-          </Dialog>
-        </Transition>
-      )}
-
-      {/* Hata Modalı */}
-      {isErrorDialogOpen && (
-        <Transition appear show={isErrorDialogOpen} as={Fragment}>
-      <Dialog
-            as="div"
-        className="fixed inset-0 z-50 overflow-y-auto"
-            onClose={() => setIsErrorDialogOpen(false)}
-          >
-            <div className="min-h-screen px-4 text-center">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm" />
-              </Transition.Child>
-
-              <span
-                className="inline-block h-screen align-middle"
-                aria-hidden="true"
-              >
-                &#8203;
-              </span>
-              
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <div className="inline-block w-full max-w-sm p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
-                  <Dialog.Title className="text-lg font-medium text-red-600 dark:text-red-400 mb-2">
-                    Hata
-            </Dialog.Title>
-            
-                  <p className="text-gray-700 dark:text-gray-300 mb-4">
-                    {errorMessage}
-            </p>
-
-                  <div className="flex justify-end">
-              <button
-                      onClick={() => setIsErrorDialogOpen(false)}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                      Tamam
-              </button>
-            </div>
-          </div>
-              </Transition.Child>
-        </div>
-      </Dialog>
-        </Transition>
       )}
     </div>
   );

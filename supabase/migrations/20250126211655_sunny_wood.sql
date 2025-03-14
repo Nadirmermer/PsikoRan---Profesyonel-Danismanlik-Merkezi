@@ -591,10 +591,12 @@ DROP POLICY IF EXISTS "Insert test tokens policy" ON test_tokens;
 CREATE POLICY "Insert test tokens policy" ON test_tokens
   FOR INSERT TO authenticated
   WITH CHECK (
+    -- Profesyoneller kendi test tokenlarını oluşturabilir
     professional_id = (
       SELECT id FROM professionals WHERE user_id = auth.uid()
     )
     OR
+    -- Asistanlar kendi kliniğindeki profesyoneller için test token oluşturabilir
     EXISTS (
       SELECT 1 FROM professionals p
       JOIN assistants a ON a.id = p.assistant_id
@@ -691,3 +693,72 @@ GRANT SELECT ON test_tokens TO anon;
 GRANT SELECT ON clients TO anon;
 GRANT INSERT ON test_results TO anon;
 GRANT SELECT ON test_results TO anon;
+
+-- Test token oluşturmak için güvenli bir fonksiyon oluştur
+CREATE OR REPLACE FUNCTION create_test_token(
+  p_test_id TEXT,
+  p_client_id UUID,
+  p_professional_id UUID,
+  p_token TEXT,
+  p_expires_at TIMESTAMPTZ
+) RETURNS BOOLEAN AS $$
+DECLARE
+  v_user_id UUID;
+  v_is_authorized BOOLEAN := FALSE;
+  v_professional_user_id UUID;
+  v_assistant_id UUID;
+BEGIN
+  -- Mevcut kullanıcının UUID'sini al
+  v_user_id := auth.uid();
+  
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Kullanıcı oturumu bulunamadı';
+  END IF;
+  
+  -- Profesyonel kullanıcı kontrolü
+  SELECT user_id, assistant_id INTO v_professional_user_id, v_assistant_id
+  FROM professionals
+  WHERE id = p_professional_id;
+  
+  -- Kullanıcı profesyonel mi?
+  IF v_professional_user_id = v_user_id THEN
+    v_is_authorized := TRUE;
+  END IF;
+  
+  -- Kullanıcı asistan mı ve bu profesyonelin bağlı olduğu asistan mı?
+  IF NOT v_is_authorized AND v_assistant_id IS NOT NULL THEN
+    SELECT EXISTS (
+      SELECT 1 FROM assistants
+      WHERE id = v_assistant_id AND user_id = v_user_id
+    ) INTO v_is_authorized;
+  END IF;
+  
+  -- Yetki kontrolü
+  IF NOT v_is_authorized THEN
+    RAISE EXCEPTION 'Bu işlemi gerçekleştirme yetkiniz yok';
+  END IF;
+  
+  -- Test token'ı oluştur
+  INSERT INTO test_tokens (
+    test_id,
+    client_id,
+    professional_id,
+    token,
+    expires_at
+  ) VALUES (
+    p_test_id,
+    p_client_id,
+    p_professional_id,
+    p_token,
+    p_expires_at
+  );
+  
+  RETURN TRUE;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Test token fonksiyonuna erişim izni ver
+GRANT EXECUTE ON FUNCTION create_test_token TO authenticated;

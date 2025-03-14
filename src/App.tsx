@@ -148,7 +148,7 @@ function AnimatedRoutes() {
           }
         />
         <Route path="/test/:testId/:clientId" element={<Test />} />
-        <Route path="/test/:testId/:clientId/:token" element={<Test />} />
+        <Route path="/public-test/:token" element={<Test />} />
         <Route path="/test-completed" element={<TestCompleted />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
