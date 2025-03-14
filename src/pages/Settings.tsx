@@ -13,11 +13,20 @@ import {
   Mail,
   Phone,
   X,
+  Download,
+  Smartphone,
+  WifiOff,
+  Database,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { useNavigate } from 'react-router-dom';
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import { PWASettings } from '../components/PWASettings';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
 
 interface DayHours {
   opening: string;
@@ -93,6 +102,13 @@ export function Settings() {
   const [rooms, setRooms] = useState<DatabaseRoom[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRoom, setSelectedRoom] = useState<DatabaseRoom | null>(null);
+  
+  // PWA state'leri
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isPWA, setIsPWA] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
+  const [serviceWorkerStatus, setServiceWorkerStatus] = useState<'active' | 'installing' | 'waiting' | 'none'>('none');
   
   // Modal state'leri
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -186,6 +202,81 @@ export function Settings() {
 
     initializePage();
   }, [loading, professional, assistant]);
+
+  // PWA ile ilgili useEffect
+  useEffect(() => {
+    // PWA yükleme olayını dinle
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    // Kullanıcı daha önce PWA'yı yüklemiş mi kontrol et
+    const checkIfInstalled = () => {
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        setIsPWA(true);
+      }
+    };
+
+    // Çevrimiçi durumunu dinle
+    const handleOnlineStatusChange = () => {
+      setIsOnline(navigator.onLine);
+    };
+
+    // Depolama kullanımını kontrol et
+    const checkStorageEstimate = async () => {
+      if ('storage' in navigator && 'estimate' in navigator.storage) {
+        try {
+          const estimate = await navigator.storage.estimate();
+          setStorageEstimate({
+            usage: estimate.usage || 0,
+            quota: estimate.quota || 0
+          });
+        } catch (error) {
+          console.error('Depolama tahmini alınamadı:', error);
+        }
+      }
+    };
+
+    // Service Worker durumunu kontrol et
+    const checkServiceWorker = async () => {
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          
+          if (registrations.length > 0) {
+            const registration = registrations[0];
+            
+            if (registration.active) {
+              setServiceWorkerStatus('active');
+            } else if (registration.installing) {
+              setServiceWorkerStatus('installing');
+            } else if (registration.waiting) {
+              setServiceWorkerStatus('waiting');
+            }
+          } else {
+            setServiceWorkerStatus('none');
+          }
+        } catch (error) {
+          console.error('Service Worker durumu alınamadı:', error);
+        }
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('online', handleOnlineStatusChange);
+    window.addEventListener('offline', handleOnlineStatusChange);
+    
+    checkIfInstalled();
+    checkStorageEstimate();
+    checkServiceWorker();
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('online', handleOnlineStatusChange);
+      window.removeEventListener('offline', handleOnlineStatusChange);
+    };
+  }, []);
 
   // Tüm fonksiyonları tanımla
   async function loadClinicInfo() {
@@ -1098,6 +1189,67 @@ export function Settings() {
     }
   }
 
+  // PWA ile ilgili fonksiyonlar
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+
+    // Yükleme isteğini göster
+    await installPrompt.prompt();
+
+    // Kullanıcının seçimini bekle
+    const choiceResult = await installPrompt.userChoice;
+    
+    if (choiceResult.outcome === 'accepted') {
+      console.log('Kullanıcı PWA yüklemeyi kabul etti');
+      setIsPWA(true);
+    } else {
+      console.log('Kullanıcı PWA yüklemeyi reddetti');
+    }
+
+    // Yükleme isteğini sıfırla
+    setInstallPrompt(null);
+  };
+
+  const handleUpdateServiceWorker = async () => {
+    if ('serviceWorker' in navigator) {
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        
+        for (const registration of registrations) {
+          await registration.update();
+        }
+        
+        // Service Worker durumunu yeniden kontrol et
+        const updatedRegistrations = await navigator.serviceWorker.getRegistrations();
+        
+        if (updatedRegistrations.length > 0) {
+          const registration = updatedRegistrations[0];
+          
+          if (registration.active) {
+            setServiceWorkerStatus('active');
+          } else if (registration.installing) {
+            setServiceWorkerStatus('installing');
+          } else if (registration.waiting) {
+            setServiceWorkerStatus('waiting');
+          }
+        }
+      } catch (error) {
+        console.error('Service Worker güncellenemedi:', error);
+      }
+    }
+  };
+
+  // Byte'ı insan tarafından okunabilir formata dönüştür
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -1107,24 +1259,1030 @@ export function Settings() {
   }
 
     return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-5xl mx-auto space-y-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Ayarlar</h1>
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-8">
+            Ayarlar
+          </h1>
 
-        {/* Hesap Ayarları */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 space-y-6">
-          {/* ... existing account settings code ... */}
+      <div className="space-y-6">
+        {/* Profesyonel için görünüm */}
+        {professional && (
+          <>
+        {/* Kişisel Bilgiler */}
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
+          <div className="flex justify-between items-start">
+            <div>
+                  <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
+                Kişisel Bilgiler
+              </h2>
+                  <div className="space-y-2">
+                <p className="flex items-center text-gray-600 dark:text-gray-400">
+                  <User className="h-5 w-5 mr-2" />
+                  {professionalData.full_name}
+                </p>
+                {professionalData.title && (
+                      <p className="flex items-center text-gray-600 dark:text-gray-400 ml-7">
+                    {professionalData.title}
+                  </p>
+                )}
+                {professionalData.email && (
+                  <p className="flex items-center text-gray-600 dark:text-gray-400">
+                    <Mail className="h-5 w-5 mr-2" />
+                    {professionalData.email}
+                  </p>
+                )}
+                {professionalData.phone && (
+                  <p className="flex items-center text-gray-600 dark:text-gray-400">
+                    <Phone className="h-5 w-5 mr-2" />
+                    {professionalData.phone}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setShowProfessionalModal(true)}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200"
+              >
+                Düzenle
+              </button>
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
+              >
+                <Lock className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Klinik Bilgileri */}
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
+          <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
+            Klinik Bilgileri
+          </h2>
+          <div className="space-y-2">
+            {clinicInfo.clinic_name && clinicInfo.clinic_name !== 'Asistan kaydı bulunamadı' ? (
+              <>
+                <p className="flex items-center text-gray-600 dark:text-gray-400">
+                  <Building2 className="h-5 w-5 mr-2" />
+                  {clinicInfo.clinic_name}
+                </p>
+                {clinicInfo.assistant_name && (
+                  <p className="flex items-center text-gray-600 dark:text-gray-400">
+                    <User className="h-5 w-5 mr-2" />
+                    Asistan: {clinicInfo.assistant_name}
+                  </p>
+                )}
+                <p className="flex items-center text-gray-600 dark:text-gray-400">
+                  <Phone className="h-5 w-5 mr-2" />
+                  {clinicInfo.assistant_phone || '-'}
+                </p>
+              </>
+            ) : (
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                <p className="text-yellow-700 dark:text-yellow-400 font-medium">
+                  Henüz bir asistana bağlı değilsiniz
+                </p>
+                <p className="text-yellow-600 dark:text-yellow-300 text-sm mt-1">
+                  Bir asistan tarafından sisteme eklenmeniz gerekiyor. Lütfen klinik yöneticinizle iletişime geçin.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Çalışma Saatleri */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Kendi Çalışma Saatleri */}
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
+              <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+                Çalışma Saatlerim
+              </h2>
+              <button
+                onClick={() => setShowProfessionalWorkingHoursModal(true)}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200"
+              >
+                Düzenle
+              </button>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(professionalWorkingHours).map(([day, hours]) => (
+                <div key={day} className="p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {day.charAt(0).toUpperCase() + day.slice(1)}
+                    </span>
+                    <span className={`text-sm ${
+                      hours.isOpen 
+                        ? 'text-green-600 dark:text-green-400' 
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {hours.isOpen ? 'Açık' : 'Kapalı'}
+                    </span>
+                  </div>
+                  {hours.isOpen && (
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      {hours.opening} - {hours.closing}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Klinik Çalışma Saatleri */}
+              {clinicInfo.clinic_name && clinicInfo.clinic_name !== 'Asistan kaydı bulunamadı' ? (
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
+              <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+                Klinik Çalışma Saatleri
+              </h2>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(clinicHours).map(([day, hours]) => (
+                <div key={day} className="p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {day.charAt(0).toUpperCase() + day.slice(1)}
+                    </span>
+                    <span className={`text-sm ${
+                      hours.isOpen 
+                        ? 'text-green-600 dark:text-green-400' 
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {hours.isOpen ? 'Açık' : 'Kapalı'}
+                    </span>
+                  </div>
+                  {hours.isOpen && (
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      {hours.opening} - {hours.closing}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+              ) : (
+                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
+                  <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
+                    Klinik Çalışma Saatleri
+                  </h2>
+                  <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                    <p className="text-yellow-700 dark:text-yellow-400 font-medium">
+                      Klinik çalışma saatleri bilgisi bulunamadı
+                    </p>
+                    <p className="text-yellow-600 dark:text-yellow-300 text-sm mt-1">
+                      Bir asistana bağlı olduğunuzda klinik çalışma saatlerini görebilirsiniz.
+                    </p>
+                  </div>
+                </div>
+              )}
         </div>
 
         {/* PWA Ayarları */}
-        <PWASettings />
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
+          <div className="flex justify-between items-start">
+            <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
+              Uygulama Ayarları
+            </h2>
+            {!isPWA && installPrompt && (
+              <button
+                onClick={handleInstallClick}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 flex items-center space-x-2"
+              >
+                <Download className="h-5 w-5 mr-2" />
+                <span>Uygulamayı Yükle</span>
+              </button>
+            )}
+          </div>
 
-        {/* Odalar */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 space-y-6">
-          {/* ... existing rooms code ... */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {/* PWA Durumu */}
+            <div className="p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl space-y-2">
+              <div className="flex items-center mb-2">
+                <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
+                <h4 className="font-medium text-gray-900 dark:text-white">Uygulama Durumu</h4>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {isPWA 
+                  ? "Uygulama yüklü ve çalışıyor" 
+                  : "Uygulama yüklü değil. Yüklemek için sağdaki butonu kullanabilirsiniz."}
+              </p>
+              {isPWA && (
+                <div className="mt-2 text-xs text-gray-500 dark:text-gray-500">
+                  Uygulama ana ekranınızdan erişilebilir
+                </div>
+              )}
+            </div>
+
+            {/* Çevrimiçi Durumu */}
+            <div className="p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl space-y-2">
+              <div className="flex items-center mb-2">
+                <WifiOff className={`w-5 h-5 ${isOnline ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} mr-2`} />
+                <h4 className="font-medium text-gray-900 dark:text-white">Bağlantı Durumu</h4>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {isOnline 
+                  ? "Çevrimiçi - İnternet bağlantısı var" 
+                  : "Çevrimdışı - İnternet bağlantısı yok"}
+              </p>
+              {!isOnline && (
+                <div className="mt-2 text-xs text-gray-500 dark:text-gray-500">
+                  Çevrimdışı modda sınırlı özellikler kullanılabilir
+                </div>
+              )}
+            </div>
+
+            {/* Depolama Bilgisi */}
+            {storageEstimate && (
+              <div className="p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl space-y-2">
+                <div className="flex items-center mb-2">
+                  <Database className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
+                  <h4 className="font-medium text-gray-900 dark:text-white">Depolama Kullanımı</h4>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Kullanılan:</span>
+                    <span className="text-gray-900 dark:text-white">{formatBytes(storageEstimate.usage)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Toplam:</span>
+                    <span className="text-gray-900 dark:text-white">{formatBytes(storageEstimate.quota)}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 mt-2">
+                    <div 
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 h-2.5 rounded-full" 
+                      style={{ width: `${(storageEstimate.usage / storageEstimate.quota) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Service Worker Durumu */}
+            <div className="p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl space-y-2">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center">
+                  <RefreshCw className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
+                  <h4 className="font-medium text-gray-900 dark:text-white">Uygulama Güncellemesi</h4>
+                </div>
+                <button 
+                  onClick={handleUpdateServiceWorker}
+                  className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
+                >
+                  Güncelle
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {serviceWorkerStatus === 'active' && "Uygulama güncel"}
+                {serviceWorkerStatus === 'installing' && "Güncelleme yükleniyor..."}
+                {serviceWorkerStatus === 'waiting' && "Güncelleme hazır, uygulamayı yeniden başlatın"}
+                {serviceWorkerStatus === 'none' && "Service Worker bulunamadı"}
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* ... rest of the code ... */}
+        {/* Hesap Silme */}
+        <div className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-6 border border-red-100 dark:border-red-800/50">
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-lg font-semibold text-red-700 dark:text-red-400">
+                Hesabı Sil
+              </h2>
+              <p className="mt-2 text-sm text-red-600 dark:text-red-300">
+                Hesabınızı sildiğinizde tüm verileriniz kalıcı olarak silinecektir. Bu işlem geri alınamaz.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowDeleteAccountModal(true)}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all duration-200 flex items-center space-x-2"
+            >
+              <Trash2 className="h-5 w-5" />
+              <span>Hesabı Sil</span>
+            </button>
+          </div>
+        </div>
+                      </>
+                    )}
+
+        {/* Asistan için görünüm */}
+        {assistant && (
+          <>
+      {/* Klinik Bilgileri */}
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
+        <div className="flex justify-between items-start">
+          <div>
+                  <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
+              Klinik Bilgileri
+            </h2>
+                  <div className="space-y-2">
+              <p className="flex items-center text-gray-600 dark:text-gray-400">
+                <User className="h-5 w-5 mr-2" />
+                {assistantData.full_name}
+              </p>
+                <p className="flex items-center text-gray-600 dark:text-gray-400">
+                  <Building2 className="h-5 w-5 mr-2" />
+                  {assistantData.clinic_name}
+                </p>
+              {assistantData.phone && (
+                <p className="flex items-center text-gray-600 dark:text-gray-400">
+                  <Phone className="h-5 w-5 mr-2" />
+                  {assistantData.phone}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowAssistantModal(true)}
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200"
+            >
+              Düzenle
+            </button>
+            <button
+              onClick={() => setShowPasswordModal(true)}
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
+            >
+              <Lock className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Çalışma Saatleri */}
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
+          <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+            Çalışma Saatleri
+          </h2>
+          <button
+            onClick={() => setShowClinicHoursModal(true)}
+            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200"
+          >
+            Düzenle
+          </button>
+        </div>
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Object.entries(clinicHours).map(([day, hours]) => (
+            <div key={day} className="p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {day.charAt(0).toUpperCase() + day.slice(1)}
+                </span>
+                <span className={`text-sm ${
+                  hours.isOpen 
+                    ? 'text-green-600 dark:text-green-400' 
+                    : 'text-red-600 dark:text-red-400'
+                }`}>
+                  {hours.isOpen ? 'Açık' : 'Kapalı'}
+                </span>
+              </div>
+              {hours.isOpen && (
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {hours.opening} - {hours.closing}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Odalar */}
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+            Odalar
+          </h2>
+          <div className="flex space-x-2">
+            <div className="relative">
+          <input
+            type="text"
+            placeholder="Oda ara..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              />
+              <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            </div>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 flex items-center space-x-2"
+            >
+              <Plus className="h-5 w-5" />
+              <span>Yeni Oda</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredRooms.map((room) => (
+            <div
+              key={room.id}
+              className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-200/50 dark:border-gray-700/50"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="font-medium text-gray-900 dark:text-white">
+                    {room.name}
+                  </h3>
+                  {room.description && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {room.description}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+                    Kapasite: {room.capacity} kişi
+                  </p>
+                </div>
+                <div className="flex space-x-1">
+                  <button
+                    onClick={() => handleEditClick(room)}
+                    className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-200/80 dark:hover:bg-gray-600/80 rounded-lg transition-all duration-200"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteRoom(room.id)}
+                    className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-100/80 dark:hover:bg-red-900/30 rounded-lg transition-all duration-200"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {rooms.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500 dark:text-gray-400">
+              Henüz oda eklenmemiş. Yeni oda eklemek için "Yeni Oda" butonuna tıklayın.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Hesap Silme */}
+      <div className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-6 border border-red-100 dark:border-red-800/50">
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-lg font-semibold text-red-700 dark:text-red-400">
+              Hesabı Sil
+            </h2>
+            <p className="mt-2 text-sm text-red-600 dark:text-red-300">
+              Hesabınızı sildiğinizde tüm verileriniz kalıcı olarak silinecektir. Bu işlem geri alınamaz.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowDeleteAccountModal(true)}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all duration-200 flex items-center space-x-2"
+          >
+            <Trash2 className="h-5 w-5" />
+            <span>Hesabı Sil</span>
+          </button>
+        </div>
+      </div>
+          </>
+        )}
+
+        {/* Profesyonel Bilgileri Modal */}
+        <Modal
+          isOpen={showProfessionalModal}
+          onClose={() => setShowProfessionalModal(false)}
+          title="Kişisel Bilgileri Düzenle"
+        >
+          <form onSubmit={handleUpdateProfessional} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Ad Soyad
+              </label>
+              <input
+                type="text"
+                value={professionalData.full_name}
+                onChange={(e) => setProfessionalData({ ...professionalData, full_name: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Unvan
+              </label>
+              <input
+                type="text"
+                value={professionalData.title}
+                onChange={(e) => setProfessionalData({ ...professionalData, title: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+              </div>
+              <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                E-posta
+                </label>
+                <input
+                type="email"
+                value={professionalData.email}
+                onChange={(e) => setProfessionalData({ ...professionalData, email: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Telefon
+              </label>
+              <input
+                type="tel"
+                value={professionalData.phone}
+                onChange={(e) => setProfessionalData({ ...professionalData, phone: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+                </div>
+            <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  type="button"
+                onClick={() => setShowProfessionalModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                disabled={loading}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl disabled:opacity-50"
+              >
+                {loading ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+              </div>
+            </form>
+        </Modal>
+
+        {/* Asistan Bilgileri Modal */}
+        <Modal
+          isOpen={showAssistantModal}
+          onClose={() => setShowAssistantModal(false)}
+          title="Klinik Bilgilerini Düzenle"
+        >
+            <form onSubmit={handleUpdateAssistant} className="space-y-4">
+              <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Ad Soyad
+                </label>
+                <input
+                  type="text"
+                  value={assistantData.full_name}
+                onChange={(e) => setAssistantData({ ...assistantData, full_name: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                required
+                />
+              </div>
+              <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Klinik Adı
+                </label>
+                <input
+                type="text"
+                value={assistantData.clinic_name}
+                onChange={(e) => setAssistantData({ ...assistantData, clinic_name: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                required
+                />
+              </div>
+              <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Telefon
+                </label>
+                <input
+                type="tel"
+                value={assistantData.phone}
+                onChange={(e) => setAssistantData({ ...assistantData, phone: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+            <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowAssistantModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl disabled:opacity-50"
+                >
+                  {loading ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+              </div>
+            </form>
+        </Modal>
+
+        {/* Şifre Değiştirme Modal */}
+        <Modal
+          isOpen={showPasswordModal}
+          onClose={() => setShowPasswordModal(false)}
+          title="Şifre Değiştir"
+        >
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Mevcut Şifre
+                      </label>
+                        <input
+                type="password"
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                required
+                autoComplete="current-password"
+              />
+                    </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Yeni Şifre
+                          </label>
+                          <input
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                required
+                autoComplete="new-password"
+              />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Yeni Şifre (Tekrar)
+                          </label>
+                          <input
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                required
+                autoComplete="new-password"
+              />
+                        </div>
+            <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  type="button"
+                onClick={() => setShowPasswordModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl disabled:opacity-50"
+                >
+                {loading ? 'Değiştiriliyor...' : 'Değiştir'}
+                </button>
+              </div>
+            </form>
+        </Modal>
+
+      {/* Oda Oluşturma Modal */}
+        <Modal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          title="Yeni Oda Ekle"
+        >
+            <form onSubmit={handleCreateRoom} className="space-y-4">
+              <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Oda Adı
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                required
+                />
+              </div>
+              <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Açıklama
+                </label>
+                <textarea
+                  value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  rows={3}
+                />
+              </div>
+              <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Kapasite
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.capacity}
+                onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                required
+                />
+              </div>
+            <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl disabled:opacity-50"
+                >
+                {loading ? 'Oluşturuluyor...' : 'Oluştur'}
+                </button>
+              </div>
+            </form>
+        </Modal>
+
+      {/* Oda Düzenleme Modal */}
+        <Modal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          title="Oda Düzenle"
+        >
+            <form onSubmit={handleEditRoom} className="space-y-4">
+              <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Oda Adı
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                required
+                />
+              </div>
+              <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Açıklama
+                </label>
+                <textarea
+                  value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  rows={3}
+                />
+              </div>
+              <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Kapasite
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.capacity}
+                onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                required
+                />
+              </div>
+            <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  type="button"
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl disabled:opacity-50"
+                >
+                  {loading ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+              </div>
+            </form>
+        </Modal>
+
+        {/* Çalışma Saatleri Modal */}
+        <Modal
+          isOpen={showClinicHoursModal}
+          onClose={() => setShowClinicHoursModal(false)}
+          title="Çalışma Saatlerini Düzenle"
+        >
+          <form onSubmit={handleUpdateClinicHours} className="space-y-4">
+            {Object.entries(clinicHours).map(([day, hours]) => (
+              <div key={day} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    {day.charAt(0).toUpperCase() + day.slice(1)}
+                  </span>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={hours.isOpen}
+                      onChange={(e) =>
+                        setClinicHours({
+                          ...clinicHours,
+                          [day]: { ...hours, isOpen: e.target.checked },
+                        })
+                      }
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Açık</span>
+                  </label>
+                </div>
+                {hours.isOpen && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        Açılış
+                      </label>
+                      <input
+                        type="time"
+                        value={hours.opening}
+                        onChange={(e) =>
+                          setClinicHours({
+                            ...clinicHours,
+                            [day]: { ...hours, opening: e.target.value },
+                          })
+                        }
+                        className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        Kapanış
+                      </label>
+                      <input
+                        type="time"
+                        value={hours.closing}
+                        onChange={(e) =>
+                          setClinicHours({
+                            ...clinicHours,
+                            [day]: { ...hours, closing: e.target.value },
+                          })
+                        }
+                        className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+          </div>
+        </div>
+      )}
+              </div>
+            ))}
+            <div className="flex justify-end space-x-2 mt-6">
+              <button
+                type="button"
+                onClick={() => setShowClinicHoursModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                İptal
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl disabled:opacity-50"
+              >
+                {loading ? 'Kaydediliyor...' : 'Kaydet'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Profesyonel Çalışma Saatleri Modal */}
+        <Modal
+          isOpen={showProfessionalWorkingHoursModal}
+          onClose={() => setShowProfessionalWorkingHoursModal(false)}
+          title="Çalışma Saatlerini Düzenle"
+        >
+          <form onSubmit={handleUpdateProfessionalWorkingHours} className="space-y-4">
+            {Object.entries(professionalWorkingHours).map(([day, hours]) => (
+              <div key={day} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    {day.charAt(0).toUpperCase() + day.slice(1)}
+                  </span>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={hours.isOpen}
+                      onChange={(e) =>
+                        setProfessionalWorkingHours({
+                          ...professionalWorkingHours,
+                          [day]: { ...hours, isOpen: e.target.checked },
+                        })
+                      }
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Açık</span>
+                  </label>
+                </div>
+                {hours.isOpen && (
+                  <div className="grid grid-cols-2 gap-4">
+              <div>
+                      <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        Açılış
+                </label>
+                <input
+                        type="time"
+                        value={hours.opening}
+                  onChange={(e) =>
+                          setProfessionalWorkingHours({
+                            ...professionalWorkingHours,
+                            [day]: { ...hours, opening: e.target.value },
+                          })
+                        }
+                        className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+              <div>
+                      <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                        Kapanış
+                </label>
+                <input
+                        type="time"
+                        value={hours.closing}
+                  onChange={(e) =>
+                          setProfessionalWorkingHours({
+                            ...professionalWorkingHours,
+                            [day]: { ...hours, closing: e.target.value },
+                          })
+                        }
+                        className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+                  </div>
+                )}
+              </div>
+            ))}
+            <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  type="button"
+                onClick={() => setShowProfessionalWorkingHoursModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl disabled:opacity-50"
+                >
+                {loading ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+              </div>
+            </form>
+        </Modal>
+
+        {/* Hesap Silme Modal */}
+        <Modal
+          isOpen={showDeleteAccountModal}
+          onClose={() => setShowDeleteAccountModal(false)}
+          title="Hesabı Sil"
+        >
+          <form onSubmit={handleDeleteAccount} className="space-y-4">
+            <p className="text-gray-600 dark:text-gray-400">
+              Hesabınızı silmek üzeresiniz. Bu işlem geri alınamaz. Devam etmek için lütfen şifrenizi girin.
+            </p>
+            {deleteAccountError && (
+              <p className="text-red-600 dark:text-red-400 text-sm">{deleteAccountError}</p>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Şifre
+              </label>
+              <input
+                type="password"
+                value={deleteAccountPassword}
+                onChange={(e) => setDeleteAccountPassword(e.target.value)}
+                className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                required
+                autoComplete="current-password"
+              />
+          </div>
+            <div className="flex justify-end space-x-2 mt-6">
+              <button
+                type="button"
+                onClick={() => setShowDeleteAccountModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                İptal
+              </button>
+              <button
+                type="submit"
+                disabled={deleteAccountLoading}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl disabled:opacity-50"
+              >
+                {deleteAccountLoading ? 'Siliniyor...' : 'Hesabı Sil'}
+              </button>
+        </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );
