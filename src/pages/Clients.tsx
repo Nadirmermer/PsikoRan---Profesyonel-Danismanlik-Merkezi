@@ -300,9 +300,6 @@ export function Clients() {
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Paylaşım
                 </th>
-                <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  İşlemler
-                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -365,30 +362,6 @@ export function Clients() {
                         <span>Klinik:</span>
                         <span className="font-medium">%{client.clinic_share_percentage}</span>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex items-center justify-end space-x-3">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditClick(client);
-                        }}
-                        className="p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-400/10 rounded-lg transition-colors duration-150"
-                        title="Düzenle"
-                      >
-                        <Pencil className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteClient(client.id);
-                        }}
-                        className="p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10 rounded-lg transition-colors duration-150"
-                        title="Sil"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
                     </div>
                   </td>
                 </tr>

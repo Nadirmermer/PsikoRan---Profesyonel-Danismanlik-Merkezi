@@ -272,7 +272,7 @@ ${professionalTitle} ${professionalName}`;
         ))}
       </div>
 
-      {/* Paylaşım Seçenekleri Modalı */}
+      {/* Paylaşım Seçenekleri Modalı - Standart Modal Tasarımı */}
       {isShareModalOpen && (
         <Transition appear show={isShareModalOpen} as={Fragment}>
           <Dialog
@@ -393,7 +393,7 @@ ${professionalTitle} ${professionalName}`;
         </Transition>
       )}
 
-      {/* Başarı Modalı */}
+      {/* Başarı Modalı - Standart Modal Tasarımı */}
       {isSuccessDialogOpen && (
         <Transition appear show={isSuccessDialogOpen} as={Fragment}>
           <Dialog

@@ -799,7 +799,7 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
         </div>
       </form>
 
-      {/* Not düzenleme modalı */}
+      {/* Not düzenleme modalı - Standart Modal Tasarımı */}
       <Transition appear show={isEditDialogOpen} as={Fragment}>
         <Dialog
           as="div"
@@ -914,7 +914,7 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
         </Dialog>
       </Transition>
 
-      {/* Not silme onay modalı */}
+      {/* Not silme onay modalı - Standart Modal Tasarımı */}
       <Transition appear show={isDeleteDialogOpen} as={Fragment}>
         <Dialog
           as="div"
@@ -994,7 +994,7 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
         </Dialog>
       </Transition>
 
-      {/* Başarı modalı */}
+      {/* Başarı modalı - Standart Modal Tasarımı */}
       <Transition appear show={isSuccessDialogOpen} as={Fragment}>
         <Dialog
           as="div"
@@ -1054,7 +1054,7 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
         </Dialog>
       </Transition>
 
-      {/* Hata modalı */}
+      {/* Hata modalı - Standart Modal Tasarımı */}
       <Transition appear show={isErrorDialogOpen} as={Fragment}>
         <Dialog
           as="div"

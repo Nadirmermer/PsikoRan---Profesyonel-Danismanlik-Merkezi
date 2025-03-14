@@ -320,6 +320,8 @@ export function ClientDetails() {
       {activeTab === 'test-results' && professional && (
         <TestResultsTab 
           testResults={testResults} 
+          supabase={supabase}
+          loadTestResults={loadTestResults}
         />
       )}
     </div>
