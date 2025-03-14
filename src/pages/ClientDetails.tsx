@@ -77,6 +77,7 @@ interface Client {
     phone?: string;
     clinic_name?: string;
     assistant_id?: string;
+    user_id?: string;
   };
 }
 
@@ -137,72 +138,72 @@ const MenuBar = ({ editor }: MenuBarProps) => {
   }
 
   return (
-    <div className="flex flex-wrap gap-1 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-t-xl">
+    <div className="flex flex-wrap gap-1 p-1.5 sm:p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-t-xl">
       <button
         onClick={() => editor.chain().focus().toggleBold().run()}
         disabled={!editor.can().chain().focus().toggleBold().run()}
-        className={`p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
+        className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
           editor.isActive('bold') ? 'bg-gray-200 dark:bg-gray-700' : ''
         }`}
       >
-        <Bold className="w-4 h-4" />
+        <Bold className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleItalic().run()}
         disabled={!editor.can().chain().focus().toggleItalic().run()}
-        className={`p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
+        className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
           editor.isActive('italic') ? 'bg-gray-200 dark:bg-gray-700' : ''
         }`}
       >
-        <Italic className="w-4 h-4" />
+        <Italic className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleUnderline().run()}
-        className={`p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
+        className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
           editor.isActive('underline') ? 'bg-gray-200 dark:bg-gray-700' : ''
         }`}
       >
-        <UnderlineIcon className="w-4 h-4" />
+        <UnderlineIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleBulletList().run()}
-        className={`p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
+        className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
           editor.isActive('bulletList') ? 'bg-gray-200 dark:bg-gray-700' : ''
         }`}
       >
-        <List className="w-4 h-4" />
+        <List className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </button>
       <button
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        className={`p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
+        className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
           editor.isActive('orderedList') ? 'bg-gray-200 dark:bg-gray-700' : ''
         }`}
       >
-        <ListOrdered className="w-4 h-4" />
+        <ListOrdered className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </button>
       <button
         onClick={() => editor.chain().focus().setTextAlign('left').run()}
-        className={`p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
+        className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
           editor.isActive({ textAlign: 'left' }) ? 'bg-gray-200 dark:bg-gray-700' : ''
         }`}
       >
-        <AlignLeft className="w-4 h-4" />
+        <AlignLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </button>
       <button
         onClick={() => editor.chain().focus().setTextAlign('center').run()}
-        className={`p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
+        className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
           editor.isActive({ textAlign: 'center' }) ? 'bg-gray-200 dark:bg-gray-700' : ''
         }`}
       >
-        <AlignCenter className="w-4 h-4" />
+        <AlignCenter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </button>
       <button
         onClick={() => editor.chain().focus().setTextAlign('right').run()}
-        className={`p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
+        className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
           editor.isActive({ textAlign: 'right' }) ? 'bg-gray-200 dark:bg-gray-700' : ''
         }`}
       >
-        <AlignRight className="w-4 h-4" />
+        <AlignRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
       </button>
     </div>
   );
@@ -730,7 +731,7 @@ export function ClientDetails() {
       
       console.log("Generated secure token:", token);
       
-      // Token nesnesini oluştur
+      // Token nesnesini oluştur - created_by alanını kaldırdık
       const tokenObject = {
         test_id: testId,
         client_id: id,
@@ -739,6 +740,16 @@ export function ClientDetails() {
         created_at: new Date().toISOString(),
         expires_at: new Date(timestamp + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 gün geçerli
       };
+
+      // Önce mevcut oturumu kontrol et
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error("Aktif oturum bulunamadı");
+        throw new Error('Aktif oturum bulunamadı. Lütfen tekrar giriş yapın.');
+      }
+
+      console.log("Active session found:", session.user.id);
 
       // Token'ı veritabanına kaydet
       const { data: savedToken, error: saveError } = await supabase
@@ -768,6 +779,16 @@ export function ClientDetails() {
       console.log("=== DEBUG: handleShareTest started ===");
       console.log("Test paylaşımı başlatılıyor, testId:", testId, "clientId:", id);
       
+      // Önce oturum kontrolü yap
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error("Aktif oturum bulunamadı");
+        setErrorMessage('Oturum süresi dolmuş olabilir. Lütfen tekrar giriş yapın.');
+        setIsErrorDialogOpen(true);
+        return;
+      }
+      
       // Önce mevcut token'ları kontrol et
       console.log("Checking existing tokens...");
       const { data: existingTokens, error: tokenCheckError } = await supabase
@@ -778,53 +799,75 @@ export function ClientDetails() {
       
       if (tokenCheckError) {
         console.error('Error checking existing tokens:', tokenCheckError);
-        throw tokenCheckError;
+        setErrorMessage('Test token kontrolü sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+        setIsErrorDialogOpen(true);
+        return;
       }
       
       console.log("Existing tokens:", existingTokens);
       
       // Geçerli bir token varsa onu kullan, yoksa yeni oluştur
       let token;
-      if (existingTokens && existingTokens.length > 0) {
-        // En son oluşturulan token'ı al
-        const latestToken = existingTokens.sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )[0];
-        
-        // Token'ın oluşturulma tarihini kontrol et (24 saat geçerli)
-        const tokenDate = new Date(latestToken.created_at);
-        const now = new Date();
-        const hoursDiff = (now.getTime() - tokenDate.getTime()) / (1000 * 60 * 60);
-        
-        console.log("Latest token:", latestToken);
-        console.log("Token age in hours:", hoursDiff);
-        
-        if (hoursDiff <= 24) {
-          // Token hala geçerli, bunu kullan
-          token = latestToken;
-          console.log("Using existing valid token:", token);
+      try {
+        if (existingTokens && existingTokens.length > 0) {
+          // En son oluşturulan token'ı al
+          const latestToken = existingTokens.sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          )[0];
+          
+          // Token'ın oluşturulma tarihini kontrol et (24 saat geçerli)
+          const tokenDate = new Date(latestToken.created_at);
+          const now = new Date();
+          const hoursDiff = (now.getTime() - tokenDate.getTime()) / (1000 * 60 * 60);
+          
+          console.log("Latest token:", latestToken);
+          console.log("Token age in hours:", hoursDiff);
+          
+          if (hoursDiff <= 24) {
+            // Token hala geçerli, bunu kullan
+            token = latestToken;
+            console.log("Using existing valid token:", token);
+          } else {
+            // Token süresi dolmuş, yeni oluştur
+            console.log("Token expired, generating new one...");
+            token = await generateTestToken(testId);
+            console.log("New token generated:", token);
+          }
         } else {
-          // Token süresi dolmuş, yeni oluştur
-          console.log("Token expired, generating new one...");
+          // Hiç token yok, yeni oluştur
+          console.log("No existing tokens, generating new one...");
           token = await generateTestToken(testId);
           console.log("New token generated:", token);
         }
-      } else {
-        // Hiç token yok, yeni oluştur
-        console.log("No existing tokens, generating new one...");
-        token = await generateTestToken(testId);
-        console.log("New token generated:", token);
+      } catch (tokenError: any) {
+        console.error("Token oluşturma hatası:", tokenError);
+        
+        // Daha açıklayıcı hata mesajı göster
+        let errorMsg = 'Test token oluşturulurken bir hata oluştu.';
+        if (tokenError.message) {
+          errorMsg += ` Hata: ${tokenError.message}`;
+        } else if (tokenError.code) {
+          errorMsg += ` Kod: ${tokenError.code}`;
+        }
+        
+        setErrorMessage(errorMsg);
+        setIsErrorDialogOpen(true);
+        return;
       }
 
       if (!token) {
-        throw new Error('Failed to generate test token');
+        setErrorMessage('Test token oluşturulamadı. Lütfen tekrar deneyin.');
+        setIsErrorDialogOpen(true);
+        return;
       }
 
       console.log("Token oluşturuldu:", token);
 
       const test = AVAILABLE_TESTS.find(t => t.id === testId);
       if (!test) {
-        throw new Error('Test not found');
+        setErrorMessage('Test bulunamadı.');
+        setIsErrorDialogOpen(true);
+        return;
       }
 
       // Paylaşım linkini oluştur
@@ -845,7 +888,9 @@ export function ClientDetails() {
       const options = [];
 
       if (!client) {
-        throw new Error('Client data is not available');
+        setErrorMessage('Danışan bilgileri bulunamadı.');
+        setIsErrorDialogOpen(true);
+        return;
       }
 
       // WhatsApp seçeneği (telefon varsa)
@@ -891,9 +936,18 @@ export function ClientDetails() {
 
       setShareOptions(options);
       setIsShareModalOpen(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sharing test:', error);
-      setErrorMessage('Test paylaşım linki oluşturulurken bir hata oluştu.');
+      
+      // Daha açıklayıcı hata mesajı göster
+      let errorMsg = 'Test paylaşım linki oluşturulurken bir hata oluştu.';
+      if (error.message) {
+        errorMsg += ` Hata: ${error.message}`;
+      } else if (error.code) {
+        errorMsg += ` Kod: ${error.code}`;
+      }
+      
+      setErrorMessage(errorMsg);
       setIsErrorDialogOpen(true);
     }
   }
@@ -916,9 +970,9 @@ export function ClientDetails() {
 
   return (
     <div className="space-y-6">
-      {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+      {/* Tabs - Mobil uyumlu hale getirme */}
+      <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1">
+        <nav className="-mb-px flex space-x-2 md:space-x-8" aria-label="Tabs">
           {visibleTabs.map((tab) => (
           <button
               key={tab.id}
@@ -927,7 +981,7 @@ export function ClientDetails() {
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                   : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300',
-                'whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-all duration-200'
+                'whitespace-nowrap border-b-2 py-3 px-1 text-xs sm:text-sm font-medium transition-all duration-200 flex-shrink-0'
               )}
             >
               {tab.name}
@@ -941,81 +995,81 @@ export function ClientDetails() {
             <div className="space-y-6">
               {!editMode ? (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-4">
-                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4">
+                      <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">
                         Ad Soyad
                       </h3>
-                      <p className="text-base text-gray-900 dark:text-white">
+                      <p className="text-sm sm:text-base text-gray-900 dark:text-white">
                         {client.full_name}
                       </p>
                     </div>
-                    <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-4">
-                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                    <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4">
+                      <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">
                         E-posta
                       </h3>
-                      <p className="text-base text-gray-900 dark:text-white">
+                      <p className="text-sm sm:text-base text-gray-900 dark:text-white">
                         {client.email}
                       </p>
                     </div>
-                    <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-4">
-                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                    <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4">
+                      <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">
                         Telefon
                       </h3>
-                      <p className="text-base text-gray-900 dark:text-white">
+                      <p className="text-sm sm:text-base text-gray-900 dark:text-white">
                         {client.phone || '-'}
                       </p>
                     </div>
-                    <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-4">
-                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                    <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4">
+                      <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">
                         Doğum Tarihi
                       </h3>
-                      <p className="text-base text-gray-900 dark:text-white">
+                      <p className="text-sm sm:text-base text-gray-900 dark:text-white">
                         {client.birth_date || '-'}
                       </p>
                     </div>
-                    <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-4">
-                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                    <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4">
+                      <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">
                         Seans Ücreti
                       </h3>
-                      <p className="text-base text-gray-900 dark:text-white">
+                      <p className="text-sm sm:text-base text-gray-900 dark:text-white">
                         {client.session_fee.toLocaleString('tr-TR', {
                           style: 'currency',
                           currency: 'TRY',
                         })}
                       </p>
                     </div>
-                    <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-4">
-                      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                    <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4">
+                      <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">
                         Ruh Sağlığı Uzmanı
                       </h3>
-                      <p className="text-base text-gray-900 dark:text-white">
+                      <p className="text-sm sm:text-base text-gray-900 dark:text-white">
                         {client.professional?.full_name || '-'}
                       </p>
                     </div>
                   </div>
-                  <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-4">
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  <div className="bg-gray-50/50 dark:bg-gray-700/50 rounded-xl p-3 sm:p-4">
+                    <h3 className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 sm:mb-2">
                       Notlar
                     </h3>
-                    <p className="text-base text-gray-900 dark:text-white whitespace-pre-wrap">
+                    <p className="text-sm sm:text-base text-gray-900 dark:text-white whitespace-pre-wrap">
                       {client.notes || '-'}
                     </p>
                   </div>
                   <div className="flex justify-end">
                     <button
                       onClick={() => setEditMode(true)}
-                      className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                      className="px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                     >
                       Düzenle
                     </button>
                   </div>
                 </>
               ) : (
-                <form onSubmit={handleUpdateClient} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <form onSubmit={handleUpdateClient} className="space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
                         Ad Soyad
                       </label>
                       <input
@@ -1024,11 +1078,11 @@ export function ClientDetails() {
                         onChange={(e) =>
                           setFormData({ ...formData, full_name: e.target.value })
                         }
-                        className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full h-10 sm:h-12 px-3 sm:px-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
                         E-posta
                       </label>
                       <input
@@ -1037,11 +1091,11 @@ export function ClientDetails() {
                         onChange={(e) =>
                           setFormData({ ...formData, email: e.target.value })
                         }
-                        className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full h-10 sm:h-12 px-3 sm:px-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
                         Telefon
                       </label>
                       <input
@@ -1050,11 +1104,11 @@ export function ClientDetails() {
                         onChange={(e) =>
                           setFormData({ ...formData, phone: e.target.value })
                         }
-                        className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full h-10 sm:h-12 px-3 sm:px-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
                         Doğum Tarihi
                       </label>
                       <input
@@ -1063,11 +1117,11 @@ export function ClientDetails() {
                         onChange={(e) =>
                           setFormData({ ...formData, birth_date: e.target.value })
                         }
-                        className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full h-10 sm:h-12 px-3 sm:px-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
                         Seans Ücreti
                       </label>
                       <input
@@ -1079,12 +1133,12 @@ export function ClientDetails() {
                             session_fee: Number(e.target.value),
                           })
                         }
-                        className="w-full h-12 px-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        className="w-full h-10 sm:h-12 px-3 sm:px-4 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
                       Notlar
                     </label>
                     <textarea
@@ -1093,21 +1147,21 @@ export function ClientDetails() {
                         setFormData({ ...formData, notes: e.target.value })
                       }
                       rows={3}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                     />
                   </div>
                   <div className="flex justify-end space-x-3">
                     <button
                       type="button"
                       onClick={() => setEditMode(false)}
-                      className="px-6 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-xl transition-all duration-200"
+                      className="px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-xl transition-all duration-200"
                     >
                       İptal
                     </button>
                     <button
                       type="submit"
                       disabled={loading}
-                      className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                      className="px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                     >
                       {loading ? 'Kaydediliyor...' : 'Kaydet'}
                     </button>
@@ -1118,9 +1172,9 @@ export function ClientDetails() {
           )}
 
           {activeTab === 'appointments' && (
-            <div className="space-y-8">
+            <div className="space-y-6 sm:space-y-8">
               <div>
-                <h3 className="text-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
+                <h3 className="text-base sm:text-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-3 sm:mb-4">
                   Gelecek Randevular
                 </h3>
                 {upcomingAppointments.length > 0 ? (
@@ -1128,9 +1182,9 @@ export function ClientDetails() {
                     {upcomingAppointments.map((appointment) => (
                       <div
                         key={appointment.id}
-                        className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-200 hover:scale-[1.02]"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-200 hover:scale-[1.02]"
                       >
-                        <div>
+                        <div className="mb-2 sm:mb-0">
                           <p className="text-base font-medium text-gray-900 dark:text-white">
                             {new Date(appointment.start_time).toLocaleString('tr-TR', {
                               dateStyle: 'long',
@@ -1142,7 +1196,7 @@ export function ClientDetails() {
                             {appointment.room && ` - ${appointment.room.name}`}
                           </p>
                         </div>
-                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        <div className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium self-start sm:self-center mt-2 sm:mt-0 ${
                           appointment.status === 'scheduled'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
                             : appointment.status === 'completed'
@@ -1166,7 +1220,7 @@ export function ClientDetails() {
               </div>
 
               <div>
-                <h3 className="text-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
+                <h3 className="text-base sm:text-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-3 sm:mb-4">
                   Geçmiş Randevular
                 </h3>
                 {pastAppointments.length > 0 ? (
@@ -1174,9 +1228,9 @@ export function ClientDetails() {
                     {pastAppointments.map((appointment) => (
                       <div
                         key={appointment.id}
-                        className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-200 hover:scale-[1.02]"
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-200 hover:scale-[1.02]"
                       >
-                        <div>
+                        <div className="mb-2 sm:mb-0">
                           <p className="text-base font-medium text-gray-900 dark:text-white">
                             {new Date(appointment.start_time).toLocaleString('tr-TR', {
                               dateStyle: 'long',
@@ -1188,7 +1242,7 @@ export function ClientDetails() {
                             {appointment.room && ` - ${appointment.room.name}`}
                           </p>
                         </div>
-                        <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        <div className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium self-start sm:self-center mt-2 sm:mt-0 ${
                           appointment.status === 'scheduled'
                             ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300'
                             : appointment.status === 'completed'
@@ -1215,20 +1269,20 @@ export function ClientDetails() {
 
           {activeTab === 'notes' && professional && (
             <div className="space-y-6">
-              <form onSubmit={handleAddNote} className="space-y-4">
+              <form onSubmit={handleAddNote} className="space-y-3 sm:space-y-4">
                 <div className="relative">
                   <input
                     type="text"
                     value={newNoteTitle}
                     onChange={(e) => setNewNoteTitle(e.target.value)}
-                    className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm"
+                    className="w-full h-10 sm:h-12 px-3 sm:px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm text-sm sm:text-base"
                     placeholder="Not başlığı (opsiyonel)"
                   />
                 </div>
                 
                 <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
                   <MenuBar editor={newNoteEditor} />
-                  <div className="prose dark:prose-invert max-w-none bg-white dark:bg-gray-800 p-4">
+                  <div className="prose prose-sm sm:prose dark:prose-invert max-w-none bg-white dark:bg-gray-800 p-3 sm:p-4">
                     <EditorContent editor={newNoteEditor} />
                   </div>
                 </div>
@@ -1236,10 +1290,10 @@ export function ClientDetails() {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="flex items-center px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    className="flex items-center px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                     disabled={!newNoteContent || newNoteContent === '<p></p>'}
                   >
-                    <Plus className="h-5 w-5 mr-2" />
+                    <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
                     Not Ekle
                   </button>
                 </div>
@@ -1355,44 +1409,43 @@ export function ClientDetails() {
 
       {activeTab === 'tests' && professional && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Testler</h2>
-            <div className="relative">
-                    <input
-                      type="text"
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+            <h2 className="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100">Testler</h2>
+            <div className="relative w-full sm:w-auto">
+              <input
+                type="text"
                 placeholder="Test ara..."
                 value={searchTest}
                 onChange={(e) => setSearchTest(e.target.value)}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm dark:bg-gray-800 dark:border-gray-700"
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm dark:bg-gray-800 dark:border-gray-700 h-9 sm:h-10 px-3 sm:px-4"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <SearchIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                    </div>
-                    </div>
+                <SearchIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" aria-hidden="true" />
+              </div>
             </div>
+          </div>
 
           <div className="space-y-8">
             {categorizedTests.map(category => (
               <div key={category.id} className="space-y-4">
-                <h3 className="text-md font-medium text-gray-700 dark:text-gray-300">{category.name}</h3>
+                <h3 className="text-sm sm:text-md font-medium text-gray-700 dark:text-gray-300">{category.name}</h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {category.tests.map(test => test && (
                     <div
                       key={test.id}
-                      className="relative rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-5 shadow-sm hover:border-blue-500 dark:hover:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2"
+                      className="relative rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 sm:px-6 py-4 shadow-sm hover:border-blue-500 dark:hover:border-blue-400 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2"
                     >
                       <div className="space-y-2">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{test.name}</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{test.description}</div>
-                        <div className="flex justify-end space-x-2 mt-4">
-                                                   {/* SCID-5-CV ve SCID-5-PD testleri için paylaşım butonu gösterme */}
-                                                   {test.id !== 'scid-5-cv' && test.id !== 'scid-5-pd' && (
-
+                        <div className="flex flex-wrap justify-end gap-2 mt-4">
+                          {/* SCID-5-CV ve SCID-5-PD testleri için paylaşım butonu gösterme */}
+                          {test.id !== 'scid-5-cv' && test.id !== 'scid-5-pd' && (
                             <button
                               onClick={async () => {
                                 await handleShareTest(test.id);
                               }}
-                              className="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                              className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                             >
                               Paylaş
                             </button>
@@ -1401,7 +1454,7 @@ export function ClientDetails() {
                             onClick={() => {
                               window.open(`/test/${test.id}/${id}`, '_blank');
                             }}
-                            className="px-3 py-1.5 text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg transition-colors"
+                            className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg transition-colors"
                           >
                             Testi Başlat
                           </button>
@@ -1419,7 +1472,7 @@ export function ClientDetails() {
       {activeTab === 'test-results' && professional && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Test Sonuçları</h2>
+            <h2 className="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100">Test Sonuçları</h2>
           </div>
 
           <div className="overflow-hidden bg-white dark:bg-gray-800 shadow sm:rounded-md">
@@ -1430,45 +1483,45 @@ export function ClientDetails() {
                   <li key={result.id}>
                     <div className="block hover:bg-gray-50 dark:hover:bg-gray-700">
                       <div className="px-4 py-4 sm:px-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+                          <div className="flex items-center space-x-3 mb-3 sm:mb-0">
                             <p className="text-sm font-medium text-blue-600 dark:text-blue-400 truncate">
                               {test?.name || result.test_type}
                             </p>
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
                               {test?.interpretScore?.(result.score) || `Puan: ${result.score}`}
                             </span>
-                    </div>
+                          </div>
                           <div className="flex space-x-3">
-                      <button
-                        type="button"
+                            <button
+                              type="button"
                               onClick={() => handleDownloadResult(result)}
                               className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-100 dark:bg-blue-900 dark:hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
+                            >
                               <Download className="mr-1.5 h-4 w-4" />
                               İndir
-                      </button>
-                      <button
+                            </button>
+                            <button
                               type="button"
                               onClick={() => handleDeleteResult(result.id)}
                               className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 dark:text-red-100 dark:bg-red-900 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                      >
+                            >
                               <Trash className="mr-1.5 h-4 w-4" />
                               Sil
-                      </button>
-                    </div>
-            </div>
-                  <div className="mt-2">
+                            </button>
+                          </div>
+                        </div>
+                        <div className="mt-2">
                           <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                             <CalendarIcon className="mr-1.5 h-4 w-4" />
                             {new Date(result.created_at).toLocaleString('tr-TR', {
                               dateStyle: 'long',
                               timeStyle: 'short'
                             })}
-                  </div>
-                  </div>
-            </div>
-          </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </li>
                 );
               })}
@@ -1477,12 +1530,12 @@ export function ClientDetails() {
         </div>
       )}
 
-      {/* Test Dialog */}
+      {/* Test Dialog - Mobil uyumlu hale getirme */}
       {showTestDialog && selectedTest && (
-        <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto border border-gray-200/50 dark:border-gray-700/50">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+        <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-4xl p-3 sm:p-6 max-h-[90vh] overflow-y-auto border border-gray-200/50 dark:border-gray-700/50">
+            <div className="flex justify-between items-center mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
                 {selectedTest.name}
               </h2>
               <button
@@ -1504,8 +1557,8 @@ export function ClientDetails() {
             </div>
 
             {showIntro ? (
-              <div className="space-y-6">
-                <div className="prose dark:prose-invert max-w-none">
+              <div className="space-y-4 sm:space-y-6">
+                <div className="prose prose-sm sm:prose dark:prose-invert max-w-none">
                   <p>{selectedTest.description}</p>
                   {selectedTest.instructions && (
                     <>
@@ -1517,19 +1570,19 @@ export function ClientDetails() {
                 <div className="flex justify-end">
                   <button
                     onClick={() => setShowIntro(false)}
-                    className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                    className="px-4 sm:px-6 py-2 sm:py-2.5 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                   >
                     Teste Başla
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-4 sm:space-y-8">
                 <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                     Soru {currentQuestionIndex + 1} / {selectedTest.questions.length}
                   </div>
-                  <div className="h-2 flex-1 mx-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="h-2 flex-1 mx-2 sm:mx-4 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-300"
                       style={{ width: `${((currentQuestionIndex + 1) / selectedTest.questions.length) * 100}%` }}
@@ -1537,8 +1590,8 @@ export function ClientDetails() {
                   </div>
                 </div>
 
-                <div key={selectedTest.questions[currentQuestionIndex].id} className="space-y-4">
-                  <p className="text-lg text-gray-900 dark:text-white">
+                <div key={selectedTest.questions[currentQuestionIndex].id} className="space-y-3 sm:space-y-4">
+                  <p className="text-base sm:text-lg text-gray-900 dark:text-white">
                     {currentQuestionIndex + 1}. {selectedTest.questions[currentQuestionIndex].text}
                   </p>
                   <div className="space-y-2">
@@ -1555,7 +1608,7 @@ export function ClientDetails() {
                           onChange={() => handleAnswerChange(selectedTest.questions[currentQuestionIndex].id, option.value)}
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600"
                         />
-                        <span className="text-gray-900 dark:text-white">
+                        <span className="text-sm sm:text-base text-gray-900 dark:text-white">
                           {option.text}
                         </span>
                       </label>
@@ -1564,15 +1617,15 @@ export function ClientDetails() {
                 </div>
 
                 {currentQuestionIndex === selectedTest.questions.length - 1 && (
-                  <div className="space-y-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <div className="space-y-3 sm:space-y-4">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                       Notlar (Opsiyonel)
                     </label>
                     <textarea
                       value={testNotes}
                       onChange={(e) => setTestNotes(e.target.value)}
                       rows={3}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                       placeholder="Test ile ilgili notlarınızı buraya yazabilirsiniz..."
                     />
                   </div>
@@ -1582,7 +1635,7 @@ export function ClientDetails() {
                   <button
                     onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                     disabled={currentQuestionIndex === 0}
-                    className="px-6 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-xl transition-all duration-200 disabled:opacity-50"
+                    className="px-3 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-xl transition-all duration-200 disabled:opacity-50"
                   >
                     Önceki Soru
                   </button>
@@ -1591,7 +1644,7 @@ export function ClientDetails() {
                     <button
                       onClick={handleSubmitTest}
                       disabled={Object.keys(testAnswers).length !== selectedTest.questions.length}
-                      className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                      className="px-3 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                     >
                       Testi Tamamla
                     </button>
@@ -1599,7 +1652,7 @@ export function ClientDetails() {
                     <button
                       onClick={() => setCurrentQuestionIndex(prev => Math.min(selectedTest.questions.length - 1, prev + 1))}
                       disabled={!testAnswers[selectedTest.questions[currentQuestionIndex].id]}
-                      className="px-6 py-2.5 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                      className="px-3 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                     >
                       Sonraki Soru
                     </button>
@@ -1645,100 +1698,110 @@ export function ClientDetails() {
         </div>
       )}
 
-      {/* Paylaşım Seçenekleri Modal */}
-      <Dialog
-        open={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        className="fixed inset-0 z-50 overflow-y-auto"
-      >
-        <div className="flex items-center justify-center min-h-screen p-4">
-          <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm" aria-hidden="true" />
+      {/* Paylaşım Seçenekleri Modal - Mobil uyumlu hale getirme */}
+      {isShareModalOpen && (
+        <Dialog
+          open={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          className="fixed inset-0 z-50 overflow-y-auto"
+        >
+          <div className="flex items-center justify-center min-h-screen p-2 sm:p-4">
+            <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm" aria-hidden="true" />
 
-          <div className="relative bg-white/90 dark:bg-gray-800/90 rounded-2xl max-w-lg w-full p-6 shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
-            <div className="flex items-center justify-between mb-6">
-              <Dialog.Title className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                Testi Paylaş
-              </Dialog.Title>
-              <button
-                onClick={() => setIsShareModalOpen(false)}
-                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-lg transition-colors"
-              >
-                <XIcon className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mb-6">
-              <p className="text-gray-600 dark:text-gray-400">
-                {client?.full_name} için test paylaşım yöntemi seçin:
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              {shareOptions.map((option) => (
+            <div className="relative bg-white/90 dark:bg-gray-800/90 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <Dialog.Title className="text-lg sm:text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+                  Testi Paylaş
+                </Dialog.Title>
                 <button
-                  key={option.name}
-                  onClick={() => {
-                    if (option.action) {
-                      option.action();
-                    } else if (option.url) {
-                      window.open(option.url, '_blank');
-                    }
-                    setIsShareModalOpen(false);
-                  }}
-                  className="flex items-center space-x-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 group"
+                  onClick={() => setIsShareModalOpen(false)}
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-lg transition-colors"
                 >
-                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-200">
-                    {option.icon}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      {option.name}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {option.description}
-                    </p>
-                  </div>
+                  <XIcon className="h-5 w-5" />
                 </button>
-              ))}
-            </div>
+              </div>
 
-            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Not: Test linki güvenlik nedeniyle 24 saat içinde geçerliliğini yitirecektir.
-              </p>
-            </div>
-          </div>
-        </div>
-      </Dialog>
+              <div className="mb-4 sm:mb-6">
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                  {client?.full_name} için test paylaşım yöntemi seçin:
+                </p>
+              </div>
 
-      {/* Success Dialog */}
-      {isSuccessDialogOpen && (
-        <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-200/50 dark:border-gray-700/50">
-            <div className="flex items-center justify-center mb-4">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
-                <CheckIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                {shareOptions.map((option) => (
+                  <button
+                    key={option.name}
+                    onClick={() => {
+                      if (option.action) {
+                        option.action();
+                      } else if (option.url) {
+                        window.open(option.url, '_blank');
+                      }
+                      setIsShareModalOpen(false);
+                    }}
+                    className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 group"
+                  >
+                    <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg flex items-center justify-center text-xl sm:text-2xl group-hover:scale-110 transition-transform duration-200">
+                      {option.icon}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-white">
+                        {option.name}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                        {option.description}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                  Not: Test linki güvenlik nedeniyle 24 saat içinde geçerliliğini yitirecektir.
+                </p>
               </div>
             </div>
-            <h2 className="text-xl font-bold text-center text-gray-900 dark:text-white mb-2">
-              Başarılı!
-            </h2>
-            <p className="text-center text-gray-600 dark:text-gray-400">
-              {successMessage}
-            </p>
-            <div className="flex justify-center mt-6">
-              <button
-                onClick={() => setIsSuccessDialogOpen(false)}
-                className="px-4 py-2 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg transition-colors"
-              >
-                Tamam
-              </button>
-            </div>
           </div>
-        </div>
+        </Dialog>
       )}
 
-      {/* Not silme onay modalı */}
+      {/* Success Dialog - Mobil uyumlu hale getirme */}
+      {isSuccessDialogOpen && (
+        <Dialog
+          open={isSuccessDialogOpen}
+          onClose={() => setIsSuccessDialogOpen(false)}
+          className="fixed inset-0 z-50 overflow-y-auto"
+        >
+          <div className="flex items-center justify-center min-h-screen p-4 z-[60]">
+            <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm" aria-hidden="true" />
+            
+            <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 border border-gray-200/50 dark:border-gray-700/50">
+              <div className="flex items-center justify-center mb-3 sm:mb-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+                  <CheckIcon className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+              <Dialog.Title className="text-lg sm:text-xl font-bold text-center text-gray-900 dark:text-white mb-2">
+                Başarılı!
+              </Dialog.Title>
+              <p className="text-center text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                {successMessage}
+              </p>
+              <div className="flex justify-center mt-4 sm:mt-6">
+                <button
+                  onClick={() => setIsSuccessDialogOpen(false)}
+                  className="px-4 py-2 text-sm sm:text-base text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg transition-colors"
+                >
+                  Tamam
+                </button>
+              </div>
+            </div>
+          </div>
+        </Dialog>
+      )}
+
+      {/* Not silme onay modalı - Mobil uyumlu hale getirme */}
       <Dialog
         open={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
@@ -1747,12 +1810,12 @@ export function ClientDetails() {
         <div className="flex items-center justify-center min-h-screen p-4">
           <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm" aria-hidden="true" />
 
-          <div className="relative bg-white/90 dark:bg-gray-800/90 rounded-2xl max-w-md w-full p-6 shadow-xl">
-            <Dialog.Title className="text-lg font-medium text-red-600 dark:text-red-400 mb-4">
+          <div className="relative bg-white/90 dark:bg-gray-800/90 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-xl">
+            <Dialog.Title className="text-base sm:text-lg font-medium text-red-600 dark:text-red-400 mb-3 sm:mb-4">
               Notu Sil
             </Dialog.Title>
             
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 sm:mb-6">
               Bu notu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
             </p>
 
@@ -1760,14 +1823,14 @@ export function ClientDetails() {
               <button
                 type="button"
                 onClick={() => setIsDeleteDialogOpen(false)}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-xl transition-all duration-200"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-xl transition-all duration-200"
               >
                 İptal
               </button>
               <button
                 type="button"
                 onClick={handleDeleteNote}
-                className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all duration-200"
+                className="px-3 sm:px-4 py-1.5 sm:py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all duration-200"
               >
                 Sil
               </button>
