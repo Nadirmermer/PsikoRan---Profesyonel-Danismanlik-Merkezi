@@ -521,6 +521,23 @@ CREATE POLICY "Insert session notes policy" ON session_notes
     )
   );
 
+-- Session Notes için UPDATE politikası ekle
+DROP POLICY IF EXISTS "Update session notes policy" ON session_notes;
+CREATE POLICY "Update session notes policy" ON session_notes
+  FOR UPDATE TO authenticated
+  USING (
+    -- Sadece ruh sağlığı uzmanları kendi notlarını güncelleyebilir
+    professional_id = (
+      SELECT id FROM professionals WHERE user_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    -- Sadece ruh sağlığı uzmanları kendi notlarını güncelleyebilir
+    professional_id = (
+      SELECT id FROM professionals WHERE user_id = auth.uid()
+    )
+  );
+
 CREATE POLICY "Delete session notes policy" ON session_notes
   FOR DELETE TO authenticated
   USING (
