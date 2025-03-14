@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
-import { Brain, LogIn, Sun, Moon, Lock, Mail, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { LogIn, Sun, Moon, Lock, Mail, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import Logo from '../components/Logo';
 
 export function Login() {
   const navigate = useNavigate();
@@ -94,12 +95,7 @@ export function Login() {
       <div className="hidden lg:flex w-1/2 p-16 items-center justify-center bg-white dark:bg-slate-800 relative">
         <div className="relative z-10 max-w-xl mx-auto">
           <div className="flex items-center space-x-4 mb-16">
-            <div className="h-16 w-16 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
-              <Brain className="h-10 w-10 text-white" />
-            </div>
-            <h2 className="text-4xl font-bold text-slate-800 dark:text-white">
-              PsiRan
-            </h2>
+            <Logo size="large" />
           </div>
           
           <div className="space-y-8">
@@ -158,12 +154,7 @@ export function Login() {
         <div className="w-full max-w-md">
           {/* Mobil Logo */}
           <div className="flex lg:hidden items-center justify-center space-x-3 mb-12">
-            <div className="h-12 w-12 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
-              <Brain className="h-7 w-7 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-              PsiRan
-            </h2>
+            <Logo size="medium" />
           </div>
 
           {/* Tema Değiştirme */}
