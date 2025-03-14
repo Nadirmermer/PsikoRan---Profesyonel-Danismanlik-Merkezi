@@ -890,49 +890,11 @@ export function Dashboard() {
         .from('professional_working_hours')
         .select('*')
         .eq('professional_id', professional.id)
-        .single();
+        .maybeSingle();
 
-      if (error) {
+      // If no data found or there's an error other than "no rows", use default values
+      if (error && error.code !== 'PGRST116') {
         console.error('Profesyonel çalışma saatleri yüklenirken hata:', error);
-        // Hata durumunda varsayılan değerleri kullan
-        setProfessionalWorkingHours({
-          pazartesi: {
-            opening: '09:00',
-            closing: '18:00',
-            isOpen: true
-          },
-          sali: {
-            opening: '09:00',
-            closing: '18:00',
-            isOpen: true
-          },
-          carsamba: {
-            opening: '09:00',
-            closing: '18:00',
-            isOpen: true
-          },
-          persembe: {
-            opening: '09:00',
-            closing: '18:00',
-            isOpen: true
-          },
-          cuma: {
-            opening: '09:00',
-            closing: '18:00',
-            isOpen: true
-          },
-          cumartesi: {
-            opening: '09:00',
-            closing: '18:00',
-            isOpen: false
-          },
-          pazar: {
-            opening: '09:00',
-            closing: '18:00',
-            isOpen: false
-          }
-        });
-        return;
       }
 
       if (data) {

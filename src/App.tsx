@@ -27,6 +27,8 @@ import { Test } from './pages/Test';
 import { TestCompleted } from './pages/TestCompleted';
 import React from 'react';
 import { UNSAFE_DataRouterContext, UNSAFE_DataRouterStateContext, UNSAFE_NavigationContext, UNSAFE_RouteContext } from 'react-router-dom';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 // React Router v7 için future flag'leri
 const v7_startTransition = true;
@@ -197,6 +199,8 @@ export function App() {
         ) : (
           <>
             {isLoading && <AppLoader />}
+            <OfflineIndicator />
+            <PWAInstallPrompt />
             <Suspense>
               <AnimatedRoutes />
             </Suspense>
