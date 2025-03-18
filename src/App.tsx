@@ -27,9 +27,8 @@ import { Test } from './pages/Test';
 import { TestCompleted } from './pages/TestCompleted';
 import React from 'react';
 import { UNSAFE_DataRouterContext, UNSAFE_DataRouterStateContext, UNSAFE_NavigationContext, UNSAFE_RouteContext } from 'react-router-dom';
-import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { OfflineIndicator } from './components/OfflineIndicator';
-import { NotificationPermission } from './components/NotificationPermission';
+import { PWAPrompts } from './components/PWAPrompts';
 import { checkUpcomingAppointments } from './utils/notificationUtils';
 
 // React Router v7 için future flag'leri
@@ -228,8 +227,7 @@ export function App() {
           <>
             {isLoading && <AppLoader />}
             <OfflineIndicator />
-            <PWAInstallPrompt />
-            <NotificationPermission />
+            <PWAPrompts />
             <Suspense>
               <AnimatedRoutes />
             </Suspense>
