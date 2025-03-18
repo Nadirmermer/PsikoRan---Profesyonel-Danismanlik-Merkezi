@@ -161,6 +161,7 @@ CREATE TABLE session_notes (
   encrypted_content text,
   encryption_key text,
   iv text,
+  attachments text[],
   created_at timestamptz DEFAULT now()
 );
 
