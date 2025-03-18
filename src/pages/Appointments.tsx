@@ -662,7 +662,7 @@ export function Appointments() {
     // Test bildirimi gönder
     const notification = new Notification('Test Randevu Hatırlatması', {
       body: 'Bu bir test bildirimidir. Gerçek randevularınız için otomatik hatırlatmalar alacaksınız.',
-      icon: '/logo192.png',
+      icon: '/main-logo.png',
       badge: '/favicon.svg',
       tag: 'test-notification'
     });

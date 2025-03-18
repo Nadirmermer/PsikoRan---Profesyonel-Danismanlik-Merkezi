@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { UserPlus, ArrowLeft, Brain, Mail, Lock, User, Phone, Eye, EyeOff, Building } from 'lucide-react';
+import { UserPlus, ArrowLeft, Mail, Lock, User, Phone, Eye, EyeOff, Building } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 
 export function CreateAssistant() {
@@ -241,8 +241,8 @@ export function CreateAssistant() {
       <div className="hidden lg:flex w-1/2 p-16 items-center justify-center bg-white dark:bg-slate-800 relative">
         <div className="relative z-10 max-w-xl mx-auto">
           <div className="flex items-center space-x-4 mb-16">
-            <div className="h-16 w-16 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
-              <Brain className="h-10 w-10 text-white" />
+            <div className="h-16 w-32 flex items-center justify-center">
+              <img src="/main-logo.png" alt="PsiRan Logo" className="h-full w-full object-contain" />
             </div>
             <h2 className="text-4xl font-bold text-slate-800 dark:text-white">
               PsiRan
@@ -291,8 +291,8 @@ export function CreateAssistant() {
         <div className="w-full max-w-md">
           {/* Mobil Logo */}
           <div className="flex lg:hidden items-center justify-center space-x-3 mb-12">
-            <div className="h-12 w-12 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
-              <Brain className="h-7 w-7 text-white" />
+            <div className="h-12 w-24 flex items-center justify-center">
+              <img src="/main-logo.png" alt="PsiRan Logo" className="h-full w-full object-contain" />
             </div>
             <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
               PsiRan

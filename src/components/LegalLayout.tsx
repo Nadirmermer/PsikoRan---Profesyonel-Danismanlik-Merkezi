@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { Brain } from 'lucide-react';
 
 interface LegalLayoutProps {
   children: React.ReactNode;
@@ -16,7 +15,11 @@ export function LegalLayout({ children, title, description }: LegalLayoutProps) 
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center space-x-3">
               <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
-                <Brain className="h-5 w-5 text-white" />
+                <img 
+                  src="/main-logo.png" 
+                  alt="PsiRan Logo" 
+                  className="h-5 w-5 object-contain"
+                />
               </div>
               <span className="text-xl font-bold text-slate-800 dark:text-white">PsiRan</span>
             </Link>

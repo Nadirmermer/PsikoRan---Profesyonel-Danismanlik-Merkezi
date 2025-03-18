@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Brain, ArrowLeft, Mail } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -36,7 +36,11 @@ export function ForgotPassword() {
         {/* Logo */}
         <div className="flex items-center justify-center space-x-3 mb-12">
           <div className="h-12 w-12 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
-            <Brain className="h-7 w-7 text-white" />
+            <img 
+              src="/logo_markalı_beyaz.jpeg" 
+              alt="PsiRan Logo" 
+              className="h-7 w-7 object-contain"
+            />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
             PsiRan

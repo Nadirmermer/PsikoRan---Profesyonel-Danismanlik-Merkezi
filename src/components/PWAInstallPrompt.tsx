@@ -79,7 +79,7 @@ export function PWAInstallPrompt() {
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50 animate-fade-in">
       <div className="flex items-start justify-between">
         <div className="flex items-center">
-          <img src="/logo192.png" alt="PsiRan Logo" className="w-10 h-10 mr-3" />
+          <img src="/logo_markalı_beyaz.jpeg" alt="PsiRan Logo" className="w-10 h-10 mr-3" />
           <div>
             <h3 className="text-sm font-medium text-gray-900 dark:text-white">PsiRan Uygulaması</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">

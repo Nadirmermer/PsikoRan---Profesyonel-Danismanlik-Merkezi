@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'logo192.png', 'logo512.png'],
+      includeAssets: ['favicon.svg', 'main-logo.png', 'logo_markalı_beyaz.jpeg'],
       manifest: {
         name: 'PsiRan - Profesyonel Danışmanlık Merkezi',
         short_name: 'PsiRan',
@@ -24,14 +24,19 @@ export default defineConfig({
             type: 'image/svg+xml'
           },
           {
-            src: 'logo192.png',
-            type: 'image/png',
+            src: 'logo_markalı_beyaz.jpeg',
+            type: 'image/jpeg',
             sizes: '192x192'
           },
           {
-            src: 'logo512.png',
-            type: 'image/png',
-            sizes: '512x512',
+            src: 'logo_markalı_beyaz.jpeg',
+            type: 'image/jpeg',
+            sizes: '512x512'
+          },
+          {
+            src: 'logo_markalı_beyaz.jpeg',
+            type: 'image/jpeg',
+            sizes: '1024x1024',
             purpose: 'any maskable'
           }
         ]

@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Brain } from 'lucide-react';
 import { useTheme } from '../lib/theme';
 
 export const AppLoader: React.FC = () => {
@@ -23,33 +22,16 @@ export const AppLoader: React.FC = () => {
     >
       <div className="flex flex-col items-center justify-center space-y-6 sm:space-y-8 px-4">
         <div className="relative">
-          <div className={`h-20 w-20 sm:h-24 sm:w-24 flex items-center justify-center rounded-lg ${
-            isDarkMode ? 'bg-primary-500' : 'bg-primary-600'
-          } shadow-xl`}>
-            <motion.div 
-              animate={{ 
-                rotate: [0, 360],
-                scale: [1, 1.2, 1],
-                transition: { 
-                  repeat: Infinity, 
-                  duration: 1.5,
-                  ease: "easeInOut"
-                } 
-              }}
-              className={`h-4 w-4 ${
-                isDarkMode ? 'bg-primary-400' : 'bg-primary-500'
-              } rounded-full`}
+          <div className="flex items-center justify-center h-32 w-44 sm:h-40 sm:w-56">
+            <img 
+              src="/logo_markalı_beyaz.jpeg" 
+              alt="PsiRan Logo" 
+              className="h-full w-full object-contain"
             />
           </div>
         </div>
         
         <div className="flex flex-col items-center space-y-3 sm:space-y-4 text-center">
-          <h2 className={`text-3xl sm:text-4xl font-bold ${
-            isDarkMode ? 'text-white' : 'text-slate-800'
-          }`}>
-            PsiRan
-          </h2>
-          
           <div className="flex space-x-2">
             {[1, 2, 3].map((dot) => (
               <motion.div 

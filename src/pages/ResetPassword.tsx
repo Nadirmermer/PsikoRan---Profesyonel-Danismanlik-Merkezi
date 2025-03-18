@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Brain, Lock, Eye, EyeOff } from 'lucide-react';
+import { Lock, Eye, EyeOff } from 'lucide-react';
 
 export function ResetPassword() {
   const navigate = useNavigate();
@@ -61,7 +61,11 @@ export function ResetPassword() {
         {/* Logo */}
         <div className="flex items-center justify-center space-x-3 mb-12">
           <div className="h-12 w-12 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
-            <Brain className="h-7 w-7 text-white" />
+            <img 
+              src="/logo_markalı_beyaz.jpeg" 
+              alt="PsiRan Logo" 
+              className="h-7 w-7 object-contain"
+            />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
             PsiRan
