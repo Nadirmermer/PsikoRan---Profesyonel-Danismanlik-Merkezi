@@ -29,6 +29,8 @@ import React from 'react';
 import { UNSAFE_DataRouterContext, UNSAFE_DataRouterStateContext, UNSAFE_NavigationContext, UNSAFE_RouteContext } from 'react-router-dom';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { NotificationPermission } from './components/NotificationPermission';
+import { checkUpcomingAppointments } from './utils/notificationUtils';
 
 // React Router v7 için future flag'leri
 const v7_startTransition = true;
@@ -43,6 +45,7 @@ export const LoadingContext = React.createContext({
 function AnimatedRoutes() {
   const location = useLocation();
   const { isLoading, setIsLoading } = React.useContext(LoadingContext);
+  const { professional, assistant, user } = useAuth();
 
   useEffect(() => {
     let loadingTimer: NodeJS.Timeout | null = null;
@@ -73,6 +76,31 @@ function AnimatedRoutes() {
       setIsLoading(false);
     };
   }, [location.pathname, setIsLoading]);
+
+  // Periyodik olarak yaklaşan randevuları kontrol et
+  useEffect(() => {
+    if (!user) return;
+
+    // İlk kontrolü yap
+    if (professional) {
+      checkUpcomingAppointments(professional.id, 'professional');
+    } else if (assistant) {
+      checkUpcomingAppointments(assistant.id, 'assistant');
+    }
+
+    // Her 15 dakikada bir kontrol et
+    const checkInterval = setInterval(() => {
+      if (professional) {
+        checkUpcomingAppointments(professional.id, 'professional');
+      } else if (assistant) {
+        checkUpcomingAppointments(assistant.id, 'assistant');
+      }
+    }, 15 * 60 * 1000); // 15 dakika
+
+    return () => {
+      clearInterval(checkInterval);
+    };
+  }, [user, professional, assistant]);
   
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -201,6 +229,7 @@ export function App() {
             {isLoading && <AppLoader />}
             <OfflineIndicator />
             <PWAInstallPrompt />
+            <NotificationPermission />
             <Suspense>
               <AnimatedRoutes />
             </Suspense>

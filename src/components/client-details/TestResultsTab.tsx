@@ -308,14 +308,14 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
                       ) : (
                         <ChevronDownIcon className="h-4 w-4 mr-2 text-gray-500" />
                       )}
-                      {result.test_name}
-                    </td>
+                    {result.test_name}
+                  </td>
                     <td className="px-3 py-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                       {format(new Date(result.created_at), 'PPP HH:mm', { locale: tr })}
-                    </td>
+                  </td>
                     <td className="px-3 py-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      {result.score !== undefined ? `${result.score} puan` : result.result || '-'}
-                    </td>
+                    {result.score !== undefined ? `${result.score} puan` : result.result || '-'}
+                  </td>
                   </tr>
                   
                   {/* Genişletilmiş satır içeriği */}
@@ -371,18 +371,18 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
                                 )}
                               </button>
                               
-                              <button
+                    <button
                                 onClick={(e) => handleDeleteClick(result.id, result.test_name, e)}
                                 className="inline-flex items-center rounded-md bg-red-50 dark:bg-red-900/30 px-3 py-2 text-xs sm:text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
                               >
                                 <TrashIcon className="h-4 w-4 mr-2" />
                                 Sil
-                              </button>
+                    </button>
                             </div>
                           </div>
                         </div>
-                      </td>
-                    </tr>
+                  </td>
+                </tr>
                   )}
                 </React.Fragment>
               ))}

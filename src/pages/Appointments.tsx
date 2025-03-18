@@ -10,11 +10,13 @@ import {
   XCircle,
   Trash2,
   Undo,
+  Bell,
 } from 'lucide-react';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addMonths } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useAuth } from '../lib/auth';
 import { CreateAppointmentModal } from '../components/CreateAppointmentModal';
+import { requestNotificationPermission } from '../utils/notificationUtils';
 
 type ViewType = 'daily' | 'weekly' | 'monthly' | 'all';
 
@@ -50,6 +52,7 @@ export function Appointments() {
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [existingAppointments, setExistingAppointments] = useState<any[]>([]);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
 
   const navigate = useNavigate();
   const { professional, assistant } = useAuth();
@@ -620,6 +623,57 @@ export function Appointments() {
     setSelectedDate(newDate);
   }
 
+  // Bildirim izni isteyen fonksiyon
+  const handleRequestNotifications = async () => {
+    try {
+      if (!professional && !assistant) {
+        alert('Bildirim izni istemek için giriş yapmalısınız');
+        return;
+      }
+
+      let userType: 'professional' | 'assistant' | 'client' = 'client';
+      
+      if (professional) {
+        userType = 'professional';
+      } else if (assistant) {
+        userType = 'assistant';
+      }
+
+      const success = await requestNotificationPermission(professional?.id || assistant?.id, userType);
+      
+      if (success) {
+        alert('Bildirim izni başarıyla alındı. Artık randevu hatırlatmaları alacaksınız.');
+      } else {
+        alert('Bildirim izni alınamadı veya reddedildi.');
+      }
+    } catch (error) {
+      console.error('Bildirim izni isteme hatası:', error);
+      alert('Bildirim izni istenirken bir hata oluştu.');
+    }
+  };
+
+  // Bildirimleri test etmek için fonksiyon
+  const handleTestNotification = () => {
+    if (Notification.permission !== 'granted') {
+      alert('Bildirim göndermek için bildirim iznine ihtiyaç var. Lütfen önce bildirim izni verin.');
+      return;
+    }
+
+    // Test bildirimi gönder
+    const notification = new Notification('Test Randevu Hatırlatması', {
+      body: 'Bu bir test bildirimidir. Gerçek randevularınız için otomatik hatırlatmalar alacaksınız.',
+      icon: '/logo192.png',
+      badge: '/favicon.svg',
+      tag: 'test-notification'
+    });
+
+    // Bildirime tıklandığında
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -630,18 +684,57 @@ export function Appointments() {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+      {/* Başlık ve Ekle Butonu */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+        <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
           Randevular
         </h1>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="w-full sm:w-auto flex items-center justify-center px-6 py-2.5 rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-sm"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          <span>Yeni Randevu</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Bildirim Ayarları Butonu */}
+          <div className="relative">
+            <button
+              onClick={() => setShowNotificationSettings(!showNotificationSettings)}
+              className="px-3 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-800/30 text-blue-600 dark:text-blue-400 rounded-xl transition-all duration-200 flex items-center space-x-2"
+            >
+              <Bell className="h-4 w-4" />
+              <span className="hidden sm:inline">Bildirimler</span>
+            </button>
+            
+            {showNotificationSettings && (
+              <div className="absolute right-0 top-full mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-10 w-60">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Bildirim Ayarları</h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={handleRequestNotifications}
+                    className="w-full px-3 py-2 text-xs text-left bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-800/30 text-blue-600 dark:text-blue-400 rounded-lg transition-all duration-200"
+                  >
+                    Bildirimlere İzin Ver
+                  </button>
+                  <button
+                    onClick={handleTestNotification}
+                    className="w-full px-3 py-2 text-xs text-left bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-800/30 text-purple-600 dark:text-purple-400 rounded-lg transition-all duration-200"
+                  >
+                    Bildirim Testi
+                  </button>
+                </div>
+                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  {Notification.permission === 'granted' 
+                    ? 'Bildirim izni aktif. Randevu hatırlatmaları alacaksınız.' 
+                    : 'Bildirim izni pasif. Randevu hatırlatmaları almak için izin vermeniz gerekiyor.'}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Mevcut Ekle Butonu */}
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-3 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 flex items-center space-x-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Yeni Randevu</span>
+          </button>
+        </div>
       </div>
 
       {/* Controls Section */}
@@ -837,7 +930,7 @@ export function Appointments() {
         <CreateAppointmentModal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
-          onSuccess={loadAppointments}
+          onAppointmentCreated={loadAppointments}
           clinicHours={clinicHours}
         />
       )}

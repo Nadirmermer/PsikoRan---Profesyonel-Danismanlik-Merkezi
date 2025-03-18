@@ -222,6 +222,17 @@ CREATE TABLE professional_working_hours (
   CONSTRAINT unique_professional_working_hours UNIQUE (professional_id)
 );
 
+-- Bildirim abonelikleri tablosu
+CREATE TABLE notification_subscriptions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  user_type text NOT NULL,
+  subscription jsonb NOT NULL,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL,
+  CONSTRAINT valid_user_type CHECK (user_type IN ('professional', 'assistant', 'client'))
+);
+
 -- Enable Row Level Security
 ALTER TABLE assistants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE professionals ENABLE ROW LEVEL SECURITY;
@@ -235,6 +246,7 @@ ALTER TABLE session_notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE test_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE test_tokens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE professional_working_hours ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notification_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS Policies
 
@@ -682,6 +694,35 @@ CREATE POLICY "View clients policy for anon" ON clients
   FOR SELECT TO anon
   USING (true);
 
+-- Notification subscriptions için politikalar
+CREATE POLICY "View notification subscriptions policy" ON notification_subscriptions
+  FOR SELECT TO authenticated
+  USING (
+    -- Kullanıcılar kendi bildirim aboneliklerini görebilir
+    user_id = auth.uid()
+  );
+
+CREATE POLICY "Insert notification subscriptions policy" ON notification_subscriptions
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    -- Kullanıcılar kendi bildirim aboneliklerini ekleyebilir
+    user_id = auth.uid()
+  );
+
+CREATE POLICY "Update notification subscriptions policy" ON notification_subscriptions
+  FOR UPDATE TO authenticated
+  USING (
+    -- Kullanıcılar kendi bildirim aboneliklerini güncelleyebilir
+    user_id = auth.uid()
+  );
+
+CREATE POLICY "Delete notification subscriptions policy" ON notification_subscriptions
+  FOR DELETE TO authenticated
+  USING (
+    -- Kullanıcılar kendi bildirim aboneliklerini silebilir
+    user_id = auth.uid()
+  );
+
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
@@ -693,6 +734,8 @@ GRANT SELECT ON test_tokens TO anon;
 GRANT SELECT ON clients TO anon;
 GRANT INSERT ON test_results TO anon;
 GRANT SELECT ON test_results TO anon;
+GRANT INSERT ON notification_subscriptions TO anon;
+GRANT SELECT ON notification_subscriptions TO anon;
 
 -- Test token oluşturmak için güvenli bir fonksiyon oluştur
 CREATE OR REPLACE FUNCTION create_test_token(

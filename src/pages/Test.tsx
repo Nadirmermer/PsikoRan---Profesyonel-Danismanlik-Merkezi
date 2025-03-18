@@ -288,16 +288,16 @@ export function Test() {
                 clientId: foundClientId
               });
               
-              // Test varlığını kontrol et
+        // Test varlığını kontrol et
               const test = AVAILABLE_TESTS.find(t => t.id === foundTestId);
-              if (!test) {
-                setError('Test bulunamadı.');
-                setLoading(false);
-                return;
-              }
+        if (!test) {
+          setError('Test bulunamadı.');
+          setLoading(false);
+          return;
+        }
               
               // Test ve client bilgilerini ayarla
-              setSelectedTest(test);
+        setSelectedTest(test);
               setTokenVerified(true);
               setAuthorized(true);
               
@@ -308,8 +308,8 @@ export function Test() {
               return;
             } else {
               setError('Geçersiz test linki.');
-              setLoading(false);
-              return;
+            setLoading(false);
+            return;
             }
           } catch (error) {
             console.error("Token sorgusu hatası:", error);
@@ -338,26 +338,26 @@ export function Test() {
           return;
         }
         
-        // Professional ise, client'ın kendisine ait olup olmadığını kontrol et
-        const { data, error } = await supabase
-          .from('clients')
-          .select('professional_id')
-          .eq('id', clientId)
-          .single();
+          // Professional ise, client'ın kendisine ait olup olmadığını kontrol et
+          const { data, error } = await supabase
+            .from('clients')
+            .select('professional_id')
+            .eq('id', clientId)
+            .single();
+            
+          if (error || !data) {
+            setError('Danışan bilgilerine erişim yetkiniz yok.');
+            setLoading(false);
+            return;
+          }
           
-        if (error || !data) {
-          setError('Danışan bilgilerine erişim yetkiniz yok.');
-          setLoading(false);
-          return;
-        }
-        
-        if (data.professional_id !== professional.id) {
-          setError('Bu danışan size ait değil.');
-          setLoading(false);
-          return;
-        }
-        
-        setAuthorized(true);
+          if (data.professional_id !== professional.id) {
+            setError('Bu danışan size ait değil.');
+            setLoading(false);
+            return;
+          }
+          
+          setAuthorized(true);
 
         // Client bilgilerini yükle
         await loadClient();
@@ -783,7 +783,7 @@ export function Test() {
                 {selectedTest && (isMobile ? 
                   getTruncatedTestName(selectedTest.name) : 
                   selectedTest.name)}
-              </h2>
+            </h2>
               
               <div className="flex items-center gap-2 sm:gap-3">
                 {!showIntro && !showModuleSelection && (
@@ -807,23 +807,23 @@ export function Test() {
                   </button>
                 )}
                 
-                <button
-                  onClick={() => setDarkMode(!darkMode)}
+              <button
+                onClick={() => setDarkMode(!darkMode)}
                   className="p-2 rounded-lg bg-gray-50 dark:bg-gray-700/30 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 border border-gray-200 dark:border-gray-700/50 flex items-center justify-center"
-                  aria-label={darkMode ? 'Aydınlık temaya geç' : 'Karanlık temaya geç'}
-                >
-                  {darkMode ? (
+                aria-label={darkMode ? 'Aydınlık temaya geç' : 'Karanlık temaya geç'}
+              >
+                {darkMode ? (
                     <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
                     <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
+                </div>
+                </div>
 
             {/* Progress indicator - only show during test */}
             {!showIntro && !showModuleSelection && filteredQuestions.length > 0 && (
@@ -833,7 +833,7 @@ export function Test() {
                     <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">
                       Soru {currentQuestionIndex + 1} / {filteredQuestions.length}
                     </span>
-                  </div>
+            </div>
                   <div className="w-full h-2 sm:h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-300"
@@ -876,7 +876,7 @@ export function Test() {
                   className="px-3 sm:px-6 py-2 sm:py-2.5 text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg sm:rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-md flex items-center"
                 >
                   <span className="flex items-center">
-                    {selectedTest.isModular ? 'Modül Seçimine Geç' : 'Teste Başla'}
+                  {selectedTest.isModular ? 'Modül Seçimine Geç' : 'Teste Başla'}
                     <svg className="w-3 h-3 sm:w-5 sm:h-5 ml-1 sm:ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
@@ -948,7 +948,7 @@ export function Test() {
                       <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                       </svg>
-                      Tümünü Seç
+                    Tümünü Seç
                     </span>
                   </button>
                   <button
@@ -959,7 +959,7 @@ export function Test() {
                       <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                      Temizle
+                    Temizle
                     </span>
                   </button>
                 </div>
@@ -982,7 +982,7 @@ export function Test() {
                     className="px-3 sm:px-6 py-1 sm:py-2.5 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg sm:rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 shadow-md flex items-center"
                   >
                     <span className="flex items-center">
-                      Teste Başla
+                    Teste Başla
                       <svg className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
@@ -1004,9 +1004,9 @@ export function Test() {
                       <p className="text-base sm:text-xl text-gray-900 dark:text-white leading-relaxed font-semibold flex-1">
                         {filteredQuestions[currentQuestionIndex].text}
                       </p>
-                    </div>
-                  </div>
-                  
+                </div>
+              </div>
+
                   {/* Divider between question and answers */}
                   <div className="w-full h-px bg-gray-200 dark:bg-gray-700"></div>
                   
