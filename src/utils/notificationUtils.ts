@@ -29,6 +29,46 @@ export async function saveNotificationSubscription(
   }
 }
 
+// Bildirim aboneliğini silmek için bir fonksiyon
+export async function deleteNotificationSubscription(subscriptionId: string) {
+  try {
+    const { error } = await supabase
+      .from('notification_subscriptions')
+      .delete()
+      .eq('id', subscriptionId);
+    
+    if (error) {
+      console.error('Bildirim aboneliği silinirken hata oluştu:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Bildirim aboneliği silinirken hata oluştu:', error);
+    return false;
+  }
+}
+
+// Kullanıcının tüm bildirim aboneliklerini silmek için bir fonksiyon
+export async function deleteAllNotificationSubscriptions(userId: string) {
+  try {
+    const { error } = await supabase
+      .from('notification_subscriptions')
+      .delete()
+      .eq('user_id', userId);
+    
+    if (error) {
+      console.error('Bildirim abonelikleri silinirken hata oluştu:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Bildirim abonelikleri silinirken hata oluştu:', error);
+    return false;
+  }
+}
+
 // Kullanıcıdan bildirim izni iste
 export async function requestNotificationPermission(
   userId: string,
@@ -103,6 +143,26 @@ async function subscribeUserToPush(
   } catch (error) {
     console.error('Push aboneliği oluşturulurken hata oluştu:', error);
     return false;
+  }
+}
+
+// Kullanıcının bildirim aboneliklerini getir
+export async function getUserNotificationSubscriptions(userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('notification_subscriptions')
+      .select('*')
+      .eq('user_id', userId);
+    
+    if (error) {
+      console.error('Bildirim abonelikleri alınırken hata oluştu:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Bildirim abonelikleri alınırken hata oluştu:', error);
+    return null;
   }
 }
 

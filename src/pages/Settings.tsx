@@ -22,6 +22,7 @@ import {
 import { useAuth } from '../lib/auth';
 import { useNavigate } from 'react-router-dom';
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import { PWASettings } from '../components/PWASettings';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -1353,217 +1354,64 @@ export function Settings() {
         </div>
 
         {/* Çalışma Saatleri */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Kendi Çalışma Saatleri */}
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
-              <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                Çalışma Saatlerim
-              </h2>
-              <button
-                onClick={() => setShowProfessionalWorkingHoursModal(true)}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200"
-              >
-                Düzenle
-              </button>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(professionalWorkingHours).map(([day, hours]) => (
-                <div key={day} className="p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {day.charAt(0).toUpperCase() + day.slice(1)}
-                    </span>
-                    <span className={`text-sm ${
-                      hours.isOpen 
-                        ? 'text-green-600 dark:text-green-400' 
-                        : 'text-red-600 dark:text-red-400'
-                    }`}>
-                      {hours.isOpen ? 'Açık' : 'Kapalı'}
-                    </span>
-                  </div>
-                  {hours.isOpen && (
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {hours.opening} - {hours.closing}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Klinik Çalışma Saatleri */}
-              {clinicInfo.clinic_name && clinicInfo.clinic_name !== 'Asistan kaydı bulunamadı' ? (
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
-                  <div className="px-6 py-4 border-b border-gray-200/50 dark:border-gray-700/50 flex justify-between items-center">
-              <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                Klinik Çalışma Saatleri
-              </h2>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(clinicHours).map(([day, hours]) => (
-                <div key={day} className="p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {day.charAt(0).toUpperCase() + day.slice(1)}
-                    </span>
-                    <span className={`text-sm ${
-                      hours.isOpen 
-                        ? 'text-green-600 dark:text-green-400' 
-                        : 'text-red-600 dark:text-red-400'
-                    }`}>
-                      {hours.isOpen ? 'Açık' : 'Kapalı'}
-                    </span>
-                  </div>
-                  {hours.isOpen && (
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {hours.opening} - {hours.closing}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-              ) : (
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
-                  <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
-                    Klinik Çalışma Saatleri
-                  </h2>
-                  <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                    <p className="text-yellow-700 dark:text-yellow-400 font-medium">
-                      Klinik çalışma saatleri bilgisi bulunamadı
-                    </p>
-                    <p className="text-yellow-600 dark:text-yellow-300 text-sm mt-1">
-                      Bir asistana bağlı olduğunuzda klinik çalışma saatlerini görebilirsiniz.
-                    </p>
-                  </div>
-                </div>
-              )}
-        </div>
-
-        {/* PWA Ayarları */}
         <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
           <div className="flex justify-between items-start">
-            <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
-              Uygulama Ayarları
-            </h2>
-            {!isPWA && installPrompt && (
-              <button
-                onClick={handleInstallClick}
-                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 flex items-center space-x-2"
-              >
-                <Download className="h-5 w-5 mr-2" />
-                <span>Uygulamayı Yükle</span>
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            {/* PWA Durumu */}
-            <div className="p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl space-y-2">
-              <div className="flex items-center mb-2">
-                <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
-                <h4 className="font-medium text-gray-900 dark:text-white">Uygulama Durumu</h4>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {isPWA 
-                  ? "Uygulama yüklü ve çalışıyor" 
-                  : "Uygulama yüklü değil. Yüklemek için sağdaki butonu kullanabilirsiniz."}
-              </p>
-              {isPWA && (
-                <div className="mt-2 text-xs text-gray-500 dark:text-gray-500">
-                  Uygulama ana ekranınızdan erişilebilir
-                </div>
-              )}
-            </div>
-
-            {/* Çevrimiçi Durumu */}
-            <div className="p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl space-y-2">
-              <div className="flex items-center mb-2">
-                <WifiOff className={`w-5 h-5 ${isOnline ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} mr-2`} />
-                <h4 className="font-medium text-gray-900 dark:text-white">Bağlantı Durumu</h4>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {isOnline 
-                  ? "Çevrimiçi - İnternet bağlantısı var" 
-                  : "Çevrimdışı - İnternet bağlantısı yok"}
-              </p>
-              {!isOnline && (
-                <div className="mt-2 text-xs text-gray-500 dark:text-gray-500">
-                  Çevrimdışı modda sınırlı özellikler kullanılabilir
-                </div>
-              )}
-            </div>
-
-            {/* Depolama Bilgisi */}
-            {storageEstimate && (
-              <div className="p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl space-y-2">
-                <div className="flex items-center mb-2">
-                  <Database className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
-                  <h4 className="font-medium text-gray-900 dark:text-white">Depolama Kullanımı</h4>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Kullanılan:</span>
-                    <span className="text-gray-900 dark:text-white">{formatBytes(storageEstimate.usage)}</span>
+            <div>
+              <h2 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
+                Çalışma Saatleri
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                {Object.entries(professionalWorkingHours).map(([day, hours]) => (
+                  <div key={day} className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-gray-700 dark:text-gray-300">
+                        {day.charAt(0).toUpperCase() + day.slice(1)}
+                      </span>
+                      {hours.isOpen ? (
+                        <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">
+                          Açık
+                        </span>
+                      ) : (
+                        <span className="text-xs px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-full">
+                          Kapalı
+                        </span>
+                      )}
+                    </div>
+                    {hours.isOpen && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {hours.opening} - {hours.closing}
+                      </p>
+                    )}
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Toplam:</span>
-                    <span className="text-gray-900 dark:text-white">{formatBytes(storageEstimate.quota)}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 mt-2">
-                    <div 
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 h-2.5 rounded-full" 
-                      style={{ width: `${(storageEstimate.usage / storageEstimate.quota) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
+                ))}
               </div>
-            )}
-
-            {/* Service Worker Durumu */}
-            <div className="p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl space-y-2">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center">
-                  <RefreshCw className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
-                  <h4 className="font-medium text-gray-900 dark:text-white">Uygulama Güncellemesi</h4>
-                </div>
-                <button 
-                  onClick={handleUpdateServiceWorker}
-                  className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
-                >
-                  Güncelle
-                </button>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {serviceWorkerStatus === 'active' && "Uygulama güncel"}
-                {serviceWorkerStatus === 'installing' && "Güncelleme yükleniyor..."}
-                {serviceWorkerStatus === 'waiting' && "Güncelleme hazır, uygulamayı yeniden başlatın"}
-                {serviceWorkerStatus === 'none' && "Service Worker bulunamadı"}
-              </p>
             </div>
+            <button
+              onClick={() => setShowProfessionalWorkingHoursModal(true)}
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200"
+            >
+              Düzenle
+            </button>
           </div>
         </div>
 
+        {/* PWA Ayarları Bileşeni */}
+        <PWASettings />
+
         {/* Hesap Silme */}
-        <div className="bg-red-50 dark:bg-red-900/20 rounded-2xl p-6 border border-red-100 dark:border-red-800/50">
-          <div className="flex justify-between items-start">
-            <div>
-              <h2 className="text-lg font-semibold text-red-700 dark:text-red-400">
-                Hesabı Sil
-              </h2>
-              <p className="mt-2 text-sm text-red-600 dark:text-red-300">
-                Hesabınızı sildiğinizde tüm verileriniz kalıcı olarak silinecektir. Bu işlem geri alınamaz.
-              </p>
-            </div>
-            <button
-              onClick={() => setShowDeleteAccountModal(true)}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all duration-200 flex items-center space-x-2"
-            >
-              <Trash2 className="h-5 w-5" />
-              <span>Hesabı Sil</span>
-            </button>
-          </div>
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 border border-red-200/50 dark:border-red-900/30">
+          <h2 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">
+            Hesabı Sil
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Hesabınızı silmek tüm verilerinizi kalıcı olarak siler. Bu işlem geri alınamaz.
+          </p>
+          <button
+            onClick={() => setShowDeleteAccountModal(true)}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all duration-200"
+          >
+            Hesabı Sil
+          </button>
         </div>
                       </>
                     )}

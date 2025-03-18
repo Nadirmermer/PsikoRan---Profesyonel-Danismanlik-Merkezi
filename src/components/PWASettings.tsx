@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Download, Smartphone, WifiOff, Database, RefreshCw } from 'lucide-react';
+import { Download, Smartphone, WifiOff, Database, RefreshCw, Bell, BellOff, AlertTriangle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../lib/auth';
+import { requestNotificationPermission } from '../utils/notificationUtils';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -12,6 +15,10 @@ export function PWASettings() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
   const [serviceWorkerStatus, setServiceWorkerStatus] = useState<'active' | 'installing' | 'waiting' | 'none'>('none');
+  const [notificationStatus, setNotificationStatus] = useState<NotificationPermission>('default');
+  const [notificationSubscriptions, setNotificationSubscriptions] = useState<any[]>([]);
+  const [isLoadingSubscriptions, setIsLoadingSubscriptions] = useState(false);
+  const { user, professional, assistant } = useAuth();
 
   useEffect(() => {
     // PWA yükleme olayını dinle
@@ -72,6 +79,36 @@ export function PWASettings() {
       }
     };
 
+    // Bildirim durumunu kontrol et
+    const checkNotificationStatus = () => {
+      if ('Notification' in window) {
+        setNotificationStatus(Notification.permission);
+      }
+    };
+
+    // Bildirim aboneliklerini yükle
+    const loadNotificationSubscriptions = async () => {
+      if (user) {
+        setIsLoadingSubscriptions(true);
+        try {
+          const { data, error } = await supabase
+            .from('notification_subscriptions')
+            .select('*')
+            .eq('user_id', user.id);
+          
+          if (error) {
+            throw error;
+          }
+          
+          setNotificationSubscriptions(data || []);
+        } catch (error) {
+          console.error('Bildirim abonelikleri yüklenirken hata oluştu:', error);
+        } finally {
+          setIsLoadingSubscriptions(false);
+        }
+      }
+    };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('online', handleOnlineStatusChange);
     window.addEventListener('offline', handleOnlineStatusChange);
@@ -79,13 +116,15 @@ export function PWASettings() {
     checkIfInstalled();
     checkStorageEstimate();
     checkServiceWorker();
+    checkNotificationStatus();
+    loadNotificationSubscriptions();
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('online', handleOnlineStatusChange);
       window.removeEventListener('offline', handleOnlineStatusChange);
     };
-  }, []);
+  }, [user]);
 
   const handleInstallClick = async () => {
     if (!installPrompt) return;
@@ -136,6 +175,60 @@ export function PWASettings() {
     }
   };
 
+  const handleEnableNotifications = async () => {
+    if (!user) return;
+
+    let userType: 'professional' | 'assistant' | 'client' = 'client';
+    
+    if (professional) {
+      userType = 'professional';
+    } else if (assistant) {
+      userType = 'assistant';
+    }
+
+    try {
+      // Bildirim izni iste
+      const success = await requestNotificationPermission(user.id, userType);
+      
+      // İzin durumunu güncelle
+      if ('Notification' in window) {
+        setNotificationStatus(Notification.permission);
+      }
+
+      // Abonelikleri yeniden yükle
+      if (success) {
+        const { data } = await supabase
+          .from('notification_subscriptions')
+          .select('*')
+          .eq('user_id', user.id);
+        
+        setNotificationSubscriptions(data || []);
+      }
+    } catch (error) {
+      console.error('Bildirim izni istenirken hata oluştu:', error);
+    }
+  };
+
+  const handleDeleteSubscription = async (subscriptionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notification_subscriptions')
+        .delete()
+        .eq('id', subscriptionId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Abonelikleri yeniden yükle
+      setNotificationSubscriptions(prevSubscriptions => 
+        prevSubscriptions.filter(sub => sub.id !== subscriptionId)
+      );
+    } catch (error) {
+      console.error('Abonelik silinirken hata oluştu:', error);
+    }
+  };
+
   // Byte'ı insan tarafından okunabilir formata dönüştür
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -145,6 +238,30 @@ export function PWASettings() {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Bildirim durumuna göre durum mesajını formatla
+  const getNotificationStatusText = (status: NotificationPermission) => {
+    switch (status) {
+      case 'granted':
+        return 'Bildirimler etkin';
+      case 'denied':
+        return 'Bildirimler engellenmiş. Tarayıcı ayarlarından izin vermeniz gerekir.';
+      default:
+        return 'Bildirimler için izin verilmemiş';
+    }
+  };
+
+  // Abonelik oluşturma tarihini formatla
+  const formatCreatedAt = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
   };
 
   return (
@@ -246,6 +363,90 @@ export function PWASettings() {
             {serviceWorkerStatus === 'none' && "Service Worker bulunamadı"}
           </p>
         </div>
+      </div>
+
+      {/* Bildirim Ayarları */}
+      <div className="mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Bildirim Ayarları</h3>
+          {notificationStatus !== 'granted' && (
+            <button
+              onClick={handleEnableNotifications}
+              className="flex items-center px-4 py-2 text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl"
+              disabled={notificationStatus === 'denied'}
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              Bildirimleri Etkinleştir
+            </button>
+          )}
+        </div>
+
+        {/* Bildirim Durumu */}
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 mb-4">
+          <div className="flex items-center mb-2">
+            {notificationStatus === 'granted' ? (
+              <Bell className="w-5 h-5 text-green-600 dark:text-green-400 mr-2" />
+            ) : notificationStatus === 'denied' ? (
+              <BellOff className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2" />
+            )}
+            <h4 className="font-medium text-gray-900 dark:text-white">Bildirim Durumu</h4>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {getNotificationStatusText(notificationStatus)}
+          </p>
+          {notificationStatus === 'denied' && (
+            <div className="mt-3 text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded">
+              Bildirimleri etkinleştirmek için tarayıcı ayarlarından izin vermeniz gerekiyor. Site ayarlarına giderek bildirimlere izin verebilirsiniz.
+            </div>
+          )}
+        </div>
+
+        {/* Kayıtlı Bildirim Abonelikleri */}
+        {notificationStatus === 'granted' && (
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+            <h4 className="font-medium text-gray-900 dark:text-white mb-3">Kayıtlı Cihazlar</h4>
+            
+            {isLoadingSubscriptions ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Bildirim abonelikleri yükleniyor...</p>
+              </div>
+            ) : notificationSubscriptions.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400 italic">Kayıtlı bildirim aboneliği bulunamadı.</p>
+            ) : (
+              <div className="space-y-3">
+                {notificationSubscriptions.map((subscription) => (
+                  <div key={subscription.id} className="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
+                    <div>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {subscription.subscription?.endpoint ? 
+                          `${subscription.subscription.endpoint.split('/').pop().substring(0, 10)}...` : 
+                          'Abone bilgisi'
+                        }
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                        {formatCreatedAt(subscription.created_at)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteSubscription(subscription.id)}
+                      className="text-xs px-2 py-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                    >
+                      Kaldır
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="mt-3 text-xs text-gray-500 dark:text-gray-500">
+              <p>Bu cihazlar bildirim almak için kayıtlıdır. Cihaz kaydını kaldırırsanız, bu cihazda bildirim almazsınız.</p>
+              <p className="mt-1">Not: Her tarayıcı ve cihaz için ayrı ayrı izin vermeniz gerekir.</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
