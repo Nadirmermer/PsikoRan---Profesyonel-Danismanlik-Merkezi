@@ -131,7 +131,7 @@ export function PWAInstallPrompt() {
             <Download className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white">PsiRan Uygulaması</h3>
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white">PsikoRan Uygulaması</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Uygulamayı cihazınıza kurarak hızlı erişim sağlayın
             </p>

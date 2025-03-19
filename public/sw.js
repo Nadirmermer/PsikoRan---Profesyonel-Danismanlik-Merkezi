@@ -1,5 +1,5 @@
 // Service Worker dosyası
-const CACHE_NAME = 'psiran-app-v1';
+const CACHE_NAME = 'PsikoRan-app-v1';
 
 // Önbelleğe alınacak dosyaları belirle
 // Vite PWA eklentisi bu kısmı otomatik olarak yönetecek

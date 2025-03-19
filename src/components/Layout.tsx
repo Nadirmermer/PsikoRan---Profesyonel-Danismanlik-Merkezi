@@ -136,7 +136,7 @@ export function Layout({ children }: LayoutProps) {
 
           <div className="flex justify-center items-center">
             <span className="font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent text-lg transform transition-all duration-500">
-              PsiRan
+              PsikoRan
             </span>
           </div>
 
@@ -196,7 +196,7 @@ export function Layout({ children }: LayoutProps) {
                 ${isSidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 lg:hidden'}
               `}
               >
-                PsiRan
+                PsikoRan
               </h1>
               <button
                 onClick={() => setSidebarOpen(!isSidebarOpen)}

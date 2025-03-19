@@ -46,13 +46,13 @@ export const Logo: React.FC<LogoProps> = ({
       <div className={`${sizes[size].container} rounded-lg overflow-hidden`}>
         <img 
           src={logoImage} 
-          alt="PsiRan Logo" 
+          alt="PsikoRan Logo" 
           className="w-full h-full object-contain"
         />
       </div>
       {showText && (
         <h2 className={`font-bold ${sizes[size].text} ${colors[variant].text}`}>
-          PsiRan
+          PsikoRan
         </h2>
       )}
     </div>

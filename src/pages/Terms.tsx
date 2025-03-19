@@ -5,13 +5,13 @@ export function Terms() {
   return (
     <LegalLayout 
       title="Kullanım Şartları" 
-      description="PsiRan platformunu kullanırken uymanız gereken kurallar ve şartlar"
+      description="PsikoRan platformunu kullanırken uymanız gereken kurallar ve şartlar"
     >
       <div className="space-y-12">
         {/* Giriş */}
         <section>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            Bu kullanım şartları, PsiRan platformunu kullanırken uymanız gereken kuralları ve karşılıklı hak ve yükümlülükleri belirler. 
+            Bu kullanım şartları, PsikoRan platformunu kullanırken uymanız gereken kuralları ve karşılıklı hak ve yükümlülükleri belirler. 
             Platformu kullanarak bu şartları kabul etmiş sayılırsınız.
           </p>
         </section>
@@ -138,7 +138,7 @@ export function Terms() {
               <div className="prose prose-slate dark:prose-invert">
                 <p>Platform üzerindeki tüm içerikler için:</p>
                 <ul>
-                  <li>Tüm haklar PsiRan'a aittir</li>
+                  <li>Tüm haklar PsikoRan'a aittir</li>
                   <li>İzinsiz kullanım ve kopyalama yasaktır</li>
                   <li>Kullanıcı içerikleri için özel şartlar geçerlidir</li>
                   <li>Logo ve marka kullanımı izne tabidir</li>

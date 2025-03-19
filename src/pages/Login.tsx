@@ -383,7 +383,7 @@ export function Login() {
               </Link>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              &copy; {new Date().getFullYear()} PsiRan. Tüm hakları saklıdır.
+              &copy; {new Date().getFullYear()} PsikoRan. Tüm hakları saklıdır.
             </p>
           </div>
         </div>

@@ -17,11 +17,11 @@ export function LegalLayout({ children, title, description }: LegalLayoutProps) 
               <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
                 <img 
                   src="/main-logo.png" 
-                  alt="PsiRan Logo" 
+                  alt="PsikoRan Logo" 
                   className="h-5 w-5 object-contain"
                 />
               </div>
-              <span className="text-xl font-bold text-slate-800 dark:text-white">PsiRan</span>
+              <span className="text-xl font-bold text-slate-800 dark:text-white">PsikoRan</span>
             </Link>
             <nav className="flex space-x-4 text-sm">
               <Link to="/privacy" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
@@ -52,7 +52,7 @@ export function LegalLayout({ children, title, description }: LegalLayoutProps) 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col items-center justify-between space-y-4 sm:flex-row sm:space-y-0">
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              &copy; {new Date().getFullYear()} PsiRan. Tüm hakları saklıdır.
+              &copy; {new Date().getFullYear()} PsikoRan. Tüm hakları saklıdır.
             </p>
             <div className="flex space-x-4 text-sm">
               <Link to="/contact" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">

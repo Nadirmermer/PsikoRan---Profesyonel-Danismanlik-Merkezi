@@ -158,10 +158,10 @@ class TestPDFGenerator {
       this.pdf.text("P", x + width / 2, y + height / 2 + 12, { align: 'center' });
     }
     
-    // Logo altına "PsiRan" yazısı
+    // Logo altına "PsikoRan" yazısı
     this.setColor('primary');
     this.setFont('heading', 'h2');
-    this.pdf.text("PsiRan", x + width / 2, y + height + 20, { align: 'center' });
+    this.pdf.text("PsikoRan", x + width / 2, y + height + 20, { align: 'center' });
   }
 
   private drawHeader(): void {

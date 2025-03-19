@@ -21,8 +21,8 @@ const CATEGORIES = [
 const faqs: FAQItem[] = [
   // Başlangıç
   {
-    question: "PsiRan'ı nasıl kullanmaya başlayabilirim?",
-    answer: "PsiRan'ı kullanmaya başlamak için öncelikle bir asistan hesabı oluşturmanız gerekiyor. Kayıt olduktan sonra e-posta doğrulaması yaparak sistemi hemen kullanmaya başlayabilirsiniz.",
+    question: "PsikoRan'ı nasıl kullanmaya başlayabilirim?",
+    answer: "PsikoRan'ı kullanmaya başlamak için öncelikle bir asistan hesabı oluşturmanız gerekiyor. Kayıt olduktan sonra e-posta doğrulaması yaparak sistemi hemen kullanmaya başlayabilirsiniz.",
     category: "getting-started",
     icon: <BookOpen className="h-5 w-5" />
   },

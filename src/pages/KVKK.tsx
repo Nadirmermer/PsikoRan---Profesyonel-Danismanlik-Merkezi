@@ -11,7 +11,7 @@ export function KVKK() {
         {/* Giriş */}
         <section>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            PsiRan olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, veri sorumlusu sıfatıyla, 
+            PsikoRan olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, veri sorumlusu sıfatıyla, 
             kişisel verilerinizi aşağıda açıklanan amaçlar kapsamında hukuka ve dürüstlük kurallarına uygun bir şekilde işleyebilir, 
             kaydedebilir, saklayabilir, sınıflandırabilir, güncelleyebilir ve mevzuatın izin verdiği hallerde üçüncü kişilere açıklayabiliriz.
           </p>
@@ -27,7 +27,7 @@ export function KVKK() {
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Veri Sorumlusu</h2>
               <div className="prose prose-slate dark:prose-invert">
                 <p>
-                  PsiRan platformu olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu uyarınca veri sorumlusu sıfatıyla 
+                  PsikoRan platformu olarak, 6698 sayılı Kişisel Verilerin Korunması Kanunu uyarınca veri sorumlusu sıfatıyla 
                   kişisel verilerinizi işlemekteyiz. Platform üzerinden sunduğumuz hizmetler kapsamında, kullanıcılarımızın ve 
                   danışanların kişisel verilerinin güvenliği bizim için önceliklidir.
                 </p>

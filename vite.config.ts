@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'main-logo.png', 'logo_markalı_beyaz.jpeg'],
       manifest: {
-        name: 'PsiRan - Profesyonel Danışmanlık Merkezi',
-        short_name: 'PsiRan',
+        name: 'PsikoRan - Profesyonel Danışmanlık Merkezi',
+        short_name: 'PsikoRan',
         description: 'Ruh sağlığı uzmanları için randevu ve danışan yönetim sistemi',
         theme_color: '#4f46e5',
         background_color: '#ffffff',

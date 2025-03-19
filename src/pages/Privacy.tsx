@@ -5,13 +5,13 @@ export function Privacy() {
   return (
     <LegalLayout 
       title="Gizlilik Politikası" 
-      description="PsiRan'ın gizlilik politikası ve veri işleme prensipleri"
+      description="PsikoRan'ın gizlilik politikası ve veri işleme prensipleri"
     >
       <div className="space-y-12">
         {/* Giriş */}
         <section>
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            PsiRan olarak, siz değerli kullanıcılarımızın gizliliğini korumak en önemli önceliklerimizden biridir. 
+            PsikoRan olarak, siz değerli kullanıcılarımızın gizliliğini korumak en önemli önceliklerimizden biridir. 
             Bu gizlilik politikası, verilerinizin nasıl toplandığını, kullanıldığını ve korunduğunu açıklamaktadır.
           </p>
         </section>

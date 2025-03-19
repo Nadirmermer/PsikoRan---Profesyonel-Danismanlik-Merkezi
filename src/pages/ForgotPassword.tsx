@@ -38,12 +38,12 @@ export function ForgotPassword() {
           <div className="h-12 w-12 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
             <img 
               src="/logo_markalı_beyaz.jpeg" 
-              alt="PsiRan Logo" 
+              alt="PsikoRan Logo" 
               className="h-7 w-7 object-contain"
             />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-            PsiRan
+            PsikoRan
           </h2>
         </div>
 
@@ -144,7 +144,7 @@ export function ForgotPassword() {
             </Link>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            &copy; {new Date().getFullYear()} PsiRan. Tüm hakları saklıdır.
+            &copy; {new Date().getFullYear()} PsikoRan. Tüm hakları saklıdır.
           </p>
         </div>
       </div>
