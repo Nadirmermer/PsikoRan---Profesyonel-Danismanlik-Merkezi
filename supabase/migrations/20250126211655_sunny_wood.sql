@@ -806,3 +806,26 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Test token fonksiyonuna erişim izni ver
 GRANT EXECUTE ON FUNCTION create_test_token TO authenticated;
+
+-- "attachments" adlı bir Supabase storage bucket'ı oluşturma
+INSERT INTO storage.buckets (id, name, public, avif_autodetection)
+VALUES ('attachments', 'attachments', true, false);
+
+-- Genel okuma politikası (herkes için)
+CREATE POLICY "Attachments herkes tarafından okunabilir" ON storage.objects FOR SELECT
+USING (bucket_id = 'attachments');
+
+-- Dosya yükleme için kimlik doğrulanmış kullanıcı politikası
+CREATE POLICY "Kimlik doğrulanmış kullanıcılar attachments'e dosya yükleyebilir" ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (bucket_id = 'attachments');
+
+-- Dosya silme için kimlik doğrulanmış kullanıcı politikası
+CREATE POLICY "Kimlik doğrulanmış kullanıcılar kendi yükledikleri dosyaları silebilir" ON storage.objects
+FOR DELETE TO authenticated
+USING (bucket_id = 'attachments');
+
+-- Dosya güncelleme için kimlik doğrulanmış kullanıcı politikası
+CREATE POLICY "Kimlik doğrulanmış kullanıcılar kendi yükledikleri dosyaları güncelleyebilir" ON storage.objects
+FOR UPDATE TO authenticated
+USING (bucket_id = 'attachments');
