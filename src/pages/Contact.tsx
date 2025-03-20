@@ -71,7 +71,7 @@ export function Contact() {
                     Teknik destek ve genel sorularınız için 7/24 yanınızdayız.
                   </p>
                   <a 
-                    href="mailto:destek@PsikoRan.com" 
+                    href="mailto:destek@psikoran.com" 
                     className="mt-3 inline-flex items-center text-primary-600 hover:text-primary-500 dark:text-primary-400"
                   >
                     <Mail className="h-5 w-5 mr-2" />
