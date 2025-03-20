@@ -1,6 +1,7 @@
 import { LegalLayout } from '../components/LegalLayout';
 import { Mail, Phone, MapPin, Send, MessageSquare, Clock, AlertCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import emailjs from '@emailjs/browser';
 
 const CONTACT_TOPICS = [
   { id: 'technical', label: 'Teknik Destek' },
@@ -29,6 +30,16 @@ export function Contact() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
+  // EmailJS başlatma
+  useEffect(() => {
+    // EmailJS servisini başlat
+    // NOT: Aşağıdaki adımları izleyerek kendi public key'inizi alın:
+    // 1. https://www.emailjs.com/ adresine gidin ve ücretsiz bir hesap oluşturun
+    // 2. Dashboard > Account > API Keys bölümünden "Public Key" değerini kopyalayın
+    // 3. Aşağıdaki "YOUR_PUBLIC_KEY" yerine kopyaladığınız değeri yapıştırın
+    emailjs.init("YOUR_PUBLIC_KEY");
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.acceptTerms) {
@@ -39,11 +50,36 @@ export function Contact() {
     setError('');
 
     try {
-      // Burada form verilerini backend'e gönderme işlemi yapılacak
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simüle edilmiş API çağrısı
+      // Konu metnini al
+      const topicText = CONTACT_TOPICS.find(t => t.id === formData.topic)?.label || formData.topic;
+      
+      // EmailJS ile e-posta gönderme
+      const templateParams = {
+        from_name: formData.name,
+        from_email: formData.email,
+        topic: topicText,
+        message: formData.message,
+        reply_to: formData.email,
+      };
+      
+      // NOT: Aşağıdaki adımları izleyerek kendi servis ve şablon ID'lerinizi alın:
+      // 1. EmailJS Dashboard > Email Services > [Servis Adı] bölümünden "Service ID" değerini kopyalayın
+      // 2. EmailJS Dashboard > Email Templates > [Şablon Adı] bölümünden "Template ID" değerini kopyalayın
+      // 3. Aşağıdaki "YOUR_SERVICE_ID" ve "YOUR_TEMPLATE_ID" değerlerini güncelleyin
+      const response = await emailjs.send(
+        'YOUR_SERVICE_ID', // EmailJS servis ID'si
+        'YOUR_TEMPLATE_ID', // EmailJS template ID'si
+        templateParams
+      );
+      
+      if (response.status !== 200) {
+        throw new Error('E-posta gönderilemedi');
+      }
+      
       setSuccess(true);
       setFormData({ name: '', email: '', topic: '', message: '', acceptTerms: false });
     } catch (err) {
+      console.error('Form gönderme hatası:', err);
       setError('Mesajınız gönderilemedi. Lütfen daha sonra tekrar deneyin.');
     } finally {
       setLoading(false);
@@ -92,10 +128,10 @@ export function Contact() {
                     Acil durumlar için telefon desteği.
                   </p>
                   <a 
-                    href="tel:+902121234567" 
+                    href="tel:+905011462347" 
                     className="mt-3 inline-flex items-center text-primary-600 hover:text-primary-500 dark:text-primary-400"
                   >
-                    +90 (212) 123 45 67
+                    +90 (501) 146 23 47
                   </a>
                 </div>
               </div>
