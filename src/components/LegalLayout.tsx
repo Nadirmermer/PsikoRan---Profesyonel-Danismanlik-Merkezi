@@ -16,7 +16,7 @@ export function LegalLayout({ children, title, description }: LegalLayoutProps) 
             <Link to="/" className="flex items-center space-x-3">
               <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
                 <img 
-                  src="/main-logo.png" 
+                  src="/app-logo-md.png" 
                   alt="PsikoRan Logo" 
                   className="h-5 w-5 object-contain"
                 />

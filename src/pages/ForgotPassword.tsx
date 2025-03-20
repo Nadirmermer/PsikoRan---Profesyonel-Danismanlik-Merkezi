@@ -37,7 +37,7 @@ export function ForgotPassword() {
         <div className="flex items-center justify-center space-x-3 mb-12">
           <div className="h-12 w-12 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
             <img 
-              src="/logo_markalı_beyaz.jpeg" 
+              src="/app-logo-sm.png" 
               alt="PsikoRan Logo" 
               className="h-7 w-7 object-contain"
             />

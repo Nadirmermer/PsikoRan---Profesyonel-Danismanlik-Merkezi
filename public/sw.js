@@ -55,7 +55,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: data.icon || '/main-logo.png',
+      icon: data.icon || '/app-logo-md.png',
       badge: data.badge || '/favicon.svg',
       data: data.data || {},
       vibrate: [100, 50, 100], // Titreşim paterni (ms)

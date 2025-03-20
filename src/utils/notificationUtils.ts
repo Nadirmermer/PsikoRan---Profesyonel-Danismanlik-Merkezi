@@ -192,7 +192,7 @@ export function createReminderNotificationContent(appointment: any) {
   return {
     title: 'Yaklaşan Randevu Hatırlatması',
     body: `${formattedDate} tarihinde saat ${formattedTime}'de ${appointment.client?.full_name} ile randevunuz var.`,
-    icon: '/main-logo.png',
+    icon: '/app-logo-md.png',
     badge: '/favicon.svg',
     data: {
       url: '/appointments',

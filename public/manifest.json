@@ -8,18 +8,18 @@
       "type": "image/svg+xml"
     },
     {
-      "src": "logo_markalı_beyaz.jpeg",
-      "type": "image/jpeg",
+      "src": "app-logo-sm.png",
+      "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "logo_markalı_beyaz.jpeg",
-      "type": "image/jpeg",
+      "src": "app-logo-md.png",
+      "type": "image/png",
       "sizes": "512x512"
     },
     {
-      "src": "logo_markalı_beyaz.jpeg",
-      "type": "image/jpeg",
+      "src": "app-logo-lg.png",
+      "type": "image/png",
       "sizes": "1024x1024",
       "purpose": "any maskable"
     }

@@ -24,7 +24,7 @@ export const AppLoader: React.FC = () => {
         <div className="relative">
           <div className="flex items-center justify-center h-32 w-44 sm:h-40 sm:w-56">
             <img 
-              src="/logo_markalı_beyaz.jpeg" 
+              src="/app-logo-md.png" 
               alt="PsikoRan Logo" 
               className="h-full w-full object-contain"
             />

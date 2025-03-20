@@ -1,5 +1,5 @@
 import React from 'react';
-import logoImage from '../assets/logo/main-logo.png';
+import appLogoSvg from '../assets/logo/app-logo.svg';
 
 interface LogoProps {
   size?: 'small' | 'medium' | 'large';
@@ -7,12 +7,22 @@ interface LogoProps {
   showText?: boolean;
 }
 
+/**
+ * Logo Bileşeni
+ * 
+ * PsikoRan logosu için kullanılan bileşen. Farklı boyut ve renk varyasyonlarını destekler.
+ * 
+ * @param size Logo boyutu: 'small', 'medium' veya 'large'
+ * @param variant Logo renk varyasyonu: 'default', 'white' veya 'pdf'
+ * @param showText Logo yanında metin gösterme durumu
+ * @returns Logo bileşeni
+ */
 export const Logo: React.FC<LogoProps> = ({ 
   size = 'medium', 
   variant = 'default',
   showText = true 
 }) => {
-  // Size değerlerine göre boyutları ayarla
+  // Boyut değerlerine göre container ve metin boyutlarını ayarla
   const sizes = {
     small: {
       container: 'h-10 w-10',
@@ -28,7 +38,7 @@ export const Logo: React.FC<LogoProps> = ({
     }
   };
 
-  // Variant değerlerine göre renkleri ayarla
+  // Renk varyasyonlarına göre metin renklerini ayarla
   const colors = {
     default: {
       text: 'text-slate-800 dark:text-white'
@@ -45,7 +55,7 @@ export const Logo: React.FC<LogoProps> = ({
     <div className="flex items-center space-x-3">
       <div className={`${sizes[size].container} rounded-lg overflow-hidden`}>
         <img 
-          src={logoImage} 
+          src={appLogoSvg} 
           alt="PsikoRan Logo" 
           className="w-full h-full object-contain"
         />
@@ -59,10 +69,15 @@ export const Logo: React.FC<LogoProps> = ({
   );
 };
 
-// SVG formatında logo (PDF ve favicon için)
+/**
+ * SVG formatında logo
+ * 
+ * PDF, favicon ve diğer SVG gerektiren durumlarda kullanılan logo bileşeni
+ * @returns SVG logo bileşeni
+ */
 export const LogoSVG: React.FC = () => (
   <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <image href={logoImage} width="60" height="60" x="0" y="0" />
+    <image href={appLogoSvg} width="60" height="60" x="0" y="0" />
   </svg>
 );
 
