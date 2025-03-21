@@ -72,6 +72,7 @@ function copyRecursiveSync(src: string, dest: string): void {
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/',
   plugins: [
     react(),
     VitePWA({ 
@@ -167,6 +168,11 @@ export default defineConfig({
     }),
     copyAssetsPlugin() // Dosya kopyalama eklentisini ekle
   ],
+  server: {
+    port: 3000,
+    host: true,
+    open: true,
+  },
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
