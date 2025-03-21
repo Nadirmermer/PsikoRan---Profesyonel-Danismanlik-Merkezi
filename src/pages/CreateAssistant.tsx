@@ -1,32 +1,53 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { UserPlus, ArrowLeft, Mail, Lock, User, Phone, Eye, EyeOff, Building } from 'lucide-react';
-import { useAuth } from '../lib/auth';
-import logo2 from '../assets/logo/logo_2.png';
+import { Sun, Moon, UserPlus, Mail, Lock, Phone, Building, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import Logo from '../components/Logo';
 
 export function Register() {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
     password: '',
-    fullName: '',
     phone: '',
     clinicName: '',
-    workingHours: {
-      pazartesi: { opening: '09:00', closing: '18:00', isOpen: false },
-      sali: { opening: '09:00', closing: '18:00', isOpen: false },
-      carsamba: { opening: '09:00', closing: '18:00', isOpen: false },
-      persembe: { opening: '09:00', closing: '18:00', isOpen: false },
-      cuma: { opening: '09:00', closing: '18:00', isOpen: false },
-      cumartesi: { opening: '09:00', closing: '18:00', isOpen: false },
-      pazar: { opening: '09:00', closing: '18:00', isOpen: false }
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('app_theme');
+      if (savedTheme === 'dark') return true;
+      if (savedTheme === 'light') return false;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
+    return false;
   });
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    document.title = "Asistan Hesabı Oluştur - PsikoRan";
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      const currentTheme = localStorage.getItem('app_theme');
+      if (!currentTheme || currentTheme === 'system') {
+        setIsDarkMode(e.matches);
+        document.documentElement.classList.toggle('dark', e.matches);
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [isDarkMode]);
+
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    localStorage.setItem('app_theme', newMode ? 'dark' : 'light');
+    document.documentElement.classList.toggle('dark', newMode);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -41,307 +62,124 @@ export function Register() {
     setLoading(true);
 
     try {
-      // Check if user already exists
-      const { data: existingUser, error: checkError } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (existingUser?.user) {
-        // Kullanıcı zaten var, asistan kaydı var mı kontrol et
-        const { data: existingAssistant } = await supabase
+      // Önce e-posta ile kullanıcı var mı kontrol et
+      const { data: existingUsers } = await supabase
           .from('assistants')
           .select('id')
-          .eq('user_id', existingUser.user.id)
-          .maybeSingle();
+        .eq('email', formData.email);
 
-        if (existingAssistant) {
-          // Hem kullanıcı hem asistan kaydı var
-          setError('Bu e-posta adresi zaten kullanımda. Lütfen giriş yapın veya başka bir e-posta adresi kullanın.');
-          setLoading(false);
-          return;
-        } else {
-          // Kullanıcı var ama asistan kaydı yok, asistan kaydı oluştur
-          const { data: assistantData, error: assistantError } = await supabase
-            .from('assistants')
-            .insert([
-              {
-                user_id: existingUser.user.id,
-                full_name: formData.fullName,
-                phone: formData.phone || null,
-                clinic_name: formData.clinicName,
-                email: formData.email,
-              },
-            ])
-            .select();
-
-          if (assistantError) {
-            console.error('Assistant creation error:', assistantError);
-            throw new Error(`Asistan kaydı oluşturulamadı: ${assistantError.message}`);
-          }
-
-          if (!assistantData || assistantData.length === 0) {
-            throw new Error('Asistan kaydı oluşturulamadı: Veri döndürülemedi');
-          }
-
-          // Clinic settings oluştur
-          const { error: settingsError } = await supabase
-            .from('clinic_settings')
-            .insert([
-              {
-                assistant_id: assistantData[0].id,
-                opening_time_monday: formData.workingHours.pazartesi.opening,
-                closing_time_monday: formData.workingHours.pazartesi.closing,
-                is_open_monday: formData.workingHours.pazartesi.isOpen,
-                opening_time_tuesday: formData.workingHours.sali.opening,
-                closing_time_tuesday: formData.workingHours.sali.closing,
-                is_open_tuesday: formData.workingHours.sali.isOpen,
-                opening_time_wednesday: formData.workingHours.carsamba.opening,
-                closing_time_wednesday: formData.workingHours.carsamba.closing,
-                is_open_wednesday: formData.workingHours.carsamba.isOpen,
-                opening_time_thursday: formData.workingHours.persembe.opening,
-                closing_time_thursday: formData.workingHours.persembe.closing,
-                is_open_thursday: formData.workingHours.persembe.isOpen,
-                opening_time_friday: formData.workingHours.cuma.opening,
-                closing_time_friday: formData.workingHours.cuma.closing,
-                is_open_friday: formData.workingHours.cuma.isOpen,
-                opening_time_saturday: formData.workingHours.cumartesi.opening,
-                closing_time_saturday: formData.workingHours.cumartesi.closing,
-                is_open_saturday: formData.workingHours.cumartesi.isOpen,
-                opening_time_sunday: formData.workingHours.pazar.opening,
-                closing_time_sunday: formData.workingHours.pazar.closing,
-                is_open_sunday: formData.workingHours.pazar.isOpen,
-              },
-            ]);
-
-          if (settingsError) {
-            console.error('Clinic settings error:', settingsError);
-            throw new Error('Klinik ayarları oluşturulamadı. Lütfen daha sonra tekrar deneyin.');
-          }
-
-          // Otomatik giriş yap
-          await signIn(formData.email, formData.password);
-          navigate('/');
-          return;
-        }
+      if (existingUsers && existingUsers.length > 0) {
+        throw new Error('Bu e-posta adresi ile kayıtlı bir kullanıcı zaten mevcut.');
       }
 
       // Yeni kullanıcı oluştur
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        options: {
-          data: {
-            role: 'assistant',
-            full_name: formData.fullName,
-          },
-        },
       });
 
-      if (authError) {
-        if (authError.message.includes('already registered')) {
-          throw new Error('Bu e-posta adresi zaten kullanımda. Lütfen giriş yapın veya başka bir e-posta adresi kullanın.');
-        }
-        throw authError;
-      }
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Kullanıcı oluşturulamadı.');
 
-      if (!authData.user) {
-        throw new Error('Kullanıcı hesabı oluşturulamadı');
-      }
-
-      // Wait a moment for the auth user to be fully created
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Create assistant record
+      // Asistan bilgilerini kaydet
       const { data: assistantData, error: assistantError } = await supabase
         .from('assistants')
         .insert([
           {
             user_id: authData.user.id,
-            full_name: formData.fullName,
-            phone: formData.phone || null,
-            clinic_name: formData.clinicName,
+            full_name: formData.name,
             email: formData.email,
+            phone: formData.phone,
+            clinic_name: formData.clinicName,
           },
         ])
         .select();
 
-      if (assistantError) {
-        console.error('Assistant creation error:', assistantError);
-        
-        // If assistant creation fails, clean up the auth user
-        await supabase.auth.signOut();
-        
-        if (assistantError.code === '23505') { // Unique constraint violation
-          throw new Error('Bu e-posta adresi zaten kullanımda.');
-        } else if (assistantError.code === '42P01') { // Relation does not exist
-          throw new Error('Sistem hatası: Veritabanı tablosu bulunamadı. Lütfen yönetici ile iletişime geçin.');
-        } else {
-          throw new Error(`Asistan kaydı oluşturulamadı: ${assistantError.message}`);
-        }
-      }
+      if (assistantError) throw assistantError;
+      if (!assistantData || assistantData.length === 0) throw new Error('Asistan bilgileri kaydedilemedi.');
 
-      if (!assistantData || assistantData.length === 0) {
-        throw new Error('Asistan kaydı oluşturulamadı: Veri döndürülemedi');
-      }
+      // Klinik bilgilerini kaydet
+      const { error: clinicError } = await supabase.from('clinic_settings').insert([
+        {
+          assistant_id: assistantData[0].id,
+        },
+      ]);
 
-      // Create clinic settings
-      const { error: settingsError } = await supabase
-        .from('clinic_settings')
-        .insert([
-          {
-            assistant_id: assistantData[0].id,
-            opening_time_monday: formData.workingHours.pazartesi.opening,
-            closing_time_monday: formData.workingHours.pazartesi.closing,
-            is_open_monday: formData.workingHours.pazartesi.isOpen,
-            opening_time_tuesday: formData.workingHours.sali.opening,
-            closing_time_tuesday: formData.workingHours.sali.closing,
-            is_open_tuesday: formData.workingHours.sali.isOpen,
-            opening_time_wednesday: formData.workingHours.carsamba.opening,
-            closing_time_wednesday: formData.workingHours.carsamba.closing,
-            is_open_wednesday: formData.workingHours.carsamba.isOpen,
-            opening_time_thursday: formData.workingHours.persembe.opening,
-            closing_time_thursday: formData.workingHours.persembe.closing,
-            is_open_thursday: formData.workingHours.persembe.isOpen,
-            opening_time_friday: formData.workingHours.cuma.opening,
-            closing_time_friday: formData.workingHours.cuma.closing,
-            is_open_friday: formData.workingHours.cuma.isOpen,
-            opening_time_saturday: formData.workingHours.cumartesi.opening,
-            closing_time_saturday: formData.workingHours.cumartesi.closing,
-            is_open_saturday: formData.workingHours.cumartesi.isOpen,
-            opening_time_sunday: formData.workingHours.pazar.opening,
-            closing_time_sunday: formData.workingHours.pazar.closing,
-            is_open_sunday: formData.workingHours.pazar.isOpen,
-          },
-        ]);
+      if (clinicError) throw clinicError;
 
-      if (settingsError) {
-        console.error('Clinic settings error:', settingsError);
-        throw new Error('Klinik ayarları oluşturulamadı. Lütfen daha sonra tekrar deneyin.');
-      }
-
-      // Automatically sign in
-      await signIn(formData.email, formData.password);
-
-      // Navigate to dashboard
-      navigate('/');
+      // Başarılı kayıt sonrası yönlendirme
+      alert('Hesabınız başarıyla oluşturuldu. Lütfen e-posta adresinize gönderilen doğrulama bağlantısına tıklayınız.');
+      navigate('/login');
     } catch (err: any) {
-      console.error('Error creating assistant:', err);
-      setError(
-        err.message || 
-        'Asistan hesabı oluşturulurken bir hata oluştu. Lütfen daha sonra tekrar deneyin.'
-      );
+      console.error('Registration error:', err);
+      setError(err.message || 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-      {/* Sol Panel */}
-      <div className="hidden lg:flex w-1/2 p-16 items-center justify-center bg-white dark:bg-slate-800 relative">
-        <div className="relative z-10 max-w-xl mx-auto">
-          <div className="flex items-center space-x-4 mb-16">
-            <div className="h-16 w-32 flex items-center justify-center">
-              <img src={logo2} alt="PsikoRan Logo" className="h-full w-full object-contain" />
-            </div>
-            <h2 className="text-4xl font-bold text-slate-800 dark:text-white">
-              PsikoRan
-            </h2>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 transition-colors duration-300 px-4">
+      {/* Tema Değiştirme */}
+      <div className="fixed top-6 right-6">
+        <button
+          onClick={toggleDarkMode}
+          className="p-3 rounded-lg bg-white dark:bg-slate-800 shadow-lg hover:shadow-xl transition-all duration-300 group border border-slate-200 dark:border-slate-700"
+        >
+          {isDarkMode ? (
+            <Sun className="h-5 w-5 text-amber-500 group-hover:rotate-90 transition-transform duration-300" />
+          ) : (
+            <Moon className="h-5 w-5 text-primary-600 group-hover:rotate-90 transition-transform duration-300" />
+          )}
+        </button>
           </div>
           
-          <div className="space-y-8">
-            <h1 className="text-5xl font-bold text-slate-900 dark:text-white leading-tight">
-              Kliniğinizi<br />
-              <span className="text-primary-600 dark:text-primary-400">Dijitalleştirin</span>
-            </h1>
-            <div className="space-y-6 text-xl text-slate-600 dark:text-slate-300 leading-relaxed">
-              <p>
-                Modern çözümlerle kliniğinizi yönetmeye hemen başlayın.
-              </p>
-              <ul className="space-y-4">
-                {['Kolay ve hızlı randevu yönetimi', 'Otomatik ödeme takibi ve raporlama', 'Güvenli danışan kayıtları ve notlar', '7/24 teknik destek hizmeti'].map((item) => (
-                  <li key={item} className="flex items-center space-x-3">
-                    <div className="h-6 w-6 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-                      <svg className="h-4 w-4 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6 mt-16">
-            <div className="p-6 rounded-lg bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600">
-              <div className="text-4xl font-bold text-primary-600 dark:text-primary-400 mb-2">30 Gün</div>
-              <div className="text-slate-600 dark:text-slate-300">Ücretsiz Deneme</div>
-            </div>
-            <div className="p-6 rounded-lg bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600">
-              <div className="text-4xl font-bold text-primary-600 dark:text-primary-400 mb-2">%100</div>
-              <div className="text-slate-600 dark:text-slate-300">Memnuniyet</div>
-            </div>
-          </div>
-        </div>
+      {/* Ana içerik */}
+      <div className="w-full max-w-md">
+        <div className="flex items-center justify-center space-x-3 mb-6">
+          <Link to="/" className="flex items-center space-x-3">
+            <Logo size="medium" />
+          </Link>
       </div>
 
-      {/* Sağ Panel */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-16 bg-slate-50 dark:bg-slate-900">
-        <div className="w-full max-w-md">
-          {/* Mobil Logo */}
-          <div className="flex lg:hidden items-center justify-center space-x-3 mb-12">
-            <div className="h-12 w-24 flex items-center justify-center">
-              <img src={logo2} alt="PsikoRan Logo" className="h-full w-full object-contain" />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-              PsikoRan
-            </h2>
-          </div>
-
-          <button
-            onClick={() => navigate('/login')}
-            className="group mb-8 flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors duration-200"
+        {/* Geri Dönme Butonu */}
+        <Link
+          to="/login"
+          className="group mb-6 flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors duration-200"
           >
             <ArrowLeft className="h-5 w-5 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
             <span>Giriş sayfasına dön</span>
-          </button>
+        </Link>
 
-          <div className="mb-12">
-            <h2 className="text-4xl font-bold text-slate-800 dark:text-white">
-              Hesap Oluşturun
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-8 border border-slate-200 dark:border-slate-700">
+          <div className="mb-6 text-center">
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
+              Asistan Hesabı Oluştur
             </h2>
-            <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
-              Kliniğinizi dijital dünyaya taşıyın
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+              Psikolog asistanları için hızlı ve kolay kayıt
             </p>
           </div>
 
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-8 border border-slate-200 dark:border-slate-700">
-            <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Ad Soyad
                 </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <User className="h-5 w-5 text-slate-400 group-hover:text-primary-500" />
-                  </div>
                   <input
                     type="text"
-                    name="fullName"
+                name="name"
                     required
-                    value={formData.fullName}
+                value={formData.name}
                     onChange={handleChange}
-                    className="pl-12 w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                     placeholder="Ad Soyad"
                   />
-                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  E-posta
+                E-posta adresi
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -371,17 +209,15 @@ export function Register() {
                     type={showPassword ? "text" : "password"}
                     name="password"
                     required
-                    minLength={6}
                     value={formData.password}
                     onChange={handleChange}
-                    className="pl-12 w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-                    placeholder="En az 6 karakter"
-                    autoComplete="new-password"
+                  className="pl-12 pr-12 w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
+                  placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors duration-200"
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5" />
@@ -390,11 +226,14 @@ export function Register() {
                     )}
                   </button>
                 </div>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                En az 8 karakter, bir büyük harf ve bir rakam içermelidir
+              </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Telefon (İsteğe bağlı)
+                Telefon
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -403,17 +242,18 @@ export function Register() {
                   <input
                     type="tel"
                     name="phone"
+                  required
                     value={formData.phone}
                     onChange={handleChange}
                     className="pl-12 w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-                    placeholder="(555) 123 4567"
+                  placeholder="+90 (___) ___ __ __"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Klinik Adı
+                Klinik / Ofis Adı
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -426,131 +266,13 @@ export function Register() {
                     value={formData.clinicName}
                     onChange={handleChange}
                     className="pl-12 w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-                    placeholder="Klinik Adı"
+                  placeholder="Klinik veya Ofis Adı"
                   />
                 </div>
               </div>
 
-              {/* Çalışma Saatleri */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-white">
-                    Çalışma Saatleri
-                  </h3>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={Object.values(formData.workingHours).some(h => h.isOpen)}
-                      onChange={(e) => {
-                        const newValue = e.target.checked;
-                        const updatedHours = { ...formData.workingHours };
-                        Object.keys(updatedHours).forEach(day => {
-                          updatedHours[day as keyof typeof updatedHours].isOpen = newValue;
-                        });
-                        setFormData({
-                          ...formData,
-                          workingHours: updatedHours
-                        });
-                      }}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary-600"></div>
-                    <span className="ml-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                      {Object.values(formData.workingHours).some(h => h.isOpen) ? 'Aktif' : 'Pasif'}
-                    </span>
-                  </label>
-                </div>
-
-                <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <svg className="h-5 w-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      Varsayılan çalışma saatleri (09:00-18:00) ile devam edebilir veya kendi çalışma saatlerinizi belirleyebilirsiniz. Bu ayarları daha sonra yönetim panelinden güncelleyebilirsiniz.
-                    </p>
-                  </div>
-                  
-                  {Object.values(formData.workingHours).some(h => h.isOpen) && (
-                    <div className="space-y-4">
-                      {Object.entries(formData.workingHours).map(([day, hours]) => (
-                        <div key={day} className="p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-600 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                              {day.charAt(0).toUpperCase() + day.slice(1)}
-                            </label>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={hours.isOpen}
-                                onChange={(e) => {
-                                  setFormData({
-                                    ...formData,
-                                    workingHours: {
-                                      ...formData.workingHours,
-                                      [day]: { ...hours, isOpen: e.target.checked }
-                                    }
-                                  });
-                                }}
-                                className="sr-only peer"
-                              />
-                              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary-600"></div>
-                              <span className="ml-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                                {hours.isOpen ? 'Açık' : 'Kapalı'}
-                              </span>
-                            </label>
-                          </div>
-                          {hours.isOpen && (
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                  Açılış
-                                </label>
-                                <input
-                                  type="time"
-                                  value={hours.opening}
-                                  onChange={(e) => {
-                                    setFormData({
-                                      ...formData,
-                                      workingHours: {
-                                        ...formData.workingHours,
-                                        [day]: { ...hours, opening: e.target.value }
-                                      }
-                                    });
-                                  }}
-                                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                  Kapanış
-                                </label>
-                                <input
-                                  type="time"
-                                  value={hours.closing}
-                                  onChange={(e) => {
-                                    setFormData({
-                                      ...formData,
-                                      workingHours: {
-                                        ...formData.workingHours,
-                                        [day]: { ...hours, closing: e.target.value }
-                                      }
-                                    });
-                                  }}
-                                  className="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
               {error && (
-                <div className="p-4 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800/30 flex items-center space-x-2">
+              <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800/30 flex items-center space-x-2">
                   <div className="shrink-0">
                     <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -563,25 +285,47 @@ export function Register() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 px-6 rounded-lg text-base font-semibold text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-all duration-300 flex items-center justify-center space-x-3"
+              className="w-full py-3 px-6 rounded-lg text-base font-semibold text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-all duration-300 flex items-center justify-center"
               >
                 {loading ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
                 ) : (
                   <>
-                    <UserPlus className="h-5 w-5" />
+                  <UserPlus className="h-5 w-5 mr-2" />
                     <span>Hesap Oluştur</span>
                   </>
                 )}
               </button>
             </form>
+
+          <div className="mt-6 text-center text-sm">
+            <p className="text-slate-600 dark:text-slate-400">
+              Zaten hesabınız var mı?{' '}
+              <Link
+                to="/login"
+                className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
+              >
+                Giriş yapın
+              </Link>
+            </p>
+          </div>
           </div>
 
           <div className="mt-8 text-center">
+          <div className="flex justify-center space-x-4 text-sm mb-2">
+            <Link to="/" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+              Ana Sayfa
+            </Link>
+            <Link to="/privacy" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+              Gizlilik
+            </Link>
+            <Link to="/terms" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+              Kullanım Şartları
+            </Link>
+          </div>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               &copy; {new Date().getFullYear()} PsikoRan. Tüm hakları saklıdır.
             </p>
-          </div>
         </div>
       </div>
     </div>

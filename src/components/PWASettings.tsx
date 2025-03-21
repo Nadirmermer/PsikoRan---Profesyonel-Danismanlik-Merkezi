@@ -1,16 +1,27 @@
-import { useState, useEffect } from 'react';
-import { Download, Smartphone, WifiOff, Database, RefreshCw, Bell, BellOff, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Download, CheckCircle, X, Smartphone, WifiOff, Database, RefreshCw, Bell, BellOff, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { requestNotificationPermission } from '../utils/notificationUtils';
+import { PWAInstallPrompt } from './PWAInstallPrompt';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+/**
+ * PWA ayarları bileşeni
+ * 
+ * Bu bileşen, kullanıcıya PWA kurulumu için bilgi verir ve
+ * PWA'yı cihaza yükleme seçeneği sunar
+ */
 export function PWASettings() {
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isPWA, setIsPWA] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
@@ -21,17 +32,17 @@ export function PWASettings() {
   const { user, professional, assistant } = useAuth();
 
   useEffect(() => {
-    // PWA yükleme olayını dinle
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setInstallPrompt(e as BeforeInstallPromptEvent);
+    // PWA kurulu mu kontrol et
+    const checkIfInstalled = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      setIsInstalled(isStandalone);
     };
 
-    // Kullanıcı daha önce PWA'yı yüklemiş mi kontrol et
-    const checkIfInstalled = () => {
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        setIsPWA(true);
-      }
+    // PWA kurulum olayını dinle (sonradan kullanmak üzere)
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
     };
 
     // Çevrimiçi durumunu dinle
@@ -126,24 +137,32 @@ export function PWASettings() {
     };
   }, [user]);
 
+  // PWA'yı yüklemek için kullanılacak fonksiyon
   const handleInstallClick = async () => {
-    if (!installPrompt) return;
-
-    // Yükleme isteğini göster
-    await installPrompt.prompt();
-
-    // Kullanıcının seçimini bekle
-    const choiceResult = await installPrompt.userChoice;
-    
-    if (choiceResult.outcome === 'accepted') {
-      console.log('Kullanıcı PWA yüklemeyi kabul etti');
-      setIsPWA(true);
-    } else {
-      console.log('Kullanıcı PWA yüklemeyi reddetti');
+    if (!deferredPrompt) {
+      // Eğer deferredPrompt yoksa (desteklenmeyen tarayıcı veya 
+      // kullanıcı zaten kuruluma izin verdi), manuel talimatları göster
+      setShowInstallModal(true);
+      return;
     }
 
-    // Yükleme isteğini sıfırla
-    setInstallPrompt(null);
+    // PWA kurulum promptunu göster
+    deferredPrompt.prompt();
+    
+    // Kullanıcının yanıtını bekle
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    // Sonucu işle
+    if (outcome === 'accepted') {
+      console.log('PWA kurulumu başarılı');
+      setIsInstalled(true);
+      setIsInstallable(false);
+    } else {
+      console.log('PWA kurulumu reddedildi');
+    }
+    
+    // İstem objesini temizle
+    setDeferredPrompt(null);
   };
 
   const handleUpdateServiceWorker = async () => {
@@ -265,187 +284,66 @@ export function PWASettings() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Uygulama Ayarları</h3>
-        {!isPWA && installPrompt && (
-          <button
+    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm p-4 sm:p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-medium text-slate-900 dark:text-white">Uygulama Kurulumu</h3>
+        <div className="flex items-center">
+          {isInstalled ? (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Kurulu
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+              <Smartphone className="w-3 h-3 mr-1" />
+              Kurulmadı
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="border-t border-slate-200 dark:border-slate-700 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 mt-1">
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+          PsikoRan'ı cihazınıza bir uygulama olarak kurarak daha hızlı erişim sağlayabilir ve çevrimdışı özellikleri kullanabilirsiniz.
+        </p>
+
+        <div className="rounded-lg bg-primary-50 dark:bg-primary-900/20 p-4 mb-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0 pt-0.5">
+              <Smartphone className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+            </div>
+            <div className="ml-3">
+              <h4 className="text-sm font-medium text-primary-800 dark:text-primary-300">Avantajlar</h4>
+              <ul className="mt-2 text-sm text-primary-700 dark:text-primary-400 space-y-1 list-disc pl-5">
+                <li>Cihazınızın ana ekranından doğrudan erişim</li>
+                <li>Tarayıcıdan bağımsız tam ekran deneyimi</li>
+                <li>Daha hızlı yükleme süreleri</li>
+                <li>İnternet bağlantınız olmadığında bile temel özelliklere erişim</li>
+                <li>Randevu bildirimleri alma</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {!isInstalled && (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleInstallClick}
-            className="flex items-center px-4 py-2 text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl"
+            className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none transition-colors"
+            disabled={!isInstallable && !navigator.userAgent.includes('Mobile')}
           >
-            <Download className="w-4 h-4 mr-2" />
-            Uygulamayı Yükle
-          </button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* PWA Durumu */}
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
-          <div className="flex items-center mb-2">
-            <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
-            <h4 className="font-medium text-gray-900 dark:text-white">Uygulama Durumu</h4>
-          </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {isPWA 
-              ? "Uygulama yüklü ve çalışıyor" 
-              : "Uygulama yüklü değil. Yüklemek için sağdaki butonu kullanabilirsiniz."}
-          </p>
-          {isPWA && (
-            <div className="mt-2 text-xs text-gray-500 dark:text-gray-500">
-              Uygulama ana ekranınızdan erişilebilir
-            </div>
-          )}
-        </div>
-
-        {/* Çevrimiçi Durumu */}
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
-          <div className="flex items-center mb-2">
-            <WifiOff className={`w-5 h-5 ${isOnline ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} mr-2`} />
-            <h4 className="font-medium text-gray-900 dark:text-white">Bağlantı Durumu</h4>
-          </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {isOnline 
-              ? "Çevrimiçi - İnternet bağlantısı var" 
-              : "Çevrimdışı - İnternet bağlantısı yok"}
-          </p>
-          {!isOnline && (
-            <div className="mt-2 text-xs text-gray-500 dark:text-gray-500">
-              Çevrimdışı modda sınırlı özellikler kullanılabilir
-            </div>
-          )}
-        </div>
-
-        {/* Depolama Bilgisi */}
-        {storageEstimate && (
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
-            <div className="flex items-center mb-2">
-              <Database className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
-              <h4 className="font-medium text-gray-900 dark:text-white">Depolama Kullanımı</h4>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Kullanılan:</span>
-                <span className="text-gray-900 dark:text-white">{formatBytes(storageEstimate.usage)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Toplam:</span>
-                <span className="text-gray-900 dark:text-white">{formatBytes(storageEstimate.quota)}</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 mt-2">
-                <div 
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 h-2.5 rounded-full" 
-                  style={{ width: `${(storageEstimate.usage / storageEstimate.quota) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-          </div>
+            <Download className="h-4 w-4 mr-2" />
+            {isInstallable ? "PsikoRan'ı Yükle" : "Kurulum Talimatlarını Göster"}
+          </motion.button>
         )}
 
-        {/* Service Worker Durumu */}
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center">
-              <RefreshCw className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
-              <h4 className="font-medium text-gray-900 dark:text-white">Uygulama Güncellemesi</h4>
-            </div>
-            <button 
-              onClick={handleUpdateServiceWorker}
-              className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
-            >
-              Güncelle
-            </button>
-          </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {serviceWorkerStatus === 'active' && "Uygulama güncel"}
-            {serviceWorkerStatus === 'installing' && "Güncelleme yükleniyor..."}
-            {serviceWorkerStatus === 'waiting' && "Güncelleme hazır, uygulamayı yeniden başlatın"}
-            {serviceWorkerStatus === 'none' && "Service Worker bulunamadı"}
-          </p>
-        </div>
-      </div>
-
-      {/* Bildirim Ayarları */}
-      <div className="mt-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Bildirim Ayarları</h3>
-          {notificationStatus !== 'granted' && (
-            <button
-              onClick={handleEnableNotifications}
-              className="flex items-center px-4 py-2 text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl"
-              disabled={notificationStatus === 'denied'}
-            >
-              <Bell className="w-4 h-4 mr-2" />
-              Bildirimleri Etkinleştir
-            </button>
-          )}
-        </div>
-
-        {/* Bildirim Durumu */}
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 mb-4">
-          <div className="flex items-center mb-2">
-            {notificationStatus === 'granted' ? (
-              <Bell className="w-5 h-5 text-green-600 dark:text-green-400 mr-2" />
-            ) : notificationStatus === 'denied' ? (
-              <BellOff className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
-            ) : (
-              <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2" />
-            )}
-            <h4 className="font-medium text-gray-900 dark:text-white">Bildirim Durumu</h4>
-          </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {getNotificationStatusText(notificationStatus)}
-          </p>
-          {notificationStatus === 'denied' && (
-            <div className="mt-3 text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded">
-              Bildirimleri etkinleştirmek için tarayıcı ayarlarından izin vermeniz gerekiyor. Site ayarlarına giderek bildirimlere izin verebilirsiniz.
-            </div>
-          )}
-        </div>
-
-        {/* Kayıtlı Bildirim Abonelikleri */}
-        {notificationStatus === 'granted' && (
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
-            <h4 className="font-medium text-gray-900 dark:text-white mb-3">Kayıtlı Cihazlar</h4>
-            
-            {isLoadingSubscriptions ? (
-              <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Bildirim abonelikleri yükleniyor...</p>
-              </div>
-            ) : notificationSubscriptions.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400 italic">Kayıtlı bildirim aboneliği bulunamadı.</p>
-            ) : (
-              <div className="space-y-3">
-                {notificationSubscriptions.map((subscription) => (
-                  <div key={subscription.id} className="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm">
-                    <div>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        {subscription.subscription?.endpoint ? 
-                          `${subscription.subscription.endpoint.split('/').pop().substring(0, 10)}...` : 
-                          'Abone bilgisi'
-                        }
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500">
-                        {formatCreatedAt(subscription.created_at)}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteSubscription(subscription.id)}
-                      className="text-xs px-2 py-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                    >
-                      Kaldır
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            <div className="mt-3 text-xs text-gray-500 dark:text-gray-500">
-              <p>Bu cihazlar bildirim almak için kayıtlıdır. Cihaz kaydını kaldırırsanız, bu cihazda bildirim almazsınız.</p>
-              <p className="mt-1">Not: Her tarayıcı ve cihaz için ayrı ayrı izin vermeniz gerekir.</p>
-            </div>
-          </div>
+        {/* Kurulum ipuçları modalı */}
+        {showInstallModal && (
+          <PWAInstallPrompt 
+            forcedOpen={true} 
+            onClose={() => setShowInstallModal(false)} 
+          />
         )}
       </div>
     </div>

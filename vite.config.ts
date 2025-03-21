@@ -97,6 +97,15 @@ const manifestForPlugin: Partial<VitePWAOptions> = {
   },
   workbox: {
     globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg}'],
+    skipWaiting: true,
+    clientsClaim: true,
+    cleanupOutdatedCaches: true,
+    navigateFallbackDenylist: [
+      /\.(?:license|json)$/,
+      /^manifest.*\.js?$/,
+      /^workbox-.*\.js?$/,
+      /^sw\.js?$/
+    ],
     runtimeCaching: [
       {
         urlPattern: ({ url }) => {
@@ -124,6 +133,22 @@ const manifestForPlugin: Partial<VitePWAOptions> = {
           expiration: {
             maxEntries: 100,
             maxAgeSeconds: 60 * 60 * 24 * 30 // 30 gün
+          },
+          cacheableResponse: {
+            statuses: [0, 200]
+          }
+        }
+      },
+      {
+        urlPattern: ({ url }) => {
+          return url.href.includes('images.unsplash.com');
+        },
+        handler: 'StaleWhileRevalidate',
+        options: {
+          cacheName: 'unsplash-cache',
+          expiration: {
+            maxEntries: 50,
+            maxAgeSeconds: 60 * 60 * 24 * 7 // 7 gün
           },
           cacheableResponse: {
             statuses: [0, 200]

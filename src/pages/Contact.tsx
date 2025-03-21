@@ -111,7 +111,7 @@ export function Contact() {
                     className="mt-3 inline-flex items-center text-primary-600 hover:text-primary-500 dark:text-primary-400"
                   >
                     <Mail className="h-5 w-5 mr-2" />
-                    destek@PsikoRan.com
+                    destek@psikoran.com
                   </a>
                 </div>
               </div>

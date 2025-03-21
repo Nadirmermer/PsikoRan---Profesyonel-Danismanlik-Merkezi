@@ -1,13 +1,28 @@
 import { LegalLayout } from '../components/LegalLayout';
-import { Shield, Users, Database, Lock, Eye, FileText, Scale, Bell } from 'lucide-react';
+import { Shield, Users, Database, Lock, Eye, FileText, Scale, Bell, Cookie, Info } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 
 export function KVKK() {
+  const [lastUpdated] = useState("01.12.2023");
+
+  useEffect(() => {
+    document.title = "KVKK Aydınlatma Metni - PsikoRan";
+    // Sayfa yüklenirken en üste scroll
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <LegalLayout 
       title="KVKK Aydınlatma Metni" 
       description="6698 Sayılı Kişisel Verilerin Korunması Kanunu kapsamında aydınlatma metni"
     >
-      <div className="space-y-12">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ duration: 0.5 }}
+        className="space-y-12"
+      >
         {/* Giriş */}
         <section>
           <p className="text-lg text-slate-600 dark:text-slate-400">
@@ -18,7 +33,13 @@ export function KVKK() {
         </section>
 
         {/* Veri Sorumlusu */}
-        <section className="space-y-6">
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.1 }}
+          className="space-y-6"
+        >
           <div className="flex items-start space-x-4">
             <div className="flex-shrink-0 mt-1">
               <Shield className="h-6 w-6 text-primary-600 dark:text-primary-400" />
@@ -34,10 +55,16 @@ export function KVKK() {
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Kişisel Verilerin İşlenme Amaçları */}
-        <section className="space-y-6">
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.2 }}
+          className="space-y-6"
+        >
           <div className="flex items-start space-x-4">
             <div className="flex-shrink-0 mt-1">
               <Database className="h-6 w-6 text-primary-600 dark:text-primary-400" />
@@ -54,14 +81,21 @@ export function KVKK() {
                   <li>Hizmet kalitesinin artırılması</li>
                   <li>Kullanıcı deneyiminin iyileştirilmesi</li>
                   <li>Güvenlik ve dolandırıcılığın önlenmesi</li>
+                  <li>İstatistiksel analizlerin yapılması</li>
                 </ul>
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* İşlenen Kişisel Veriler */}
-        <section className="space-y-6">
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.3 }}
+          className="space-y-6"
+        >
           <div className="flex items-start space-x-4">
             <div className="flex-shrink-0 mt-1">
               <FileText className="h-6 w-6 text-primary-600 dark:text-primary-400" />
@@ -90,10 +124,109 @@ export function KVKK() {
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
+
+        {/* Çerezler ve Kullanımı - Yeni Bölüm */}
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.4 }}
+          className="space-y-6"
+        >
+          <div className="flex items-start space-x-4">
+            <div className="flex-shrink-0 mt-1">
+              <Cookie className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Çerezler ve Kullanımı</h2>
+              <div className="prose prose-slate dark:prose-invert">
+                <p>
+                  PsikoRan platformu, hizmet kalitesini artırmak ve kullanıcı deneyimini iyileştirmek amacıyla çerezler kullanmaktadır. 
+                  Çerezler, web sitemizi ziyaret ettiğinizde cihazınıza (bilgisayar, tablet veya telefon) indirilen küçük metin dosyalarıdır.
+                </p>
+                
+                <h3 className="text-xl font-semibold mt-5 mb-3">Kullandığımız Çerez Türleri</h3>
+                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <ul className="space-y-3">
+                    <li className="flex items-start space-x-3">
+                      <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mt-1">
+                        <span className="text-primary-700 dark:text-primary-300 text-xs font-bold">1</span>
+                      </div>
+                      <div>
+                        <strong className="text-slate-900 dark:text-white">Zorunlu Çerezler:</strong> 
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                          Bu çerezler platformumuzun düzgün çalışması için gereklidir. Bunlar olmadan oturum açma, form doldurma gibi temel işlevler kullanılamaz.
+                          Sağladıkları işlevler: Oturum yönetimi, güvenlik, form bilgilerinin korunması.
+                        </p>
+                      </div>
+                    </li>
+                    <li className="flex items-start space-x-3">
+                      <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mt-1">
+                        <span className="text-primary-700 dark:text-primary-300 text-xs font-bold">2</span>
+                      </div>
+                      <div>
+                        <strong className="text-slate-900 dark:text-white">Tercih Çerezleri:</strong> 
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                          Bu çerezler, dil tercihleriniz, tema ayarlarınız (karanlık/aydınlık mod) gibi kullanıcı tercihlerinizi hatırlamak için kullanılır.
+                          Sağladıkları işlevler: Tema ve görünüm ayarları, dil tercihleri, geçmiş görüntüleme kayıtları.
+                        </p>
+                      </div>
+                    </li>
+                    <li className="flex items-start space-x-3">
+                      <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center mt-1">
+                        <span className="text-primary-700 dark:text-primary-300 text-xs font-bold">3</span>
+                      </div>
+                      <div>
+                        <strong className="text-slate-900 dark:text-white">Analitik Çerezler:</strong> 
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                          Bu çerezler, platformumuzu nasıl kullandığınız hakkında bilgi toplar ve hizmetlerimizi iyileştirmemize yardımcı olur.
+                          Toplanan veriler: Ziyaret edilen sayfalar, platformda geçirilen süre, tıklanan bağlantılar, karşılaşılan hatalar.
+                        </p>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+
+                <h3 className="text-xl font-semibold mt-5 mb-3">Çerez Kullanım Süresi</h3>
+                <p>Kullandığımız çerezler, kullanım sürelerine göre iki kategoriye ayrılır:</p>
+                <ul>
+                  <li>
+                    <strong>Oturum Çerezleri:</strong> Tarayıcınızı kapattığınızda otomatik olarak silinen geçici çerezlerdir.
+                  </li>
+                  <li>
+                    <strong>Kalıcı Çerezler:</strong> Tarayıcınızı kapattıktan sonra da cihazınızda kalan ve belirlenen süre boyunca (1 gün ila 2 yıl arası) geçerli olan çerezlerdir.
+                  </li>
+                </ul>
+
+                <h3 className="text-xl font-semibold mt-5 mb-3">Çerez Yönetimi</h3>
+                <p>
+                  Çerez tercihlerinizi istediğiniz zaman platformumuzun alt kısmında bulunan "Çerez Ayarları" bağlantısı aracılığıyla değiştirebilirsiniz. 
+                  Ayrıca, tarayıcı ayarlarınızı değiştirerek de çerezleri kontrol edebilirsiniz. Çerezleri tamamen devre dışı bırakmak platformumuzun bazı özelliklerinin düzgün çalışmamasına neden olabilir.
+                </p>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800/30 mt-4 flex items-start space-x-3">
+                  <div className="flex-shrink-0">
+                    <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Platformumuzu kullanmaya devam ederek çerez kullanımını kabul etmiş sayılırsınız. 
+                    Dilediğiniz zaman çerez tercihlerinizi güncelleyebilirsiniz.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.section>
 
         {/* Kişisel Verilerin Aktarılması */}
-        <section className="space-y-6">
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.5 }}
+          className="space-y-6"
+        >
           <div className="flex items-start space-x-4">
             <div className="flex-shrink-0 mt-1">
               <Users className="h-6 w-6 text-primary-600 dark:text-primary-400" />
@@ -111,10 +244,16 @@ export function KVKK() {
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Kişisel Verilerin Korunması */}
-        <section className="space-y-6">
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.6 }}
+          className="space-y-6"
+        >
           <div className="flex items-start space-x-4">
             <div className="flex-shrink-0 mt-1">
               <Lock className="h-6 w-6 text-primary-600 dark:text-primary-400" />
@@ -134,10 +273,16 @@ export function KVKK() {
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* İlgili Kişi Hakları */}
-        <section className="space-y-6">
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.7 }}
+          className="space-y-6"
+        >
           <div className="flex items-start space-x-4">
             <div className="flex-shrink-0 mt-1">
               <Scale className="h-6 w-6 text-primary-600 dark:text-primary-400" />
@@ -164,10 +309,16 @@ export function KVKK() {
               </div>
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Güncellemeler */}
-        <section className="space-y-6">
+        <motion.section 
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.8 }}
+          className="space-y-6"
+        >
           <div className="flex items-start space-x-4">
             <div className="flex-shrink-0 mt-1">
               <Bell className="h-6 w-6 text-primary-600 dark:text-primary-400" />
@@ -178,13 +329,13 @@ export function KVKK() {
                 <p>
                   Bu aydınlatma metni, yasal düzenlemeler ve şirket politikalarındaki değişiklikler doğrultusunda güncellenebilir. 
                   Önemli değişiklikler olması durumunda size bildirim yapılacaktır. 
-                  Son güncelleme tarihi: {new Date().toLocaleDateString('tr-TR')}
+                  Son güncelleme tarihi: {lastUpdated}
                 </p>
               </div>
             </div>
           </div>
-        </section>
-      </div>
+        </motion.section>
+      </motion.div>
     </LegalLayout>
   );
 } 

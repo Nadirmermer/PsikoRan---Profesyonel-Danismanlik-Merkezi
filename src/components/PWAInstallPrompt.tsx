@@ -1,202 +1,167 @@
-import { useState, useEffect } from 'react';
-import { X, Download, Info, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Download, Info } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+interface PWAInstallPromptProps {
+  /* Bileşen, ayarlardan da açılabilmesi için prop alabilir */
+  forcedOpen?: boolean;
+  onClose?: () => void;
 }
 
-export function PWAInstallPrompt() {
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isVisible, setIsVisible] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [platform, setPlatform] = useState<'ios' | 'android' | 'desktop' | 'unknown'>('unknown');
+/**
+ * PWA Kurulum Hatırlatıcısı
+ * 
+ * Bu bileşen tarayıcı PWA kurulumu desteklendiğinde ve henüz kurulmadığında
+ * kullanıcıya PWA'yı yükleme seçeneği sunar.
+ */
+export function PWAInstallPrompt({ forcedOpen = false, onClose }: PWAInstallPromptProps) {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isOpen, setIsOpen] = useState(forcedOpen);
+  const [isInstallable, setIsInstallable] = useState(false);
+  const [installDismissed, setInstallDismissed] = useState(() => {
+    return localStorage.getItem('pwa_install_dismissed') === 'true';
+  });
 
+  // PWA kurulum olayını dinle
   useEffect(() => {
-    // PWA yükleme olayını dinle
-    const handleBeforeInstallPrompt = (e: Event) => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      // Tarayıcının varsayılan PWA yükleme istemini engelle
       e.preventDefault();
-      setInstallPrompt(e as BeforeInstallPromptEvent);
+      // İstem olayını daha sonra kullanmak üzere sakla
+      setDeferredPrompt(e);
+      // İstem tetiklendiğinde PWA kurulabilir
+      setIsInstallable(true);
       
-      // Kullanıcının daha önce bu pop-up'ı kapatıp kapatmadığını kontrol et
-      const lastDismissed = localStorage.getItem('pwa-install-dismissed');
-      if (lastDismissed) {
-        const dismissedTime = parseInt(lastDismissed, 10);
-        const currentTime = Date.now();
-        
-        // 3 gün (259200000 ms) geçtiyse tekrar göster
-        if (currentTime - dismissedTime > 259200000) {
-          setIsVisible(true);
-        }
-      } else {
-        // İlk kez gösteriliyor
-        setIsVisible(true);
-      }
-    };
-
-    // PWA yüklendikten sonra olayı dinle
-    const handleAppInstalled = () => {
-      setIsInstalled(true);
-      setIsVisible(false);
-      
-      // Yüklendi bilgisini saklayalım
-      localStorage.setItem('pwa-installed', 'true');
-      
-      // Başarılı yükleme mesajı göster
-      showInstallationSuccessMessage();
-    };
-
-    // Kullanıcı platformunu tespit et
-    const detectPlatform = () => {
-      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-      
-      if (/iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream) {
-        setPlatform('ios');
-      } else if (/android/i.test(userAgent)) {
-        setPlatform('android');
-      } else {
-        setPlatform('desktop');
-      }
-    };
-
-    // Kullanıcı daha önce PWA'yı yüklemiş mi kontrol et
-    const checkIfInstalled = () => {
-      if (window.matchMedia('(display-mode: standalone)').matches || 
-          window.matchMedia('(display-mode: fullscreen)').matches ||
-          window.matchMedia('(display-mode: minimal-ui)').matches ||
-          localStorage.getItem('pwa-installed') === 'true') {
-        setIsInstalled(true);
+      // Kullanıcı daha önce reddetmediyse veya zorla açılmadıysa promptu göster
+      if (!installDismissed && !forcedOpen) {
+        setIsOpen(true);
       }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-    detectPlatform();
-    checkIfInstalled();
+
+    // PWA zaten kurulu mu kontrol et
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandalone) {
+      setIsInstallable(false);
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [installDismissed, forcedOpen]);
 
+  // forcedOpen prop'u değiştiğinde durumu güncelle
+  useEffect(() => {
+    setIsOpen(forcedOpen);
+  }, [forcedOpen]);
+
+  // PWA'yı yüklemek için kullanılacak fonksiyon
   const handleInstallClick = async () => {
-    if (!installPrompt) return;
+    if (!deferredPrompt) return;
 
-    // Yükleme isteğini göster
-    await installPrompt.prompt();
-
-    // Kullanıcının seçimini bekle
-    const choiceResult = await installPrompt.userChoice;
+    // PWA kurulum promptunu göster
+    deferredPrompt.prompt();
     
-    if (choiceResult.outcome === 'accepted') {
-      console.log('Kullanıcı PWA yüklemeyi kabul etti');
-      setIsInstalled(true);
-      localStorage.setItem('pwa-installed', 'true');
+    // Kullanıcının yanıtını bekle
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    // Sonucu işle
+    if (outcome === 'accepted') {
+      console.log('PWA kurulumu başarılı');
+      setIsInstallable(false);
     } else {
-      console.log('Kullanıcı PWA yüklemeyi reddetti');
-      // Reddetti ama bir süre sonra tekrar gösterilecek
-      localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+      console.log('PWA kurulumu reddedildi');
     }
-
-    // Yükleme isteğini sıfırla
-    setInstallPrompt(null);
-    setIsVisible(false);
-  };
-
-  const handleDismiss = () => {
-    setIsVisible(false);
     
-    // Kullanıcının tercihini localStorage'a kaydet
-    localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+    // İstem objesini temizle
+    setDeferredPrompt(null);
+    handleClose();
   };
 
-  // Yükleme başarılı mesajını göster
-  const showInstallationSuccessMessage = () => {
-    // Gelecekte bir başarı toast mesajı eklenebilir
-    console.log('PWA başarıyla yüklendi!');
+  // Promptu kapat
+  const handleClose = () => {
+    setIsOpen(false);
+    
+    // Zorla açılmadıysa, kullanıcının reddettiğini hatırla
+    if (!forcedOpen) {
+      localStorage.setItem('pwa_install_dismissed', 'true');
+      setInstallDismissed(true);
+    }
+    
+    // onClose callback'i varsa çağır
+    if (onClose) {
+      onClose();
+    }
   };
 
-  // Eğer kullanıcı PWA'yı zaten yüklediyse veya istek gösterilmiyorsa, hiçbir şey gösterme
-  if (isInstalled || !isVisible) {
+  // Kullanıcı PWA'yı kurmak istemiyorsa, daha sonra nasıl kurabileceklerini göster
+  const handleShowInstallInstructions = () => {
+    // İnstallInstructions komponenti açılabilir veya modal gösterilebilir
+    // Bu örnekte basit bir bilgi modalı gösteriyoruz
+    alert('PWA kurulumu için tarayıcınızın menüsünden "Ana Ekrana Ekle" veya "Uygulama olarak yükle" seçeneğini kullanabilirsiniz.');
+  };
+
+  // Eğer PWA kurulabilir değilse veya modal açık değilse render etme
+  if ((!isInstallable && !forcedOpen) || !isOpen) {
     return null;
   }
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50 animate-fade-in-up">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center">
-          <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
-            <Download className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white">PsikoRan Uygulaması</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Uygulamayı cihazınıza kurarak hızlı erişim sağlayın
-            </p>
-          </div>
-        </div>
-        <button 
-          onClick={handleDismiss}
-          className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400 rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 50 }}
+          transition={{ duration: 0.3 }}
+          className="fixed bottom-4 left-0 right-0 mx-auto max-w-md px-4 z-50"
         >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-      
-      {isExpanded && (
-        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
-            <p className="flex items-center">
-              <Info className="w-4 h-4 mr-1 inline text-blue-500" />
-              Uygulamayı yükledikten sonra internet bağlantınız olmasa bile kullanabilirsiniz.
-            </p>
-            
-            {platform === 'ios' && (
-              <div className="bg-gray-50 dark:bg-gray-700/50 p-2 rounded border border-gray-200 dark:border-gray-600">
-                <p className="flex items-center text-amber-600 dark:text-amber-400">
-                  <AlertCircle className="w-4 h-4 mr-1 inline" />
-                  iOS cihazlarda, Safari tarayıcısında "Ana Ekrana Ekle" seçeneğini kullanmalısınız.
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="p-4 flex justify-between items-start">
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                  PsikoRan'ı Yükle
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
+                  Daha hızlı erişim ve çevrimdışı çalışma özelliği için PsikoRan'ı cihazınıza yükleyin.
+                </p>
+                
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={handleInstallClick}
+                    className="px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-white rounded-lg text-sm font-medium flex items-center transition-colors"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Şimdi Yükle
+                  </button>
+                  
+                  <button
+                    onClick={handleShowInstallInstructions}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium flex items-center transition-colors"
+                  >
+                    <Info className="h-4 w-4 mr-2" />
+                    Nasıl Yüklenir?
+                  </button>
+                </div>
+                
+                <p className="text-xs text-slate-500 dark:text-slate-500 mt-4">
+                  Daha sonra kurmak isterseniz, <Link to="/settings" className="text-primary-600 dark:text-primary-400 hover:underline">Ayarlar</Link> sayfasından yükleme seçeneğine erişebilirsiniz.
                 </p>
               </div>
-            )}
-            
-            <p>Avantajlar:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Daha hızlı erişim</li>
-              <li>Çevrimdışı çalışma</li>
-              <li>Daha iyi performans</li>
-              <li>Tam ekran deneyimi</li>
-            </ul>
+              
+              <button
+                onClick={handleClose}
+                className="text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400 p-1"
+                aria-label="Kapat"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
-        </div>
+        </motion.div>
       )}
-      
-      <div className="mt-3 flex justify-between items-center">
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-        >
-          {isExpanded ? 'Daha az göster' : 'Daha fazla bilgi'}
-        </button>
-        
-        <div className="flex space-x-2">
-          <button
-            onClick={handleDismiss}
-            className="px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            Daha sonra
-          </button>
-          <button
-            onClick={handleInstallClick}
-            className="px-3 py-1.5 text-xs text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg transition-colors flex items-center"
-          >
-            <Download className="w-3.5 h-3.5 mr-1" />
-            Yükle
-          </button>
-        </div>
-      </div>
-    </div>
+    </AnimatePresence>
   );
 } 

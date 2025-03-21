@@ -15,6 +15,8 @@
     - session_notes: Seans notları
     - test_results: Test sonuçları
     - professional_working_hours: Profesyonellerin çalışma saatleri
+    - blog_posts: Blog yazıları
+    - blog_views: Blog görüntülenme istatistikleri
 
   2. Security
     - RLS politikaları her tablo için tanımlanmıştır
@@ -825,7 +827,224 @@ CREATE POLICY "Kimlik doğrulanmış kullanıcılar kendi yükledikleri dosyalar
 FOR DELETE TO authenticated
 USING (bucket_id = 'attachments');
 
--- Dosya güncelleme için kimlik doğrulanmış kullanıcı politikası
-CREATE POLICY "Kimlik doğrulanmış kullanıcılar kendi yükledikleri dosyaları güncelleyebilir" ON storage.objects
+-- Blog yazıları tablosu
+CREATE TABLE blog_posts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  slug text NOT NULL UNIQUE,
+  excerpt text NOT NULL,
+  content text NOT NULL,
+  cover_image text NOT NULL,
+  author text NOT NULL,
+  author_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  published_at timestamptz NOT NULL,
+  category text NOT NULL,
+  tags text[] NOT NULL,
+  reading_time integer NOT NULL,
+  is_published boolean DEFAULT TRUE,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Blog tablosu için Row Level Security aktif et
+ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
+
+-- Blog yazıları için RLS politikaları
+-- Herkes yayınlanmış blog yazılarını görebilir (anonim kullanıcılar dahil)
+CREATE POLICY "Tüm kullanıcılar yayınlanmış blog yazılarını görebilir" ON blog_posts
+  FOR SELECT TO public
+  USING (is_published = TRUE);
+
+-- Ruh sağlığı uzmanları kendi yazdıkları blog yazılarını görebilir
+CREATE POLICY "Profesyoneller kendi blog yazılarını görebilir" ON blog_posts
+  FOR SELECT TO authenticated
+  USING (
+    author_id = auth.uid() OR
+    author_id IN (
+      SELECT user_id FROM professionals 
+      WHERE assistant_id IN (
+        SELECT id FROM assistants WHERE user_id = auth.uid()
+      )
+    )
+  );
+
+-- Ruh sağlığı uzmanları kendi blog yazılarını ekleyebilir
+CREATE POLICY "Profesyoneller blog yazısı ekleyebilir" ON blog_posts
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    author_id = auth.uid()
+  );
+
+-- Ruh sağlığı uzmanları kendi blog yazılarını güncelleyebilir
+CREATE POLICY "Profesyoneller kendi blog yazılarını güncelleyebilir" ON blog_posts
 FOR UPDATE TO authenticated
-USING (bucket_id = 'attachments');
+  USING (
+    author_id = auth.uid()
+  );
+
+-- Ruh sağlığı uzmanları kendi blog yazılarını silebilir
+CREATE POLICY "Profesyoneller kendi blog yazılarını silebilir" ON blog_posts
+  FOR DELETE TO authenticated
+  USING (
+    author_id = auth.uid()
+  );
+
+-- Asistanlar kendi kliniğine bağlı ruh sağlığı uzmanlarının blog yazılarını yönetebilir
+CREATE POLICY "Asistanlar kliniklerindeki uzmanların blog yazılarını yönetebilir" ON blog_posts
+  FOR ALL TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM professionals p
+      JOIN assistants a ON a.id = p.assistant_id
+      WHERE a.user_id = auth.uid() 
+      AND p.user_id = blog_posts.author_id
+    )
+  );
+
+-- Blog kategorileri için yardımcı fonksiyon
+CREATE OR REPLACE FUNCTION get_blog_categories()
+RETURNS TABLE (category text) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT DISTINCT b.category
+  FROM blog_posts b
+  WHERE b.is_published = TRUE
+  ORDER BY b.category;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Blog etiketleri için yardımcı fonksiyon
+CREATE OR REPLACE FUNCTION get_blog_tags()
+RETURNS TABLE (tag text) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT DISTINCT unnest(b.tags) as tag
+  FROM blog_posts b
+  WHERE b.is_published = TRUE
+  ORDER BY tag;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Blog bucket'ı için storage
+INSERT INTO storage.buckets (id, name, public, avif_autodetection)
+VALUES ('blog', 'blog', true, false);
+
+-- Blog bucket'ı için erişim politikaları
+CREATE POLICY "Blog görselleri herkes tarafından görüntülenebilir" ON storage.objects
+  FOR SELECT
+  USING (bucket_id = 'blog');
+
+-- Blog görselleri için kimlik doğrulanmış kullanıcı erişim politikaları
+CREATE POLICY "Kimlik doğrulanmış kullanıcılar blog görsellerini yükleyebilir" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'blog');
+
+CREATE POLICY "Kimlik doğrulanmış kullanıcılar kendi yükledikleri blog görsellerini silebilir" ON storage.objects
+  FOR DELETE TO authenticated
+  USING (bucket_id = 'blog' AND auth.uid() = owner);
+
+-- Blog fonksiyonlarına erişim izinleri
+GRANT EXECUTE ON FUNCTION get_blog_categories TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION get_blog_tags TO authenticated, anon;
+
+-- Blog tablosu için gerekli izinler
+GRANT SELECT ON blog_posts TO anon;
+GRANT ALL ON blog_posts TO authenticated;
+
+-- Blog görüntülenme tablosu
+CREATE TABLE blog_views (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  blog_id uuid REFERENCES blog_posts(id) ON DELETE CASCADE,
+  viewer_ip text,
+  viewed_at timestamptz DEFAULT now()
+);
+
+-- Blog görüntülenme tablosu için Row Level Security
+ALTER TABLE blog_views ENABLE ROW LEVEL SECURITY;
+
+-- Herkes görüntüleme ekleyebilir
+CREATE POLICY "Herkes blog görüntüleme ekleyebilir" ON blog_views
+  FOR INSERT TO anon, authenticated
+  WITH CHECK (true);
+
+-- Sadece yazarlar kendi yazılarının görüntülenmelerini görebilir
+CREATE POLICY "Yazarlar görüntülenmeleri görebilir" ON blog_views
+  FOR SELECT TO authenticated
+  USING (
+    blog_id IN (
+      SELECT id FROM blog_posts WHERE author_id = auth.uid()
+    )
+    OR
+    blog_id IN (
+      SELECT id FROM blog_posts 
+      WHERE author_id IN (
+        SELECT user_id FROM professionals 
+        WHERE assistant_id IN (
+          SELECT id FROM assistants WHERE user_id = auth.uid()
+        )
+      )
+    )
+  );
+
+-- İlgili blog yazılarını getiren fonksiyon
+CREATE OR REPLACE FUNCTION get_related_blog_posts(p_post_id uuid, p_limit integer DEFAULT 3)
+RETURNS SETOF blog_posts AS $$
+DECLARE
+  v_category text;
+BEGIN
+  -- Mevcut yazının kategorisini al
+  SELECT category INTO v_category FROM blog_posts WHERE id = p_post_id;
+  
+  -- Aynı kategorideki diğer yazıları getir, ama mevcut yazıyı dahil etme
+  RETURN QUERY
+  SELECT b.* FROM blog_posts b
+  WHERE b.category = v_category
+    AND b.id != p_post_id
+    AND b.is_published = TRUE
+  ORDER BY b.published_at DESC
+  LIMIT p_limit;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Okuma süresi hesaplayan fonksiyon
+CREATE OR REPLACE FUNCTION calculate_reading_time(p_content text, p_words_per_minute integer DEFAULT 200)
+RETURNS integer AS $$
+DECLARE
+  v_word_count integer;
+  v_reading_time integer;
+BEGIN
+  -- İçerikten kelime sayısını hesapla (boşluklara göre ayırarak)
+  SELECT GREATEST(array_length(regexp_split_to_array(p_content, '\s+'), 1) - 1, 0) INTO v_word_count;
+  
+  -- Okuma süresini hesapla (dakika cinsinden, minimum 1 dakika)
+  SELECT GREATEST(CEIL(v_word_count::float / p_words_per_minute::float), 1) INTO v_reading_time;
+  
+  RETURN v_reading_time;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- En popüler blog yazılarını getiren fonksiyon
+CREATE OR REPLACE FUNCTION get_popular_blog_posts(p_limit integer DEFAULT 5)
+RETURNS SETOF blog_posts AS $$
+BEGIN
+  RETURN QUERY
+  SELECT b.* FROM blog_posts b
+  JOIN (
+    SELECT blog_id, COUNT(*) as view_count
+    FROM blog_views
+    GROUP BY blog_id
+  ) v ON b.id = v.blog_id
+  WHERE b.is_published = TRUE
+  ORDER BY v.view_count DESC, b.published_at DESC
+  LIMIT p_limit;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Yeni fonksiyonlar için erişim izinleri
+GRANT EXECUTE ON FUNCTION get_related_blog_posts TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION calculate_reading_time TO authenticated;
+GRANT EXECUTE ON FUNCTION get_popular_blog_posts TO authenticated, anon;
+
+-- Blog görüntülenme tablosu için gerekli izinler
+GRANT INSERT ON blog_views TO anon;
+GRANT ALL ON blog_views TO authenticated;

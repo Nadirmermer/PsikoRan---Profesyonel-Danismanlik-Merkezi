@@ -11,9 +11,11 @@ import {
   Sun,
   Moon,
   UserSquare2,
-  Home,
+  Home as HomeIcon,
   FileText,
   Settings,
+  Bell,
+  BookOpen,
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -67,29 +69,34 @@ export function Layout({ children }: LayoutProps) {
     }
   };
 
-  const menuItems = [
-    { icon: Home, label: 'Ana Sayfa', path: '/' },
-    ...(professional
-      ? [
-          { icon: UserSquare2, label: 'Danışanlarım', path: '/clients' },
-          { icon: Calendar, label: 'Randevularım', path: '/appointments' },
-          { icon: Settings, label: 'Ayarlar', path: '/settings' },
-        ]
-      : []),
-    ...(assistant
-      ? [
-          {
-            icon: Users,
-            label: 'Ruh sağlığı uzmanları',
-            path: '/professionals',
-          },
-          { icon: UserSquare2, label: 'Danışanlar', path: '/clients' },
-          { icon: Calendar, label: 'Randevular', path: '/appointments' },
-          { icon: CreditCard, label: 'Ödemeler', path: '/payments' },
-          { icon: Settings, label: 'Ayarlar', path: '/settings' },
-        ]
-      : []),
-  ];
+  // Rol bazlı menü öğelerini tanımla
+  let menuItems = [];
+  
+  if (professional) {
+    menuItems = [
+      { icon: HomeIcon, label: 'Ana Sayfa', path: '/dashboard' },
+      { icon: UserSquare2, label: 'Danışanlarım', path: '/clients' },
+      { icon: Calendar, label: 'Randevularım', path: '/appointments' },
+      { icon: BookOpen, label: 'Blog Yönetimi', path: '/blog-admin' },
+      { icon: Settings, label: 'Ayarlar', path: '/settings' },
+    ];
+  } else if (assistant) {
+    menuItems = [
+      { icon: HomeIcon, label: 'Ana Sayfa', path: '/dashboard' },
+      { icon: Users, label: 'Ruh sağlığı uzmanları', path: '/professionals' },
+      { icon: UserSquare2, label: 'Danışanlar', path: '/clients' },
+      { icon: Calendar, label: 'Randevular', path: '/appointments' },
+      { icon: CreditCard, label: 'Ödemeler', path: '/payments' },
+      { icon: BookOpen, label: 'Blog Yönetimi', path: '/blog-admin' },
+      { icon: Settings, label: 'Ayarlar', path: '/settings' },
+    ];
+  } else {
+    // Varsayılan menü
+    menuItems = [
+      { icon: HomeIcon, label: 'Ana Sayfa', path: '/dashboard' },
+      { icon: Settings, label: 'Ayarlar', path: '/settings' },
+    ];
+  }
 
   // Sidebar dışı tıklamaları dinle
   useEffect(() => {
