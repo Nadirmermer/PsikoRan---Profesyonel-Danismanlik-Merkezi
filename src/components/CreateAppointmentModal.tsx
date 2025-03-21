@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { format, addWeeks, addMonths, startOfToday, isBefore, isAfter, isSameDay, addMinutes } from 'date-fns';
-import { Search, Calendar, Clock, Users, Home, FileText, RefreshCw, X, ArrowRight } from 'react-feather';
+import { Search, Calendar, Clock, Users, Home, FileText, RefreshCw, X, ArrowRight, Video, Monitor, Copy, Check, ExternalLink } from 'react-feather';
 import { MantineProvider } from '@mantine/core';
 import { DatePicker } from '@mantine/dates';
 import { tr } from 'date-fns/locale';
@@ -126,6 +126,101 @@ function hasProfessionalAppointment(
   return false;
 }
 
+function SuccessModal({ 
+  isOpen, 
+  onClose, 
+  isOnlineMeeting, 
+  meetingUrl 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  isOnlineMeeting: boolean; 
+  meetingUrl: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  
+  if (!isOpen) return null;
+  
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(meetingUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[10000]">
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-md p-6 border border-gray-200/50 dark:border-gray-700/50">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+            Randevu Oluşturuldu
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors duration-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        
+        <div className="mb-5">
+          <div className="flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full mx-auto mb-4">
+            <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+          </div>
+          <p className="text-center text-gray-700 dark:text-gray-300 mb-4">
+            Randevu başarıyla oluşturuldu.
+          </p>
+        </div>
+        
+        {isOnlineMeeting && meetingUrl && (
+          <div className="mb-5 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+            <h4 className="text-md font-medium text-blue-800 dark:text-blue-300 mb-3">
+              Çevrimiçi Görüşme Bağlantısı
+            </h4>
+            
+            <div className="flex items-center mb-3">
+              <div className="flex-1 bg-white dark:bg-gray-700 rounded-lg py-2 px-3 text-sm text-gray-800 dark:text-gray-200 truncate">
+                {meetingUrl}
+              </div>
+              <button
+                onClick={copyToClipboard}
+                className="ml-2 p-2 bg-white dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200"
+                title="Bağlantıyı kopyala"
+              >
+                {copied ? (
+                  <Check className="h-5 w-5 text-green-500" />
+                ) : (
+                  <Copy className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                )}
+              </button>
+            </div>
+            
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Bu bağlantıyı danışanınızla paylaşın. Randevunuz öncesinde görüşmeye katılarak danışanınızla buluşabilirsiniz.
+            </div>
+            
+            <button
+              onClick={() => window.open(meetingUrl, '_blank')}
+              className="w-full py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span>Görüşmeyi Açın</span>
+            </button>
+          </div>
+        )}
+        
+        <div className="flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg transition-colors duration-200"
+          >
+            Kapat
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function CreateAppointmentModal({
   isOpen,
   onClose,
@@ -145,6 +240,8 @@ export function CreateAppointmentModal({
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
   const [existingAppointments, setExistingAppointments] = useState<any[]>([]);
+  const [isOnlineMeeting, setIsOnlineMeeting] = useState(false);
+  const [meetingUrl, setMeetingUrl] = useState<string>('');
   const searchRef = useRef<HTMLDivElement>(null);
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
@@ -154,6 +251,15 @@ export function CreateAppointmentModal({
     isOpen: false,
     title: '',
     message: ''
+  });
+  const [successModal, setSuccessModal] = useState<{
+    isOpen: boolean;
+    isOnlineMeeting: boolean;
+    meetingUrl: string;
+  }>({
+    isOpen: false,
+    isOnlineMeeting: false,
+    meetingUrl: ''
   });
   const [professionalWorkingHours, setProfessionalWorkingHours] = useState<ProfessionalWorkingHours | null>(null);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
@@ -646,13 +752,20 @@ export function CreateAppointmentModal({
     setFilteredClients([]);
     setAvailableTimeSlots([]);
     setAvailableRooms([]);
+    setIsOnlineMeeting(false);
+    setMeetingUrl('');
+    setSuccessModal({
+      isOpen: false,
+      isOnlineMeeting: false,
+      meetingUrl: ''
+    });
   }
 
   async function handleCreateAppointment() {
     console.log('Randevu oluşturma işlemi başlatılıyor...');
     
     // Tüm gerekli alanların doldurulduğunu kontrol et
-    if (!selectedClient || !selectedProfessionalId || !selectedDate || !selectedTime || !selectedRoom) {
+    if (!selectedClient || !selectedProfessionalId || !selectedDate || !selectedTime) {
       console.error('Eksik bilgi var:', {
         client: !!selectedClient,
         professional: !!selectedProfessionalId,
@@ -669,6 +782,16 @@ export function CreateAppointmentModal({
       return;
     }
 
+    // Fiziksel randevu için oda seçimi zorunlu
+    if (!isOnlineMeeting && !selectedRoom) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Oda Seçilmedi',
+        message: 'Yüz yüze görüşme için lütfen bir oda seçin.'
+      });
+      return;
+    }
+
     try {
       // Randevu başlangıç ve bitiş zamanlarını hesapla
       const startTime = new Date(selectedDate);
@@ -677,7 +800,11 @@ export function CreateAppointmentModal({
       const endTime = new Date(startTime.getTime() + parseInt(duration) * 60000);
       
       console.log(`Randevu zamanı: ${startTime.toLocaleString()} - ${endTime.toLocaleString()}`);
-      console.log(`Seçilen oda: ${selectedRoom.name} (ID: ${selectedRoom.id})`);
+      if (!isOnlineMeeting) {
+        console.log(`Seçilen oda: ${selectedRoom.name} (ID: ${selectedRoom.id})`);
+      } else {
+        console.log('Çevrimiçi görüşme seçildi');
+      }
       
       // Son bir kez daha müsaitlik kontrolü yap
       const availableTimes = calculateAvailableTimeSlots(selectedDate);
@@ -691,27 +818,40 @@ export function CreateAppointmentModal({
         return;
       }
       
-      const availableRooms = calculateAvailableRooms(selectedDate, selectedTime);
-      const isRoomAvailable = availableRooms.some(r => r.id === selectedRoom.id);
-      if (!isRoomAvailable) {
-        console.error(`Seçilen oda (${selectedRoom.name}) artık müsait değil!`);
-        setAlertModal({
-          isOpen: true,
-          title: 'Oda Müsait Değil',
-          message: 'Seçtiğiniz oda artık müsait değil. Lütfen başka bir oda seçin.'
-        });
-        return;
+      // Oda müsaitliği kontrolü sadece fiziksel görüşmeler için
+      if (!isOnlineMeeting) {
+        const availableRooms = calculateAvailableRooms(selectedDate, selectedTime);
+        const isRoomAvailable = availableRooms.some(r => r.id === selectedRoom.id);
+        if (!isRoomAvailable) {
+          console.error(`Seçilen oda (${selectedRoom.name}) artık müsait değil!`);
+          setAlertModal({
+            isOpen: true,
+            title: 'Oda Müsait Değil',
+            message: 'Seçtiğiniz oda artık müsait değil. Lütfen başka bir oda seçin.'
+          });
+          return;
+        }
       }
 
       // Randevu verilerini hazırla
-      const appointmentData = {
+      const appointmentData: any = {
         client_id: selectedClient.id,
         professional_id: selectedProfessionalId,
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
-        room_id: selectedRoom.id,
-        status: 'scheduled'
+        status: 'scheduled',
+        is_online: isOnlineMeeting
       };
+      
+      // Eğer çevrimiçi görüşme ise, toplantı URL'sini ekle
+      // Değilse, oda ID'sini ekle
+      if (isOnlineMeeting) {
+        const jitsiUrl = createJitsiMeetUrl(appointmentData);
+        appointmentData.meeting_url = jitsiUrl;
+        setMeetingUrl(jitsiUrl);
+      } else {
+        appointmentData.room_id = selectedRoom.id;
+      }
       
       console.log('Randevu verileri:', appointmentData);
 
@@ -739,10 +879,15 @@ export function CreateAppointmentModal({
       }
       
       // Başarılı mesajı göster
-      setAlertModal({
+      let successMessage = 'Randevu başarıyla oluşturuldu.';
+      if (isOnlineMeeting) {
+        successMessage += ' Çevrimiçi görüşme bağlantısı kayıt edildi.';
+      }
+      
+      setSuccessModal({
         isOpen: true,
-        title: 'Başarılı',
-        message: 'Randevu başarıyla oluşturuldu.'
+        isOnlineMeeting: isOnlineMeeting,
+        meetingUrl: meetingUrl
       });
 
       // Formu sıfırla ve modalı kapat
@@ -854,6 +999,63 @@ export function CreateAppointmentModal({
     }
   }
 
+  // Yardımcı fonksiyon: Güvenli toplantı ID'si oluştur
+  function generateMeetingId(appointmentInfo: any): string {
+    // Rastgele ve benzersiz bir toplantı kimliği oluştur
+    const clientId = appointmentInfo.client_id || '';
+    const professionalId = appointmentInfo.professional_id || '';
+    const timestamp = new Date().getTime();
+    const randomPart = Math.random().toString(36).substring(2, 10);
+    
+    // Daha güvenli bir hash oluştur
+    const baseString = `${clientId}-${professionalId}-${timestamp}-${randomPart}`;
+    
+    try {
+      // Base64 ile kodla ve URL için güvenli karakterlere dönüştür
+      const hash = btoa(baseString)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '')
+        .substring(0, 16); // Yeterince uzun tutarak çakışmaları önle
+        
+      return `therapy-${hash}`;
+    } catch (error) {
+      console.error('Hash oluşturma hatası:', error);
+      // Hata durumunda basit bir yedek mekanizma
+      return `therapy-${timestamp}-${randomPart}`;
+    }
+  }
+
+  // Yardımcı fonksiyon: Jitsi Meet URL oluştur
+  function createJitsiMeetUrl(appointmentInfo: any): string {
+    try {
+      const meetingId = generateMeetingId(appointmentInfo);
+      // Jitsi için standart bir URL formatı
+      const baseUrl = 'https://meet.jit.si/';
+      return `${baseUrl}${meetingId}`;
+    } catch (error) {
+      console.error('Jitsi URL oluşturma hatası:', error);
+      // Hata durumunda basit bir yedek mekanizma ile yine de bir URL oluştur
+      const fallbackId = `therapy-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      return `https://meet.jit.si/${fallbackId}`;
+    }
+  }
+
+  // Yardımcı fonksiyon: Jitsi toplantı odasını adından ayıkla
+  function extractRoomNameFromUrl(url: string): string {
+    try {
+      // URL'nin temel kısmını kaldır ve oda adını al
+      const baseUrl = 'https://meet.jit.si/';
+      if (url.startsWith(baseUrl)) {
+        return url.substring(baseUrl.length);
+      }
+      return url.split('/').pop() || '';
+    } catch (error) {
+      console.error('Oda adı çıkarma hatası:', error);
+      return '';
+    }
+  }
+
   if (!isOpen) return null;
 
   return (
@@ -863,6 +1065,12 @@ export function CreateAppointmentModal({
         onClose={() => setAlertModal(prev => ({ ...prev, isOpen: false }))}
         title={alertModal.title}
         message={alertModal.message}
+      />
+      <SuccessModal
+        isOpen={successModal.isOpen}
+        onClose={() => setSuccessModal(prev => ({ ...prev, isOpen: false }))}
+        isOnlineMeeting={successModal.isOnlineMeeting}
+        meetingUrl={successModal.meetingUrl}
       />
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[9990]">
         <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-6xl p-6 space-y-6 max-h-[90vh] overflow-y-auto border border-gray-200/50 dark:border-gray-700/50">
@@ -1023,6 +1231,51 @@ export function CreateAppointmentModal({
                   </MantineProvider>
                 </div>
               </div>
+
+              {/* Görüşme Tipi Seçimi */}
+              {selectedDate && (
+                <div>
+                  <div className="flex items-center space-x-2 mb-3">
+                    <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                      <Monitor className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <label className="text-lg font-medium text-gray-900 dark:text-white">
+                      Görüşme Tipi
+                    </label>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                    <div className="flex gap-4">
+                      <button
+                        onClick={() => setIsOnlineMeeting(false)}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg 
+                          ${!isOnlineMeeting 
+                            ? 'bg-blue-500 text-white' 
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                          } transition-colors duration-200`}
+                      >
+                        <Home className="h-5 w-5" />
+                        <span>Yüz Yüze</span>
+                      </button>
+                      <button
+                        onClick={() => setIsOnlineMeeting(true)}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg 
+                          ${isOnlineMeeting 
+                            ? 'bg-blue-500 text-white' 
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                          } transition-colors duration-200`}
+                      >
+                        <Video className="h-5 w-5" />
+                        <span>Çevrimiçi</span>
+                      </button>
+                    </div>
+                    {isOnlineMeeting && (
+                      <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                        Çevrimiçi görüşme için Jitsi Meet platformu kullanılacaktır. Görüşme bağlantısı randevu oluşturulduktan sonra danışana otomatik olarak iletilecektir.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Sağ Taraf - Saat ve Oda Seçimi */}
@@ -1072,7 +1325,7 @@ export function CreateAppointmentModal({
               )}
 
               {/* Oda Seçimi */}
-              {selectedTime && (
+              {selectedTime && !isOnlineMeeting && (
                 <div>
                   <div className="flex items-center space-x-2 mb-3">
                     <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
@@ -1114,6 +1367,28 @@ export function CreateAppointmentModal({
                   </div>
                 </div>
               )}
+
+              {/* Çevrimiçi Görüşme Bilgileri */}
+              {selectedTime && isOnlineMeeting && (
+                <div>
+                  <div className="flex items-center space-x-2 mb-3">
+                    <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                      <Video className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <label className="text-lg font-medium text-gray-900 dark:text-white">
+                      Çevrimiçi Görüşme
+                    </label>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                    <p className="text-gray-600 dark:text-gray-300 mb-2">
+                      Çevrimiçi görüşme için güvenli bir Jitsi Meet bağlantısı oluşturulacaktır.
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Randevu oluşturulduğunda, görüşme bağlantısı otomatik olarak oluşturulacak ve randevu detaylarında görüntülenebilecektir.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1127,7 +1402,9 @@ export function CreateAppointmentModal({
             </button>
             <button
               onClick={handleCreateAppointment}
-              disabled={!selectedClient || !selectedDate || !selectedTime || !selectedRoom || loading}
+              disabled={!selectedClient || !selectedDate || !selectedTime || 
+                       (!isOnlineMeeting && !selectedRoom) || 
+                       loading}
               className="px-6 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2"
             >
               {loading ? (

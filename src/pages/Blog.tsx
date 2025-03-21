@@ -1,348 +1,409 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Calendar, User, ChevronRight, Search, Tag } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Calendar, ChevronRight, Filter, Search, Tag, User, Moon, Sun, X } from 'lucide-react';
 import { motion } from 'framer-motion';
-import logo2 from '../assets/logo/logo_2.png';
+import { BlogPost, fetchBlogPosts, formatBlogDate, slugifyName, generateBlogListJsonLd } from '../lib/blog';
+import { Helmet } from 'react-helmet';
 
-interface BlogPost {
-  id: string;
-  title: string;
-  excerpt: string;
-  content: string;
-  cover_image: string;
-  author: string;
-  published_at: string;
-  category: string;
-  tags: string[];
-  slug: string;
-  reading_time: number;
-}
+const categoryColors: Record<string, string> = {
+  'Psikoloji': 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
+  'Terapiler': 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+  'Kişisel Gelişim': 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  'Aile İlişkileri': 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+  'İş Hayatı': 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+  'Danışmanlık': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300',
+};
 
-// Örnek blog yazıları
-const sampleBlogPosts: BlogPost[] = [
-  {
-    id: '1',
-    title: 'Psikolojik Danışmanlık Sürecinde Dikkat Edilmesi Gerekenler',
-    excerpt: 'Psikolojik danışmanlık sürecine başlarken hem danışanların hem de uzmanların dikkat etmesi gereken önemli noktalar vardır.',
-    content: '',
-    cover_image: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80',
-    author: 'Dr. Ayşe Yılmaz',
-    published_at: '2023-05-15',
-    category: 'Danışmanlık',
-    tags: ['Psikoloji', 'Danışmanlık', 'Terapi'],
-    slug: 'psikolojik-danismanlik-surecinde-dikkat-edilmesi-gerekenler',
-    reading_time: 5
-  },
-  {
-    id: '2',
-    title: 'Online Terapi Seanslarının Avantajları',
-    excerpt: 'Dijital çağda online terapi seansları giderek yaygınlaşıyor. Peki online terapinin sağladığı avantajlar nelerdir?',
-    content: '',
-    cover_image: 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80',
-    author: 'Uzm. Psikolog Mehmet Kaya',
-    published_at: '2023-06-10',
-    category: 'Online Terapi',
-    tags: ['Online Terapi', 'Dijital Danışmanlık', 'Uzaktan Erişim'],
-    slug: 'online-terapi-seanslarinin-avantajlari',
-    reading_time: 7
-  },
-  {
-    id: '3',
-    title: 'Randevu Yönetiminde Verimlilik Nasıl Sağlanır?',
-    excerpt: 'Psikolojik danışmanlık ve terapi hizmetlerinde etkili randevu yönetiminin ipuçları',
-    content: '',
-    cover_image: 'https://images.unsplash.com/photo-1606202762503-9691ea9a54a9?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1746&q=80',
-    author: 'Klinik Psikolog Zeynep Aksoy',
-    published_at: '2023-07-25',
-    category: 'İş Yönetimi',
-    tags: ['Randevu Yönetimi', 'Verimlilik', 'Zaman Yönetimi'],
-    slug: 'randevu-yonetiminde-verimlilik-nasil-saglanir',
-    reading_time: 4
-  },
-  {
-    id: '4',
-    title: 'Psikologlar İçin Dijital Pazarlama Stratejileri',
-    excerpt: 'Dijital dünyada psikolojik danışmanlık hizmetlerinizi nasıl daha fazla kişiye ulaştırabilirsiniz?',
-    content: '',
-    cover_image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1715&q=80',
-    author: 'Pazarlama Uzmanı Eren Demir',
-    published_at: '2023-08-05',
-    category: 'Pazarlama',
-    tags: ['Dijital Pazarlama', 'Sosyal Medya', 'İçerik Stratejisi'],
-    slug: 'psikologlar-icin-dijital-pazarlama-stratejileri',
-    reading_time: 6
-  },
-  {
-    id: '5',
-    title: 'Danışanlarla Etkili İletişim Kurma Teknikleri',
-    excerpt: 'Psikolojik danışmanlık sürecinde danışanlarla etkili iletişim kurmanın yolları ve önemi',
-    content: '',
-    cover_image: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80',
-    author: 'Dr. Ayşe Yılmaz',
-    published_at: '2023-09-18',
-    category: 'İletişim',
-    tags: ['İletişim', 'Danışmanlık Teknikleri', 'Terapi'],
-    slug: 'danisanlarla-etkili-iletisim-kurma-teknikleri',
-    reading_time: 5
-  },
-  {
-    id: '6',
-    title: 'PsikoRan ile Klinik Yönetimini Dijitalleştirin',
-    excerpt: 'PsikoRan platformunun sunduğu özellikler ile klinik yönetimini nasıl daha verimli hale getirebilirsiniz?',
-    content: '',
-    cover_image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80',
-    author: 'PsikoRan Ekibi',
-    published_at: '2023-10-30',
-    category: 'Dijital Dönüşüm',
-    tags: ['PsikoRan', 'Dijitalleşme', 'Klinik Yönetimi'],
-    slug: 'psikoran-ile-klinik-yonetimini-dijitallestirin',
-    reading_time: 5
-  },
-];
+const getCategoryColor = (category: string): string => {
+  return categoryColors[category] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+};
 
-// Blog sayfası bileşeni
 export function Blog() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    // localStorage veya sistem tercihine göre başlangıç değeri
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('theme');
+      return savedTheme === 'dark' || 
+        (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    return false;
+  });
 
-  // Sayfa yüklendiğinde blog yazılarını getir
+  // Tema değişikliği işlevi
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    
+    // HTML'de tema sınıfını güncelle
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
+  // URL parametrelerinden kategori ve etiket filtreleme
   useEffect(() => {
-    async function fetchBlogPosts() {
-      try {
-        // Veri tabanından blog yazılarını çek
-        const { data, error } = await supabase
-          .from('blog_posts')
-          .select('*')
-          .eq('is_published', true)
-          .order('published_at', { ascending: false });
+    const params = new URLSearchParams(location.search);
+    const categoryParam = params.get('category');
+    const tagParam = params.get('tag');
+    
+    if (categoryParam) {
+      setActiveFilter(`category:${categoryParam}`);
+    } else if (tagParam) {
+      setActiveFilter(`tag:${tagParam}`);
+    } else {
+      setActiveFilter(null);
+    }
+  }, [location.search]);
 
-        if (error) throw error;
+  useEffect(() => {
+    async function loadBlogPosts() {
+      try {
+        setLoading(true);
+        const fetchedPosts = await fetchBlogPosts();
         
-        if (data && data.length > 0) {
-          setPosts(data as BlogPost[]);
-          setFilteredPosts(data as BlogPost[]);
-          
-          // Kategorileri al
-          const uniqueCategories = Array.from(
-            new Set(data.map(post => post.category))
-          );
-          setCategories(uniqueCategories);
-        } else {
-          // Eğer veri yoksa, örnek verilerle çalış
-          setPosts(sampleBlogPosts);
-          setFilteredPosts(sampleBlogPosts);
-          
-          // Kategorileri al
-          const uniqueCategories = Array.from(
-            new Set(sampleBlogPosts.map(post => post.category))
-          );
-          setCategories(uniqueCategories);
-        }
+        // Sadece yayımlanmış gönderileri göster
+        const publishedPosts = fetchedPosts.filter(post => post.is_published);
+        setPosts(publishedPosts);
         
-        // Sayfa başlığını güncelle
-        document.title = "Blog - PsikoRan";
-      } catch (error) {
-        console.error('Blog yazıları getirilirken hata oluştu:', error);
-        
-        // Hata durumunda örnek verilerle devam et
-        setPosts(sampleBlogPosts);
-        setFilteredPosts(sampleBlogPosts);
-        
-        // Kategorileri al
-        const uniqueCategories = Array.from(
-          new Set(sampleBlogPosts.map(post => post.category))
-        );
-        setCategories(uniqueCategories);
+        // Başlangıçta filtrelenmiş gönderiler, tüm gönderiler
+        setFilteredPosts(publishedPosts);
+
+        // Sayfa başlığı ayarla
+        document.title = 'PsikoRan Blog | Psikoloji ve Danışmanlık Makaleleri';
+      } catch (err) {
+        console.error('Blog posts yüklenirken hata oluştu:', err);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchBlogPosts();
+    loadBlogPosts();
   }, []);
 
-  // Arama ve kategori filtreleme
+  // Gönderi arama ve filtreleme
   useEffect(() => {
-    let result = posts;
+    let result = [...posts];
     
-    // Arama terimini uygula
+    // Aktif filtreye göre filtrele
+    if (activeFilter) {
+      const [type, value] = activeFilter.split(':');
+      if (type === 'category') {
+        result = result.filter(post => post.category === value);
+      } else if (type === 'tag') {
+        result = result.filter(post => post.tags && post.tags.includes(value));
+      }
+    }
+    
+    // Arama terimine göre filtrele
     if (searchTerm) {
-      result = result.filter(post => 
-        post.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        post.excerpt.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        post.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      const term = searchTerm.toLowerCase();
+      result = result.filter(
+        post => 
+          post.title.toLowerCase().includes(term) || 
+          post.excerpt.toLowerCase().includes(term) ||
+          post.content.toLowerCase().includes(term) ||
+          post.category.toLowerCase().includes(term) ||
+          (post.tags && post.tags.some(tag => tag.toLowerCase().includes(term)))
       );
     }
     
-    // Kategori filtresini uygula
-    if (selectedCategory) {
-      result = result.filter(post => post.category === selectedCategory);
-    }
-    
     setFilteredPosts(result);
-  }, [searchTerm, selectedCategory, posts]);
+  }, [posts, searchTerm, activeFilter]);
 
-  // Tarih formatını düzenle
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    return new Date(dateString).toLocaleDateString('tr-TR', options);
+  // Arama işlevi
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
   };
 
-  // Kategoriye göre filtreleme
-  const handleCategoryClick = (category: string) => {
-    setSelectedCategory(category === selectedCategory ? null : category);
+  // Arama sıfırlama
+  const clearSearch = () => {
+    setSearchTerm('');
   };
+
+  // Filtre sıfırlama
+  const clearFilter = () => {
+    setActiveFilter(null);
+    navigate('/blog');
+  };
+
+  // Benzersiz kategorileri topla
+  const categories = [...new Set(posts.map(post => post.category))];
+
+  // Tüm etiketleri topla ve benzersiz hale getir
+  const allTags = posts.reduce((acc: string[], post) => {
+    if (post.tags) {
+      return [...acc, ...post.tags];
+    }
+    return acc;
+  }, []);
+  const tags = [...new Set(allTags)];
+
+  // Blog listesi için yapılandırılmış veri oluştur
+  const jsonLdScript = generateBlogListJsonLd(filteredPosts);
+  const structuredData = { __html: jsonLdScript };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-100 to-white dark:from-slate-900 dark:to-slate-800 transition-colors duration-300">
-      {/* Üst başlık */}
-      <div className="bg-primary-600 dark:bg-primary-800">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 text-center">
-          <motion.h1 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-3xl sm:text-4xl font-bold text-white"
-          >
-            PsikoRan Blog
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mt-2 text-lg text-primary-100"
-          >
-            Psikolojik danışmanlık ve klinik yönetimi hakkında faydalı bilgiler
-          </motion.p>
+    <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-300">
+      <Helmet>
+        <title>PsikoRan Blog | Psikolojik Danışmanlık Makaleleri ve Rehberler</title>
+        <meta name="description" content="Psikoloji, terapi, danışmanlık ve kişisel gelişim hakkında uzman makaleler, rehberler ve öneriler. Profesyonel danışmanlık hizmetleri için en güncel bilgiler." />
+        <meta name="keywords" content="psikoloji, terapi, danışmanlık, kişisel gelişim, ruh sağlığı, çevrimiçi terapi, aile ilişkileri, iş hayatı, randevu sistemi" />
+        <link rel="canonical" href="https://psikoran.com/blog" />
+        <meta property="og:title" content="PsikoRan Blog | Psikolojik Danışmanlık İçerikleri" />
+        <meta property="og:description" content="Psikoloji, terapi ve danışmanlık konularında profesyonel içerikler. Kişisel gelişiminize katkı sağlayacak uzman makaleler." />
+        <meta property="og:url" content="https://psikoran.com/blog" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="PsikoRan" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="PsikoRan Blog | Psikolojik Danışmanlık İçerikleri" />
+        <meta name="twitter:description" content="Psikoloji, terapi ve danışmanlık konularında profesyonel içerikler. Kişisel gelişiminize katkı sağlayacak uzman makaleler." />
+        <meta name="robots" content="index, follow" />
+        <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+        <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+        <div dangerouslySetInnerHTML={structuredData} />
+      </Helmet>
+
+      {/* Sticky Header - Daha küçük boyut */}
+      <div className="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm">
+        <div className="max-w-7xl mx-auto py-3 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">PsikoRan Blog</h1>
+            
+            <div className="flex items-center space-x-3">
+              {/* Dark/Light Tema Butonu */}
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors duration-200"
+                aria-label={darkMode ? 'Aydınlık temaya geç' : 'Karanlık temaya geç'}
+              >
+                {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </button>
+              
+              <Link
+                to="/"
+                className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 rounded-md text-white text-sm sm:text-base transition-colors hidden sm:inline-block"
+              >
+                Ana Sayfaya Dön
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Ana içerik */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Arama ve filtreler */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 space-y-4 sm:space-y-0">
-          {/* Arama kutusu */}
-          <div className="relative w-full sm:w-64 md:w-72">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-slate-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Yazı, yazar veya etiket ara..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
-            />
-          </div>
-
-          {/* Kategori filtreleri */}
-          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => handleCategoryClick(category)}
-                className={`px-3 py-1 text-sm rounded-full transition-colors ${
-                  selectedCategory === category
-                    ? 'bg-primary-600 dark:bg-primary-500 text-white'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-            {selectedCategory && (
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className="px-3 py-1 text-sm bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600"
-              >
-                Tümünü Göster
-              </button>
-            )}
+      {/* Hero Banner - Daha kısa ve öz */}
+      <div className="bg-gradient-to-b from-primary-600 to-indigo-700 dark:from-primary-800 dark:to-indigo-900">
+        <div className="max-w-7xl mx-auto py-10 sm:py-12 px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white mb-4 md:mb-6"
+            >
+              Profesyonel Danışmanlık Blogumuz
+            </motion.h2>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="max-w-3xl mx-auto text-base sm:text-lg text-indigo-100 mb-6 md:mb-8"
+            >
+              Psikoloji, terapi yöntemleri ve kişisel gelişim hakkında uzman makaleler, rehberler ve danışmanlık ipuçları
+            </motion.p>
+            
+            {/* Arama Kutusu */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="max-w-2xl mx-auto relative mb-2"
+            >
+              <div className="flex items-center bg-white/10 backdrop-blur-sm rounded-lg border border-white/30 overflow-hidden shadow-xl">
+                <div className="flex-shrink-0 pl-4">
+                  <Search className="h-5 w-5 text-white/70" />
+                </div>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={handleSearch}
+                  placeholder="Makale ara..."
+                  className="w-full py-3 px-3 bg-transparent text-white placeholder-white/60 focus:outline-none"
+                />
+                {searchTerm && (
+                  <button 
+                    onClick={clearSearch}
+                    className="flex-shrink-0 pr-4"
+                  >
+                    <X className="h-5 w-5 text-white/70 hover:text-white" />
+                  </button>
+                )}
+              </div>
+            </motion.div>
           </div>
         </div>
+      </div>
 
+      {/* Ana İçerik */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Filtreler */}
+        {posts.length > 0 && (
+          <div className="mb-8">
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-md font-medium">
+                <Filter className="h-4 w-4 mr-1.5" />
+                <span>Kategoriler:</span>
+              </div>
+              
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => navigate(`/blog?category=${category}`)}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    activeFilter === `category:${category}` 
+                      ? getCategoryColor(category)
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+            
+            {activeFilter && (
+              <div className="flex items-center mb-6">
+                <span className="text-slate-500 dark:text-slate-400 mr-2">Aktif filtre:</span>
+                <div className="bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 rounded-full px-3 py-1 text-sm font-medium flex items-center">
+                  {activeFilter.startsWith('category:') ? 'Kategori: ' : 'Etiket: '}
+                  {activeFilter.split(':')[1]}
+                  <button
+                    onClick={clearFilter}
+                    className="ml-1.5 p-0.5 text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Blog Gönderileri */}
         {loading ? (
-          // Yükleniyor durumu
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
           </div>
         ) : filteredPosts.length === 0 ? (
-          // Sonuç bulunamadı
           <div className="text-center py-20">
-            <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-xl font-medium text-slate-900 dark:text-white mb-2">Sonuç Bulunamadı</h3>
-            <p className="text-slate-600 dark:text-slate-400">
-              Arama kriterlerinize uygun blog yazısı bulunamadı. Lütfen farklı bir arama terimi deneyin.
+            <div className="text-6xl mb-4">😕</div>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+              {searchTerm ? 'Arama sonucu bulunamadı' : 'Henüz blog yazısı bulunmuyor'}
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-6">
+              {searchTerm 
+                ? 'Farklı bir arama terimi deneyin veya filtreleri temizleyin.'
+                : 'Daha sonra tekrar kontrol edin, yakında içerikler eklenecek.'}
             </p>
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedCategory(null);
-              }}
-              className="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-white rounded-lg"
-            >
-              Tüm Yazıları Göster
-            </button>
+            {searchTerm && (
+              <button
+                onClick={clearSearch}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                Aramayı Temizle
+              </button>
+            )}
           </div>
         ) : (
-          // Blog yazıları listesi
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             {filteredPosts.map((post) => (
               <motion.div
                 key={post.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-lg"
+                className="bg-white dark:bg-slate-800/60 rounded-xl overflow-hidden shadow-lg hover:shadow-xl dark:shadow-slate-900/40 transition-all duration-300 hover:translate-y-[-4px] border border-slate-100 dark:border-slate-700/60"
               >
-                {/* Blog yazısı görseli */}
-                <div className="h-48 overflow-hidden">
-                  <img
-                    src={post.cover_image}
-                    alt={post.title}
-                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                  />
-                </div>
-                
-                {/* Blog yazısı içeriği */}
-                <div className="p-6">
-                  <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-2">
-                    <Tag className="h-4 w-4 mr-1" />
-                    <span>{post.category}</span>
-                    <span className="mx-2">•</span>
-                    <Calendar className="h-4 w-4 mr-1" />
-                    <span>{formatDate(post.published_at)}</span>
-                  </div>
-                  
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2 line-clamp-2">
-                    {post.title}
-                  </h2>
-                  
-                  <p className="text-slate-600 dark:text-slate-400 mb-4 line-clamp-3">
-                    {post.excerpt}
-                  </p>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-sm">
-                      <User className="h-4 w-4 mr-1 text-slate-500 dark:text-slate-400" />
-                      <span className="text-slate-600 dark:text-slate-400">{post.author}</span>
+                <Link to={`/blog/${post.slug}`} className="block">
+                  <div className="relative h-48 overflow-hidden">
+                    <img
+                      src={post.cover_image}
+                      alt={post.title}
+                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                      loading="lazy"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://via.placeholder.com/800x500/4F46E5/FFFFFF?text=PsikoRan+Blog';
+                        target.onerror = null;
+                      }}
+                    />
+                    <div className="absolute top-3 left-3">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getCategoryColor(post.category)}`}>
+                        {post.category}
+                      </span>
                     </div>
-                    
+                  </div>
+                </Link>
+
+                <div className="p-5">
+                  <Link to={`/blog/${post.slug}`} className="block group">
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                      {post.title}
+                    </h3>
+                    <p className="text-slate-600 dark:text-slate-300 mb-4 line-clamp-2">{post.excerpt}</p>
+                  </Link>
+
+                  <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-3">
+                    <span className="flex items-center mr-4">
+                      <Calendar className="h-3.5 w-3.5 mr-1" />
+                      {formatBlogDate(post.published_at)}
+                    </span>
+                    <span className="flex items-center">
+                      <User className="h-3.5 w-3.5 mr-1" />
+                      <Link 
+                        to={`/professional/${slugifyName(post.author)}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                      >
+                        {post.author}
+                      </Link>
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="flex flex-wrap gap-1">
+                      {post.tags && post.tags.slice(0, 2).map(tag => (
+                        <button
+                          key={tag}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate(`/blog?tag=${tag}`);
+                          }}
+                          className="px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-md text-xs text-slate-700 dark:text-slate-300 transition-colors"
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                      {post.tags && post.tags.length > 2 && (
+                        <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-md text-xs text-slate-600 dark:text-slate-400">
+                          +{post.tags.length - 2}
+                        </span>
+                      )}
+                    </div>
                     <Link
                       to={`/blog/${post.slug}`}
-                      className="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium"
+                      className="inline-flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium transition-colors"
                     >
-                      <span>Devamını Oku</span>
+                      Devamını Oku
                       <ChevronRight className="h-4 w-4 ml-1" />
                     </Link>
                   </div>
@@ -351,28 +412,6 @@ export function Blog() {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Alt bilgi */}
-      <div className="bg-slate-50 dark:bg-slate-800/50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-              PsikoRan'ı Keşfedin
-            </h2>
-            <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-8">
-              Profesyonel danışmanlık süreçlerinizi dijitalleştiren PsikoRan ile randevularınızı yönetin, 
-              danışan takibini kolaylaştırın ve işinizi büyütün.
-            </p>
-            <Link
-              to="/register"
-              className="px-6 py-3 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-white font-medium rounded-lg inline-flex items-center transition-colors"
-            >
-              <span>Ücretsiz Deneyin</span>
-              <ChevronRight className="h-5 w-5 ml-1" />
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );

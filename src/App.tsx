@@ -5,8 +5,10 @@ import {
   Login, Register, Dashboard, CreateAssistant, Professionals, Clients,
   ClientDetails, Appointments, Payments, Settings, ForgotPassword,
   ResetPassword, Privacy, Terms, KVKK, Contact, Help, Test, TestCompleted, Home,
-  Blog, BlogDetail, BlogAdmin
+  Blog, BlogAdmin, ProfessionalProfile
 } from './pages';
+import { BlogPost } from './pages/BlogPost';
+import AppointmentDetails from './components/AppointmentDetails';
 import { AuthGuard } from './components/AuthGuard';
 import { Layout } from './components/Layout';
 import { ThemeProvider } from './lib/theme';
@@ -100,7 +102,8 @@ function AnimatedRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/" element={<Home />} />
         <Route path="/blog" element={<Blog />} />
-        <Route path="/blog/:slug" element={<BlogDetail />} />
+        <Route path="/blog/:slug" element={<BlogPost />} />
+        <Route path="/professional/:slug" element={<ProfessionalProfile />} />
         <Route
           path="/dashboard"
           element={
@@ -147,6 +150,16 @@ function AnimatedRoutes() {
             <AuthGuard>
               <Layout>
                 <Appointments />
+              </Layout>
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/appointment/:id"
+          element={
+            <AuthGuard>
+              <Layout>
+                <AppointmentDetails />
               </Layout>
             </AuthGuard>
           }
@@ -205,6 +218,20 @@ export function App() {
       try {
         // Tema başlatma
         await initializeTheme();
+
+        // Google aramalarından gelen ziyaretçileri ana sayfaya yönlendir
+        const isFromExternalSource = document.referrer && 
+          (document.referrer.includes('google.com') || 
+           document.referrer.includes('google.com.tr') ||
+           document.referrer.includes('bing.com') ||
+           document.referrer.includes('yandex.com') ||
+           !document.referrer.includes(window.location.hostname));
+        
+        const isLoginPage = window.location.pathname === '/login';
+        
+        if (isLoginPage && isFromExternalSource) {
+          window.history.replaceState({}, '', '/');
+        }
       } catch (error) {
         console.error('Tema başlatılamadı:', error);
       } finally {

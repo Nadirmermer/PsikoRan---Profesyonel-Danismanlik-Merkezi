@@ -18,5 +18,6 @@ export { Test } from './Test';
 export { TestCompleted } from './TestCompleted';
 export { Home } from './Home';
 export { Blog } from './Blog';
-export { BlogDetail } from './BlogDetail';
+export { BlogPost } from './BlogPost';
 export { BlogAdmin } from './BlogAdmin';
+export { ProfessionalProfile } from './ProfessionalProfile';

@@ -123,6 +123,8 @@ CREATE TABLE appointments (
   end_time timestamptz NOT NULL,
   status text NOT NULL DEFAULT 'scheduled',
   notes text,
+  is_online boolean DEFAULT false,
+  meeting_url text,
   created_at timestamptz DEFAULT now(),
   CONSTRAINT valid_status CHECK (status IN ('scheduled', 'completed', 'cancelled')),
   CONSTRAINT valid_time_range CHECK (end_time > start_time)

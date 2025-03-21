@@ -7,6 +7,9 @@ export interface Professional {
   email?: string;
   phone?: string;
   assistant_id: string;
+  specialization: string | null;
+  status: string;
+  profile_image_url: string | null;
 }
 
 export interface Assistant {
@@ -17,6 +20,9 @@ export interface Assistant {
   email?: string;
   clinic_name?: string;
   created_at: string;
+  address: string | null;
+  status: string;
+  profile_image_url: string | null;
 }
 
 export interface Client {
@@ -32,6 +38,10 @@ export interface Client {
   clinic_share_percentage: number;
   professional_id: string;
   professional?: Professional;
+  date_of_birth: string | null;
+  gender: string | null;
+  address: string | null;
+  status: string;
 }
 
 export interface Room {
@@ -56,6 +66,8 @@ export interface Appointment {
   client?: Client;
   professional?: Professional;
   room?: Room;
+  is_online?: boolean;
+  meeting_url?: string;
 }
 
 export interface Payment {
@@ -78,4 +90,5 @@ export interface Payment {
       full_name: string;
     };
   };
+  notes: string | null;
 }

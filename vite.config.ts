@@ -1,207 +1,190 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { VitePWA, VitePWAOptions } from 'vite-plugin-pwa';
+import { VitePWA } from 'vite-plugin-pwa';
+import { resolve } from 'path';
+import fs from 'fs';
+import { execSync } from 'child_process';
 
-const manifestForPlugin: Partial<VitePWAOptions> = {
-  registerType: 'prompt',
-  includeAssets: [
-    'favicon.ico', 
-    'assets/pwa/*.png', 
-    'assets/favicons/*.png'
-  ],
-  manifest: {
-    name: 'PsikoRan - Profesyonel Danışmanlık Merkezi',
-    short_name: 'PsikoRan',
-    description: 'Psikologlar ve danışanlar için profesyonel danışmanlık yönetim sistemi. Randevularınızı kolayca yönetin, dosyalarınızı organize edin.',
-    icons: [
-      {
-        src: 'assets/pwa/logo_2-192x192.png',
-        sizes: '192x192',
-        type: 'image/png',
-        purpose: 'any'
-      },
-      {
-        src: 'assets/pwa/logo_2-maskable-192x192.png',
-        sizes: '192x192',
-        type: 'image/png',
-        purpose: 'maskable'
-      },
-      {
-        src: 'assets/pwa/logo_2-512x512.png',
-        sizes: '512x512',
-        type: 'image/png',
-        purpose: 'any'
-      },
-      {
-        src: 'assets/pwa/logo_2-maskable-512x512.png',
-        sizes: '512x512',
-        type: 'image/png',
-        purpose: 'maskable'
-      },
-      {
-        src: 'favicon.ico',
-        sizes: '64x64 32x32 24x24 16x16',
-        type: 'image/x-icon'
-      },
-      {
-        src: 'assets/favicons/favicon-16x16.png',
-        type: 'image/png',
-        sizes: '16x16'
-      },
-      {
-        src: 'assets/favicons/favicon-32x32.png',
-        type: 'image/png',
-        sizes: '32x32'
-      }
-    ],
-    theme_color: '#4f46e5',
-    background_color: '#ffffff',
-    display: 'standalone',
-    scope: '/',
-    start_url: '/',
-    orientation: 'any',
-    categories: ['health', 'productivity', 'medical'],
-    shortcuts: [
-      {
-        name: 'Randevular',
-        short_name: 'Randevular',
-        url: '/appointments',
-        description: 'Randevularınızı görüntüleyin ve yönetin',
-        icons: [
-          {
-            src: 'assets/pwa/appointment-icon-96x96.png',
-            sizes: '96x96'
-          }
-        ]
-      },
-      {
-        name: 'Danışanlar',
-        short_name: 'Danışanlar',
-        url: '/clients',
-        description: 'Danışanlarınızı görüntüleyin',
-        icons: [
-          {
-            src: 'assets/pwa/client-icon-96x96.png',
-            sizes: '96x96'
-          }
-        ]
-      }
-    ],
-    lang: 'tr',
-    related_applications: []
-  },
-  devOptions: {
-    enabled: true,
-    type: 'module',
-    navigateFallback: 'index.html',
-  },
-  workbox: {
-    globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg}'],
-    skipWaiting: true,
-    clientsClaim: true,
-    cleanupOutdatedCaches: true,
-    navigateFallbackDenylist: [
-      /\.(?:license|json)$/,
-      /^manifest.*\.js?$/,
-      /^workbox-.*\.js?$/,
-      /^sw\.js?$/
-    ],
-    runtimeCaching: [
-      {
-        urlPattern: ({ url }) => {
-          return url.pathname.startsWith('/api');
-        },
-        handler: 'NetworkFirst',
-        options: {
-          cacheName: 'api-cache',
-          expiration: {
-            maxEntries: 100,
-            maxAgeSeconds: 60 * 60 * 24 // 1 gün
-          },
-          cacheableResponse: {
-            statuses: [0, 200]
-          }
-        }
-      },
-      {
-        urlPattern: ({ url }) => {
-          return url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|gif)$/);
-        },
-        handler: 'StaleWhileRevalidate',
-        options: {
-          cacheName: 'assets-cache',
-          expiration: {
-            maxEntries: 100,
-            maxAgeSeconds: 60 * 60 * 24 * 30 // 30 gün
-          },
-          cacheableResponse: {
-            statuses: [0, 200]
-          }
-        }
-      },
-      {
-        urlPattern: ({ url }) => {
-          return url.href.includes('images.unsplash.com');
-        },
-        handler: 'StaleWhileRevalidate',
-        options: {
-          cacheName: 'unsplash-cache',
-          expiration: {
-            maxEntries: 50,
-            maxAgeSeconds: 60 * 60 * 24 * 7 // 7 gün
-          },
-          cacheableResponse: {
-            statuses: [0, 200]
-          }
-        }
-      },
-      {
-        urlPattern: ({ url }) => {
-          return url.href.includes('fonts.googleapis.com') || 
-                url.href.includes('fonts.gstatic.com');
-        },
-        handler: 'CacheFirst',
-        options: {
-          cacheName: 'google-fonts-cache',
-          expiration: {
-            maxEntries: 20,
-            maxAgeSeconds: 60 * 60 * 24 * 365 // 1 yıl
-          },
-          cacheableResponse: {
-            statuses: [0, 200]
-          }
-        }
-      },
-      {
-        urlPattern: ({ request }) => request.mode === 'navigate',
-        handler: 'NetworkFirst',
-        options: {
-          cacheName: 'pages-cache',
-          expiration: {
-            maxEntries: 50,
-            maxAgeSeconds: 60 * 60 * 24 // 1 gün
-          },
-          cacheableResponse: {
-            statuses: [0, 200]
-          }
-        }
-      }
-    ]
+// Derleme zamanında sürüm numarası oluşturma
+const getBuildVersion = () => {
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim();
+  } catch (e) {
+    return new Date().toISOString().slice(0, 10).replace(/-/g, '');
   }
 };
+
+// Derleme sonrası dosyaları kopyalama işlemi için plugin
+const copyAssetsPlugin = () => {
+  return {
+    name: 'copy-assets-plugin',
+    closeBundle: () => {
+      // public klasöründen dist klasörüne dosyaları kopyala
+      try {
+        // clear-cache.js dosyasını kopyala
+        if (fs.existsSync('public/clear-cache.js')) {
+          fs.copyFileSync('public/clear-cache.js', 'dist/clear-cache.js');
+          console.log('clear-cache.js dosyası dist klasörüne kopyalandı');
+        }
+
+        // assets klasörünü kopyala (varsa)
+        if (fs.existsSync('public/assets')) {
+          copyRecursiveSync('public/assets', 'dist/assets');
+          console.log('assets klasörü dist klasörüne kopyalandı');
+        }
+
+        // SEO dosyalarını kopyala
+        if (fs.existsSync('public/assets/meta/seo/robots.txt')) {
+          fs.copyFileSync('public/assets/meta/seo/robots.txt', 'dist/robots.txt');
+          console.log('robots.txt dosyası ana dizine kopyalandı');
+        }
+
+        if (fs.existsSync('public/assets/meta/seo/sitemap.xml')) {
+          fs.copyFileSync('public/assets/meta/seo/sitemap.xml', 'dist/sitemap.xml');
+          console.log('sitemap.xml dosyası ana dizine kopyalandı');
+        }
+      } catch (error) {
+        console.error('Dosya kopyalama hatası:', error);
+      }
+    }
+  };
+};
+
+// Klasörleri ve alt klasörleri kopyalama fonksiyonu
+function copyRecursiveSync(src: string, dest: string): void {
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true });
+  }
+  
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  
+  for (const entry of entries) {
+    const srcPath = resolve(src, entry.name);
+    const destPath = resolve(dest, entry.name);
+    
+    if (entry.isDirectory()) {
+      copyRecursiveSync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    VitePWA(manifestForPlugin)
+    VitePWA({ 
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      manifest: {
+        name: 'PsikoRan - Profesyonel Danışmanlık Merkezi',
+        short_name: 'PsikoRan',
+        description: 'Psikologlar ve danışanlar için profesyonel danışmanlık yönetim sistemi.',
+        theme_color: '#4f46e5',
+        background_color: '#ffffff',
+        display: 'standalone',
+        icons: [
+          {
+            src: 'assets/pwa/logo_2-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'assets/pwa/logo_2-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          },
+          {
+            src: 'assets/pwa/logo_2-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable'
+          },
+          {
+            src: 'assets/pwa/logo_2-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
+        ],
+        start_url: '.',
+        orientation: 'portrait',
+        categories: ['business', 'health', 'productivity'],
+        screenshots: [
+          {
+            src: 'assets/screenshots/1.jpg',
+            sizes: '1080x1920',
+            type: 'image/jpeg'
+          },
+          {
+            src: 'assets/screenshots/2.jpg',
+            sizes: '1080x1920',
+            type: 'image/jpeg'
+          }
+        ]
+      },
+      workbox: {
+        // Çakışan önbellek girişlerini önlemek için
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,ttf,woff,woff2}'],
+        // WB_REVISION parametrelerini temizle ve çakışan girişleri önle
+        dontCacheBustURLsMatching: /\.\w{8}\./,
+        // Her asset'i bir kez ekle, revizyon isimleri olmayanları kullan
+        runtimeCaching: [
+          // Favicon gibi sık değişen dosyalar için özel önbellek stratejisi
+          {
+            urlPattern: /\.(ico|png|svg|jpg|jpeg)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: {
+                maxEntries: 50, 
+                maxAgeSeconds: 30 * 24 * 60 * 60 // 30 gün
+              }
+            }
+          },
+          // API çağrıları için ayrı önbellek stratejisi
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*$/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              networkTimeoutSeconds: 10,
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 24 * 60 * 60 // 1 gün
+              }
+            }
+          }
+        ],
+        // Çakışan önbellek girişlerini önlemek için ek ayarlar
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+        // Sadece HTML sayfalarını önceden önbelleğe alma
+        navigationPreload: true
+      }
+    }),
+    copyAssetsPlugin() // Dosya kopyalama eklentisini ekle
   ],
   build: {
     outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
     rollupOptions: {
-      input: {
-        main: '/index.html'
+      output: {
+        manualChunks: {
+          'vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui': ['framer-motion', '@headlessui/react'],
+          'charts': ['chart.js', 'react-chartjs-2']
+        }
       }
-    }
+    },
+    chunkSizeWarningLimit: 2000 // Chunk boyutu uyarı limitini artır
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+    },
   }
 });

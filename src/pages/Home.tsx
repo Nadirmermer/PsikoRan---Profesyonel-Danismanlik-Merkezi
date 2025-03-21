@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Calendar, Clipboard, Users, Clock, MessageSquare, BarChart, Award, Sun, Moon, LogIn, ArrowRight, Menu, X } from 'lucide-react';
+import { Shield, Calendar, Clipboard, Users, Clock, MessageSquare, BarChart, Award, Sun, Moon, LogIn, ArrowRight, Menu, X, ChevronRight, User } from 'lucide-react';
 import logo2 from '../assets/logo/logo_2.png';
 import { motion } from 'framer-motion';
-import { supabase } from '../lib/supabase';
+import { fetchBlogPosts, formatBlogDate } from '../lib/blog';
 
 // Blog yazısı tipi tanımı
 interface BlogPost {
@@ -19,6 +19,19 @@ interface BlogPost {
   slug: string;
   reading_time: number;
 }
+
+// İsmi URL-dostu formata dönüştür
+const slugifyName = (name: string): string => {
+  return name.toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[üÜ]/g, 'u')
+    .replace(/[çÇ]/g, 'c')
+    .replace(/[şŞ]/g, 's')
+    .replace(/[ıİ]/g, 'i')
+    .replace(/[ğĞ]/g, 'g')
+    .replace(/[öÖ]/g, 'o')
+    .replace(/[^a-z0-9-]/g, '');
+};
 
 export function Home() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -43,27 +56,18 @@ export function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [loadingBlogPosts, setLoadingBlogPosts] = useState(true);
-
-  // Sayfa yüklendikten sonra animasyonla karşılama
+    
+    // Blog yazılarını getir
   useEffect(() => {
     document.title = "PsikoRan - Profesyonel Danışmanlık Merkezi";
     
     // Blog yazılarını getir
-    async function fetchBlogPosts() {
+    async function loadBlogPosts() {
       try {
         setLoadingBlogPosts(true);
-        const { data, error } = await supabase
-          .from('blog_posts')
-          .select('*')
-          .eq('is_published', true)
-          .order('published_at', { ascending: false })
-          .limit(3);
-          
-        if (error) throw error;
-        
-        if (data) {
-          setBlogPosts(data as BlogPost[]);
-        }
+        const posts = await fetchBlogPosts();
+        // Sadece ilk 3 blog yazısını kullan
+        setBlogPosts(posts.slice(0, 3));
       } catch (err) {
         console.error('Blog yazıları yüklenirken hata oluştu:', err);
       } finally {
@@ -71,7 +75,7 @@ export function Home() {
       }
     }
     
-    fetchBlogPosts();
+    loadBlogPosts();
   }, []);
 
   useEffect(() => {
@@ -109,20 +113,10 @@ export function Home() {
     }
   };
 
-  // Tarih formatını düzenle
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    return new Date(dateString).toLocaleDateString('tr-TR', options);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 to-white dark:from-slate-900 dark:to-slate-800 transition-colors duration-300">
       {/* Navigasyon */}
-      <nav className="bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700">
+      <nav className="bg-white/90 dark:bg-slate-800/90 shadow-sm border-b border-slate-200 dark:border-slate-700 sticky top-0 backdrop-blur-sm z-50 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
@@ -232,7 +226,7 @@ export function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="py-10 sm:py-16 md:py-24">
+      <section className="py-10 sm:py-16 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center">
             <div className="w-full lg:w-1/2 lg:pr-12 text-center lg:text-left">
@@ -339,104 +333,94 @@ export function Home() {
         </div>
       </section>
 
-      {/* Blog Section */}
-      <section className="py-12 sm:py-16 md:py-20 bg-slate-50 dark:bg-slate-800/30">
+      {/* Blog Section - Hero'dan hemen sonra */}
+      <section className="py-16 bg-gray-50 dark:bg-gray-800/50 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10 sm:mb-16">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-            >
-              <span className="inline-block px-3 py-1 text-sm rounded-full bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 mb-3">Blog</span>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">Güncel Yazılarımız</h2>
-              <p className="mt-3 sm:mt-4 max-w-3xl mx-auto text-base sm:text-lg text-slate-600 dark:text-slate-400">
-                Psikolojik danışmanlık süreçleri ve verimli klinik yönetimi hakkında bilgi edinebileceğiniz blog yazılarımız
-              </p>
-            </motion.div>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+              Blog
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+              Psikolojik danışmanlık ve klinik yönetimi hakkında en güncel ve faydalı bilgileri paylaşıyoruz.
+            </p>
           </div>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8"
-          >
-            {loadingBlogPosts ? (
-              // Yükleniyor durumu
-              Array(3).fill(0).map((_, index) => (
-                <div key={index} className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 animate-pulse">
-                  <div className="h-48 bg-slate-200 dark:bg-slate-700"></div>
-                  <div className="p-5">
-                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
-                    <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded mb-2"></div>
-                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded mb-4"></div>
-                    <div className="h-4 w-1/3 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                  </div>
-                </div>
-              ))
-            ) : blogPosts.length > 0 ? (
-              // Blog yazıları
-              blogPosts.map((post) => (
-                <div key={post.id} className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-lg group">
-                  <div className="h-48 overflow-hidden">
-                    <img
-                      src={post.cover_image || '/assets/images/blog/default-post.jpg'}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+            {blogPosts.map((post) => (
+                <motion.div 
+                  key={post.id} 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 group hover:shadow-xl transition-all duration-300"
+              >
+                <Link to={`/blog/${post.slug}`} className="block h-48 overflow-hidden">
+                  <img
+                    src={post.cover_image}
                       alt={post.title}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      crossOrigin="anonymous"
+                      loading="lazy"
                       onError={(e) => {
-                        // Görsel yükleme hatası olursa varsayılan görsel kullan
-                        (e.target as HTMLImageElement).src = '/assets/images/blog/default-post.jpg';
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://via.placeholder.com/800x400/4F46E5/FFFFFF?text=PsikoRan+Blog';
+                        target.onerror = null;
                       }}
                     />
+                </Link>
+                <div className="p-6">
+                  <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-2">
+                    <span className="px-2 py-1 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full text-xs font-medium mr-2">{post.category}</span>
+                    <span className="flex items-center text-slate-400 dark:text-slate-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      {formatBlogDate(post.published_at)}
+                    </span>
                   </div>
-                  <div className="p-5">
-                    <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-2">
-                      <span className="mr-2">{post.category}</span>
-                      <span className="mx-1">•</span>
-                      <span>{formatDate(post.published_at)}</span>
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 line-clamp-2">
+                  
+                  <Link to={`/blog/${post.slug}`}>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                       {post.title}
                     </h3>
-                    <p className="text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
-                      {post.excerpt}
-                    </p>
+                  </Link>
+                  
+                  <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
+                    {post.excerpt}
+                  </p>
+                  
+                  <div className="flex items-center justify-between">
+                    <Link
+                      to={`/professional/${slugifyName(post.author)}`}
+                      className="flex items-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 text-sm"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <User className="h-4 w-4 mr-1.5" />
+                      {post.author}
+                    </Link>
+                    
                     <Link
                       to={`/blog/${post.slug}`}
-                      className="inline-flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium"
+                      className="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium group"
                     >
                       <span>Devamını Oku</span>
-                      <ArrowRight className="h-4 w-4 ml-1" />
+                      <ChevronRight className="h-4 w-4 ml-1 group-hover:ml-2 transition-all" />
                     </Link>
                   </div>
                 </div>
-              ))
-            ) : (
-              // Blog yazısı yoksa
-              <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center py-10">
-                <p className="text-slate-600 dark:text-slate-400">Henüz blog yazısı bulunmuyor. Yakında yeni içerikler eklenecek.</p>
+              </motion.div>
+            ))}
               </div>
-            )}
-          </motion.div>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            viewport={{ once: true }}
-            className="mt-10 sm:mt-12 text-center"
-          >
+          <div className="text-center">
             <Link
               to="/blog"
-              className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-white dark:bg-slate-700 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-slate-600 hover:bg-primary-50 dark:hover:bg-slate-600 font-medium transition-all duration-300 shadow-sm"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
             >
-              <span>Tüm Yazıları Görüntüle</span>
-              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
+              Tüm Yazıları Görüntüle
+              <ChevronRight className="ml-2 h-5 w-5" />
             </Link>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -523,12 +507,7 @@ export function Home() {
                 title: 'Veri Güvenliği', 
                 description: 'KVKK uyumlu güvenlik altyapısıyla verileriniz her zaman güvende ve şifrelenmiş olarak saklanır.' 
               },
-              { 
-                icon: <MessageSquare className="h-6 w-6 sm:h-8 sm:w-8 text-white" />, 
-                color: "bg-red-500",
-                title: 'Çok Dilli Destek', 
-                description: 'Türkçe ve İngilizce dahil farklı dil seçenekleriyle uluslararası danışanlarınıza hizmet verin.' 
-              },
+             
             ].map((feature, index) => (
               <motion.div 
                 key={index} 
@@ -730,7 +709,7 @@ export function Home() {
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path></svg>
                 </motion.a>
                 <motion.a 
-                  href="https://facebook.com/psikoran" 
+                  href="https://www.facebook.com/people/PsikoRan/61574169219677/" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-slate-500 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400"

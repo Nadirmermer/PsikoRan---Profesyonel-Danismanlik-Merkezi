@@ -2,7 +2,8 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://www.facebook.com https://images.unsplash.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.psikoran.com https://*.supabase.co; manifest-src 'self'; worker-src 'self'; frame-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.jitsi.net https://*.jitsi.org; img-src 'self' data: blob: https://www.facebook.com https://images.unsplash.com https://via.placeholder.com https://*.jitsi.net https://*.jitsi.org https://meet.jit.si https://*.supabase.co; font-src 'self' https://fonts.gstatic.com https://*.jitsi.net https://*.jitsi.org; connect-src 'self' https://*.psikoran.com https://*.supabase.co https://meet.jit.si https://*.jitsi.net https://*.jitsi.org wss://*.meet.jit.si; manifest-src 'self'; worker-src 'self' blob:; frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; media-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; child-src 'self' https://meet.jit.si;">
+  <meta http-equiv="X-Content-Security-Policy" content="frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org;">
   <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-5M6V976WY8"></script>
 <script>
@@ -32,7 +33,7 @@
   <!-- End Facebook Pixel Code -->
   
   <!-- Favicon başlangıç - Base64 gömülü -->
-  <link rel="icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADQ0NAozMzNpMjIysTIyMtYyMjLiMjIy1DIyMqgyMjJaMjIyCQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAzMzNkMjIy7DIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjLjMjIyUgAAAAAAAAAAAAAAAAAAAAAAAAAAMzMzZDIyMv4yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL1MjIySwAAAAAAAAAAAAAAADMzM2gyMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjJYAAAAAAAAAA0yMjLsMjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy5jIyMgYzMzNpMjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjJYMjIysTIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIypzIyMtcyMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMtMyMjLjMjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjLhMjIy1jIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy0jIyMqgyMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMqcyMjJaMjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjJYMjIyCTIyMuQyMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjLmMjIyBgAAAAAzMzNSMjIy9TIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL+MjIyUQAAAAAAAAAAAAAAAAAAAAAxMTFSMjIy4zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy7DMzM2QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjIyWTIyMqcyMjLSMjIy4DIyMtUyMjKxMzMzaTMzM2kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" type="image/x-icon" />
+  <link rel="icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADQ0NAozMzNpMjIysTIyMtYyMjLiMjIy1DIyMqgyMjJaMjIyCQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAzMzNkMjIy7DIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjLjMjIyUgAAAAAAAAAAAAAAAAAAAAAAAAAAMzMzZDIyMv4yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL1MjIySwAAAAAAAAAAAAAAADMzM2gyMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjJYAAAAAAAAAA0yMjLsMjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy5jIyMgYzMzNpMjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjJYMjIysTIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIypzIyMtcyMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMtMyMjLjMjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjLhMjIy1jIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy0jIyMqgyMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMqcyMjJaMjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjJYMjIyCTIyMuQyMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjLmMjIyBgAAAAAzMzNSMjIy9TIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL+MjIyUQAAAAAAAAAAAAAAAAAAAAAxMTFSMjIy4zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy7DMzM2QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjIyWTIyMqcyMjLSMjIy4DIyMtUyMjKxMzMzaTMzM2kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" type="image/x-icon" />
   <link rel="shortcut icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADQ0NAozMzNpMjIysTIyMtYyMjLiMjIy1DIyMqgyMjJaMjIyCQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAzMzNkMjIy7DIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjLjMjIyUgAAAAAAAAAAAAAAAAAAAAAAAAAAMzMzZDIyMv4yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL1MjIySwAAAAAAAAAAAAAAADMzM2gyMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjJYAAAAAAAAAA0yMjLsMjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy5jIyMgYzMzNpMjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjJYMjIysTIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIypzIyMtcyMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMtMyMjLjMjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjLhMjIy1jIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy0jIyMqgyMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMqcyMjJaMjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjJYMjIyCTIyMuQyMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjLmMjIyBgAAAAAzMzNSMjIy9TIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL+MjIyUQAAAAAAAAAAAAAAAAAAAAAxMTFSMjIy4zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy/zIyMv8yMjL/MjIy7DMzM2QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjIyWTIyMqcyMjLSMjIy4DIyMtUyMjKxMzMzaTMzM2kAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==" />
 
   <!-- PWA için gerekli ikon ve manifest -->
@@ -45,19 +46,19 @@
   <!-- SEO Meta Etiketleri -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#4f46e5" />
-  <meta name="description" content="PsikoRan - Psikologlar ve danışanlar için profesyonel danışmanlık yönetim sistemi. Randevularınızı kolayca yönetin, dosyalarınızı organize edin." />
-  <meta name="keywords" content="psikolog yönetim sistemi, danışmanlık, psikoloji randevu, PsikoRan, terapi yönetim" />
+  <meta name="description" content="PsikoRan - Psikologlar ve Danışanlar için Profesyonel Danışmanlık ve Randevu Yönetim Sistemi" />
+  <meta name="keywords" content="psikolog, danışmanlık, terapi, randevu sistemi, psikoterapi, online terapi, online randevu, psikolojik danışmanlık, ruh sağlığı" />
   <meta name="author" content="PsikoRan" />
   
   <!-- Canonical URL -->
-  <link rel="canonical" href="https://psikoran.com/" />
+  <link rel="canonical" href="https://psikoran.com" />
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://psikoran.com/" />
+  <meta property="og:url" content="https://psikoran.com" />
   <meta property="og:title" content="PsikoRan - Profesyonel Danışmanlık Merkezi" />
-  <meta property="og:description" content="Psikologlar ve danışanlar için profesyonel danışmanlık yönetim sistemi. Randevularınızı kolayca yönetin." />
-  <meta property="og:image" content="https://psikoran.com/assets/meta/og-image.jpg" />
+  <meta property="og:description" content="Psikologlar ve danışanlar için profesyonel danışmanlık ve randevu yönetim sistemi" />
+  <meta property="og:image" content="https://psikoran.com/assets/pwa/logo_2-512x512.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:locale" content="tr_TR" />
@@ -65,14 +66,16 @@
   
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image" />
-  <meta property="twitter:url" content="https://psikoran.com/" />
+  <meta property="twitter:url" content="https://psikoran.com" />
   <meta property="twitter:title" content="PsikoRan - Profesyonel Danışmanlık Merkezi" />
-  <meta property="twitter:description" content="Psikologlar ve danışanlar için profesyonel danışmanlık yönetim sistemi." />
-  <meta property="twitter:image" content="https://psikoran.com/assets/meta/twitter-image.jpg" />
+  <meta property="twitter:description" content="Psikologlar ve danışanlar için profesyonel danışmanlık ve randevu yönetim sistemi" />
+  <meta property="twitter:image" content="https://psikoran.com/assets/pwa/logo_2-512x512.png" />
   
   <!-- Robots -->
   <meta name="robots" content="index, follow" />
-  <link rel="sitemap" type="application/xml" href="/assets/meta/seo/sitemap.xml" />
+  <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+  <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+  <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
   <link rel="sitemap-html" type="text/html" href="/assets/pages/sitemap.html" />
   
   <!-- Apple PWA Meta -->
@@ -85,18 +88,45 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="format-detection" content="telephone=no" />
   
-  <title>PsikoRan - Profesyonel Danışmanlık Merkezi</title>
+  <title>PsikoRan - Profesyonel Danışmanlık ve Randevu Yönetim Sistemi</title>
+  
+  <!-- Servis worker cache temizleme -->
+  <script src="/clear-cache.js"></script>
   
   <!-- Otomatik tarayıcı yönlendirmesi -->
   <script>
-    // Tarayıcı service worker destekliyorsa
+    // Servis worker kayıt işlemini kontrollü yapma
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/assets/pwa/sw.js').then(function(registration) {
+      // Sayfa tam yüklendikten sonra kaydet
+      window.addEventListener('load', async function() {
+        try {
+          // Önce mevcut service worker'ları temizle
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (let registration of registrations) {
+            await registration.unregister();
+            console.log('Service worker unregistered:', registration.scope);
+          }
+
+          // Workbox ile ilgili cache'leri temizle
+          if ('caches' in window) {
+            const cacheNames = await caches.keys();
+            for (let cacheName of cacheNames) {
+              if (cacheName.includes('workbox') || cacheName.includes('wb-')) {
+                await caches.delete(cacheName);
+                console.log('Cache deleted:', cacheName);
+              }
+            }
+          }
+
+          // Service worker'ı yeniden kaydet
+          const registration = await navigator.serviceWorker.register('/assets/pwa/sw.js', { 
+            scope: '/',
+            updateViaCache: 'none' // Cache'den güncelleme yapılmasını engelle
+          });
           console.log('ServiceWorker kayıt başarılı: ', registration.scope);
-        }, function(err) {
-          console.log('ServiceWorker kayıt başarısız: ', err);
-        });
+        } catch (err) {
+          console.error('ServiceWorker kayıt başarısız: ', err);
+        }
       });
     }
 
@@ -139,6 +169,30 @@
         document.body.appendChild(offlineDiv);
       } else {
         document.getElementById('offlineAlert').style.display = 'block';
+      }
+    });
+
+    // Google Analytics veya harici kaynaklardan gelen kullanıcıları yönlendirme
+    window.addEventListener('DOMContentLoaded', function() {
+      const isFromGoogleSearch = document.referrer.includes('google.com') || 
+                                document.referrer.includes('google.com.tr') || 
+                                document.referrer.includes('google.co.uk');
+      
+      // Eğer giriş sayfasındasak ve Google aramalarından geliyorsak ana sayfaya yönlendir
+      if (window.location.pathname === '/login' && isFromGoogleSearch) {
+        window.location.href = '/';
+      }
+      
+      // Service worker ve cache hatalarını önlemek için
+      if (window.location.hash.includes('clear-cache')) {
+        try {
+          // clear-cache.js scriptini manuel olarak çalıştır
+          const script = document.createElement('script');
+          script.src = '/clear-cache.js?v=' + new Date().getTime();
+          document.head.appendChild(script);
+        } catch(e) {
+          console.error('Cache temizleme hatası:', e);
+        }
       }
     });
   </script>

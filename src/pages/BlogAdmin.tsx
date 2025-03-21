@@ -43,9 +43,12 @@ import {
   Highlighter,
   Underline as UnderlineIcon,
   Edit,
-  Trash
+  Trash,
+  ArrowLeft,
+  User
 } from 'lucide-react';
 import slugify from 'slugify';
+import { BlogPost as BlogPostType, formatBlogDate } from '../lib/blog';
 
 interface FormData {
   title: string;
@@ -59,21 +62,11 @@ interface FormData {
   reading_time?: number;
 }
 
-interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string;
-  content: string;
-  cover_image: string;
-  author: string;
-  category: string;
+// Admin tarafında kullanılan BlogPost türü (string veya string[] olarak tags kabul edebilir)
+interface BlogPost extends Omit<BlogPostType, 'tags'> {
   tags: string[] | string;
-  is_published: boolean;
-  published_at: string;
   created_at: string;
   updated_at: string;
-  reading_time?: number;
 }
 
 // MenuBar bileşeni
@@ -527,6 +520,7 @@ export function BlogAdmin() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
 
   // TipTap editör ayarları
   const editor = useEditor({
@@ -623,15 +617,6 @@ export function BlogAdmin() {
   useEffect(() => {
     fetchPosts();
   }, []);
-
-  function formatDate(dateString: string) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-  }
 
   function generateSlug(title: string) {
     return title
@@ -836,86 +821,98 @@ export function BlogAdmin() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center">
-          <BookOpen className="mr-2 h-6 w-6 text-primary-600 dark:text-primary-400" />
-          Blog Yazıları Yönetimi
-        </h1>
-        
+    <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-300">
+      {/* Üst başlık - Sticky */}
+      <div className="sticky top-0 z-40 w-full bg-primary-600/90 dark:bg-primary-800/90 backdrop-blur-sm shadow-md">
+        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+          <div className="flex items-center">
+            <button
+              onClick={() => navigate('/blog')}
+              className="mr-3 p-2 hover:bg-white/20 rounded-full transition-colors duration-200 text-white"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <h1 className="text-2xl font-bold text-white">Blog Yönetimi</h1>
+          </div>
         <button
           onClick={() => {
+              setFormMode('create');
+              setEditingPost(null);
             resetForm();
-            setShowForm(!showForm);
-          }}
-          className="flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors duration-200"
-        >
-          {showForm ? (
-            <>
-              <X className="mr-2 h-4 w-4" />
-              İptal
-            </>
-          ) : (
-            <>
-              <Plus className="mr-2 h-4 w-4" />
+              setShowForm(true);
+            }}
+            className="px-4 py-2 bg-white text-primary-700 hover:bg-primary-50 rounded-lg font-medium flex items-center transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
               Yeni Yazı
-            </>
-          )}
         </button>
+        </div>
       </div>
 
-      {/* Başarı mesajı */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {successMessage && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-start"
-        >
-          <Check className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-medium">{successMessage}</p>
+            exit={{ opacity: 0 }}
+            className="mb-6 p-4 rounded-lg bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200"
+          >
+            <div className="flex items-center">
+              <Check className="h-5 w-5 mr-2 flex-shrink-0" />
+              <span>{successMessage}</span>
             <button 
               onClick={() => setSuccessMessage(null)}
-              className="text-sm text-green-600 hover:text-green-800 mt-1"
+                className="ml-auto p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-full"
             >
-              Kapat
+                <X className="h-4 w-4" />
             </button>
           </div>
         </motion.div>
       )}
 
-      {/* Hata mesajı */}
       {errorMessage && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start"
-        >
-          <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-medium">{errorMessage}</p>
+            exit={{ opacity: 0 }}
+            className="mb-6 p-4 rounded-lg bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200"
+          >
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+              <span>{errorMessage}</span>
             <button 
               onClick={() => setErrorMessage(null)}
-              className="text-sm text-red-600 hover:text-red-800 mt-1"
+                className="ml-auto p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-full"
             >
-              Kapat
+                <X className="h-4 w-4" />
             </button>
           </div>
         </motion.div>
       )}
 
-      {/* Blog yazısı formu */}
-      {showForm && (
-        <form onSubmit={handleSubmit} className="space-y-6 bg-white dark:bg-gray-900 rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-6">{editingPost ? 'Blog Yazısını Düzenle' : 'Yeni Blog Yazısı Ekle'}</h2>
-          
-          {/* Başlık */}
+        {showForm ? (
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 border border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                {formMode === 'create' ? 'Yeni Blog Yazısı' : 'Blog Yazısını Düzenle'}
+              </h2>
+              <button
+                onClick={() => setShowForm(false)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500 dark:text-slate-400"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="title" className="block text-sm font-medium mb-1">Başlık</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Başlık
+                  </label>
             <input
-              id="title"
               type="text"
-              required
+                    name="title"
               value={formData.title}
               onChange={(e) => {
                 setFormData({ ...formData, title: e.target.value });
@@ -926,237 +923,294 @@ export function BlogAdmin() {
                   }));
                 }
               }}
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
+                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                              focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                    required
             />
           </div>
           
-          {/* Slug */}
           <div>
-            <label htmlFor="slug" className="block text-sm font-medium mb-1">Slug</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Slug (URL)
+                  </label>
+                  <div className="flex items-center">
             <input
-              id="slug"
               type="text"
-              required
+                      name="slug"
               value={formData.slug}
               onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800"
-            />
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
+                                bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                                focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(prev.title) }))}
+                      className="ml-2 px-3 py-2 bg-slate-100 dark:bg-slate-600 text-slate-700 dark:text-slate-200 
+                                rounded hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors"
+                    >
+                      Oluştur
+                    </button>
+                  </div>
+                </div>
           </div>
           
-          {/* Özet */}
           <div>
-            <label htmlFor="excerpt" className="block text-sm font-medium mb-1">Özet</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Kısa Açıklama
+                </label>
             <textarea
-              id="excerpt"
-              required
+                  name="excerpt"
               value={formData.excerpt}
               onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
               rows={3}
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
+                            bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                            focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                  required
             />
           </div>
           
-          {/* İçerik - TipTap Editör */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <label htmlFor="content" className="block text-sm font-medium mb-2">İçerik</label>
-            <div className="border border-gray-300 dark:border-gray-700 rounded-xl overflow-hidden">
-              <MenuBar editor={editor} />
-              <EditorContent 
-                editor={editor} 
-                className="prose max-w-none dark:prose-invert p-4 min-h-[300px] bg-white dark:bg-gray-800 focus:outline-none" 
-              />
-            </div>
-          </div>
-          
-          {/* Kapak Görseli */}
-          <div>
-            <label htmlFor="cover_image" className="block text-sm font-medium mb-1">Kapak Görseli</label>
-            <div className="flex items-center gap-4">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Yazar
+                  </label>
               <input
-                id="cover_image"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800"
-              />
-              {imagePreview && (
-                <div className="relative h-20 w-20">
-                  <img src={imagePreview} alt="Kapak görseli önizleme" className="h-full w-full object-cover rounded" />
-                  <button
-                    type="button"
-                    onClick={clearImagePreview}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Yazar */}
-          <div>
-            <label htmlFor="author" className="block text-sm font-medium mb-1">Yazar</label>
-            <input
-              id="author"
               type="text"
-              required
+                    name="author"
               value={formData.author}
               onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
+                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                              focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                    required
             />
           </div>
           
-          {/* Kategori */}
           <div>
-            <label htmlFor="category" className="block text-sm font-medium mb-1">Kategori</label>
-            <select
-              id="category"
-              required
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Kategori
+                  </label>
+                  <input
+                    type="text"
+                    name="category"
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800"
-            >
-              <option value="">Kategori Seçin</option>
-              {categories.map((category) => (
-                <option key={category.value} value={category.value}>{category.label}</option>
-              ))}
-            </select>
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
+                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                              focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                    required
+                  />
           </div>
           
-          {/* Etiketler */}
           <div>
-            <label htmlFor="tags" className="block text-sm font-medium mb-1">Etiketler (virgülle ayırın)</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Etiketler (virgülle ayırın)
+                  </label>
             <input
-              id="tags"
               type="text"
+                    name="tags"
               value={formData.tags}
               onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800"
-              placeholder="psikoloji, danışmanlık, terapi"
-            />
+                    placeholder="örn: Psikoloji, Danışmanlık, Terapi"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
+                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                              focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                  />
+                </div>
           </div>
           
-          {/* Okuma Süresi */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="reading_time" className="block text-sm font-medium mb-1">Okuma Süresi (dakika)</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Okuma Süresi (dakika)
+                  </label>
             <input
-              id="reading_time"
               type="number"
-              min="1"
+                    name="reading_time"
               value={formData.reading_time}
               onChange={(e) => setFormData({ ...formData, reading_time: parseInt(e.target.value) })}
-              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800"
+                    min="1"
+                    max="60"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
+                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                              focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
             />
           </div>
           
-          {/* Yayınlanma Durumu */}
           <div className="flex items-center">
+                  <label className="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
             <input
-              id="is_published"
               type="checkbox"
+                      name="is_published"
               checked={formData.is_published}
               onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="h-4 w-4 rounded border border-slate-300 dark:border-slate-600 
+                                text-primary-600 focus:ring-primary-500 mr-2"
             />
-            <label htmlFor="is_published" className="ml-2 block text-sm text-gray-900 dark:text-gray-100">
               Yayınla
             </label>
+                </div>
           </div>
           
-          <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Kapak Görseli
+                </label>
+                <div className="flex items-start space-x-4">
+                  <div className="flex-grow">
+                    <label className="block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 
+                                    border-dashed rounded-md text-center cursor-pointer
+                                    hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                      <input
+                        type="file"
+                        onChange={handleImageChange}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <div className="text-slate-500 dark:text-slate-400">
+                        <div className="flex justify-center">
+                          <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
                   </svg>
-                  Kaydediliyor...
-                </span>
-              ) : (
-                'Kaydet'
-              )}
-            </button>
-            
+                        </div>
+                        <div className="mt-1 text-sm">
+                          {imageFile ? imageFile.name : 'Görsel yüklemek için tıklayın veya sürükleyin'}
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                  {imagePreview && (
+                    <div className="w-32 h-32 flex-shrink-0">
+                      <img
+                        src={imagePreview}
+                        alt="Önizleme"
+                        className="w-full h-full object-cover rounded-md shadow-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  İçerik
+                </label>
+                {editor && <MenuBar editor={editor} />}
+                <div className="mt-2 p-4 border border-slate-300 dark:border-slate-600 rounded-md 
+                                min-h-[300px] bg-white dark:bg-slate-700 prose prose-sm max-w-none
+                                prose-slate dark:prose-invert focus:ring-2 focus:ring-primary-500 
+                                dark:focus:ring-primary-400 focus:border-transparent overflow-y-auto">
+                  <EditorContent editor={editor} />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end space-x-3">
             <button
               type="button"
               onClick={() => {
+                    resetForm();
                 setShowForm(false);
-                setEditingPost(null);
-                setFormData({
-                  title: '',
-                  excerpt: '',
-                  content: '',
-                  author: '',
-                  category: '',
-                  tags: '',
-                  reading_time: 0,
-                  slug: '',
-                  is_published: true
-                });
-                clearImagePreview();
-              }}
-              className="inline-flex justify-center py-2 px-4 border border-gray-300 dark:border-gray-700 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  }}
+                  className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 
+                            dark:hover:bg-slate-700 rounded-md transition-colors"
             >
               İptal
             </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 
+                            dark:hover:bg-primary-600 text-white rounded-md transition-colors
+                            flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 
+                            focus:ring-primary-500 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Kaydediliyor...
+                    </>
+                  ) : formMode === 'create' ? (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Yazı Ekle
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Güncelle
+                    </>
+                  )}
+                </button>
           </div>
         </form>
-      )}
-
-      {/* Blog yazıları listesi */}
-      {!showForm && (
-        <div className="bg-white dark:bg-gray-900 shadow rounded-lg">
-          <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-            <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Blog Yazıları</h3>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Blog Yazıları</h2>
+              <div className="flex items-center space-x-2">
             <button
-              onClick={() => setShowForm(true)}
-              className="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  onClick={() => fetchPosts()}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                  title="Yenile"
             >
-              <Plus className="-ml-0.5 mr-2 h-4 w-4" />
-              Yeni Yazı
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="h-5 w-5 text-slate-600 dark:text-slate-400">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
             </button>
           </div>
-          <div className="border-t border-gray-200 dark:border-gray-700">
+            </div>
+
             {isLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
-                <span className="ml-2 text-gray-600 dark:text-gray-300">Yükleniyor...</span>
+              <div className="flex justify-center items-center py-20">
+                <Loader2 className="h-10 w-10 text-primary-600 dark:text-primary-400 animate-spin" />
               </div>
             ) : posts.length > 0 ? (
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {posts.map((post) => (
-                  <div key={post.id} className="p-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {posts.map(post => (
+                    <div key={post.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                     <div className="flex flex-col sm:flex-row sm:justify-between">
                       <div className="flex-1">
-                        <h4 className="text-lg font-medium text-gray-900 dark:text-white">{post.title}</h4>
-                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 truncate">{post.excerpt}</p>
-                        <div className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
-                          <span className="truncate">Yazar: {post.author}</span>
-                          <span className="mx-1.5">•</span>
-                          <span>{formatDate(post.published_at || post.created_at)}</span>
-                          <span className="mx-1.5">•</span>
-                          <span>{post.category}</span>
-                          <span className="mx-1.5">•</span>
-                          <span>{post.is_published ? 'Yayında' : 'Taslak'}</span>
+                          <h4 className="text-lg font-medium text-slate-900 dark:text-white">{post.title}</h4>
+                          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 truncate">{post.excerpt}</p>
+                          <div className="mt-2 flex items-center flex-wrap gap-2 text-sm text-slate-500 dark:text-slate-400">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300">
+                              {post.category}
+                            </span>
+                            <span className="inline-flex items-center">
+                              <Calendar className="h-3 w-3 mr-1" />
+                              {formatBlogDate(post.published_at || post.created_at)}
+                            </span>
+                            <span className="inline-flex items-center">
+                              <User className="h-3 w-3 mr-1" />
+                              {post.author}
+                            </span>
+                            <span className={`inline-flex items-center ${
+                              post.is_published 
+                                ? 'text-green-600 dark:text-green-400' 
+                                : 'text-amber-600 dark:text-amber-400'
+                            }`}>
+                              {post.is_published ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
+                              {post.is_published ? 'Yayında' : 'Taslak'}
+                            </span>
                         </div>
                       </div>
                       <div className="mt-2 sm:mt-0 sm:ml-4 flex">
                         <button
                           onClick={() => handleEditPost(post)}
-                          className="inline-flex items-center mr-2 p-1.5 border border-transparent rounded-md text-blue-600 hover:bg-blue-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="inline-flex items-center mr-2 p-1.5 border border-transparent rounded-md text-blue-600 hover:bg-blue-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           <Edit className="h-4 w-4" />
                           <span className="sr-only">Düzenle</span>
                         </button>
                         <button
                           onClick={() => handleDeletePost(post.id)}
-                          className="inline-flex items-center p-1.5 border border-transparent rounded-md text-red-600 hover:bg-red-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                            className="inline-flex items-center p-1.5 border border-transparent rounded-md text-red-600 hover:bg-red-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500"
                         >
                           <Trash className="h-4 w-4" />
                           <span className="sr-only">Sil</span>
@@ -1165,15 +1219,30 @@ export function BlogAdmin() {
                     </div>
                   </div>
                 ))}
+                </div>
               </div>
             ) : (
-              <div className="py-8 text-center text-gray-500 dark:text-gray-400">
-                Henüz blog yazısı bulunmuyor. Yeni bir yazı ekleyin.
+              <div className="py-12 text-center bg-white dark:bg-slate-800 rounded-xl shadow border border-slate-200 dark:border-slate-700">
+                <div className="text-5xl mb-4">📝</div>
+                <h3 className="text-xl font-medium text-slate-900 dark:text-white mb-2">Henüz Blog Yazısı Bulunmuyor</h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-6">
+                  İlk blog yazınızı ekleyerek başlayın.
+                </p>
+                <button
+                  onClick={() => {
+                    setFormMode('create');
+                    setShowForm(true);
+                  }}
+                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-white rounded-lg inline-flex items-center"
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Yeni Yazı Ekle
+                </button>
               </div>
             )}
-          </div>
         </div>
       )}
+      </div>
     </div>
   );
 } 

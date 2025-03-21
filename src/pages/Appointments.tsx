@@ -11,6 +11,8 @@ import {
   Trash2,
   Undo,
   Bell,
+  ExternalLink,
+  Share2,
 } from 'lucide-react';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addMonths } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -18,6 +20,7 @@ import { useAuth } from '../lib/auth';
 import { CreateAppointmentModal } from '../components/CreateAppointmentModal';
 import { requestNotificationPermission } from '../utils/notificationUtils';
 import logo2 from '../assets/logo/logo_2.png';
+import AppointmentShareModal from '../components/AppointmentShareModal';
 
 type ViewType = 'daily' | 'weekly' | 'monthly' | 'all';
 
@@ -54,6 +57,8 @@ export function Appointments() {
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [existingAppointments, setExistingAppointments] = useState<any[]>([]);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
 
   const navigate = useNavigate();
   const { professional, assistant } = useAuth();
@@ -675,6 +680,13 @@ export function Appointments() {
     };
   };
 
+  // Paylaşım modalını açmak için yeni fonksiyon
+  const handleOpenShareModal = (appointment: any, e: React.MouseEvent) => {
+    e.stopPropagation(); // Tıklamanın üst elementi etkilemesini engelle
+    setSelectedAppointment(appointment);
+    setShowShareModal(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -829,7 +841,8 @@ export function Appointments() {
               {filteredAppointments.map((appointment) => (
                 <tr 
                   key={appointment.id}
-                  className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors duration-150"
+                  className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors duration-150 cursor-pointer"
+                  onClick={() => navigate(`/appointment/${appointment.id}`)}
                 >
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -861,7 +874,7 @@ export function Appointments() {
                   )}
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {appointment.room?.name || '-'}
+                      {(appointment as any).is_online ? 'Çevrimiçi' : appointment.room?.name || '-'}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -882,7 +895,7 @@ export function Appointments() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex items-center justify-end space-x-3">
+                    <div className="flex items-center justify-end space-x-3" onClick={(e) => e.stopPropagation()}>
                       {appointment.status === 'scheduled' && (
                         <>
                           <button
@@ -910,12 +923,31 @@ export function Appointments() {
                           <Undo className="h-5 w-5" />
                         </button>
                       )}
+                      {(appointment as any).is_online && (appointment as any).meeting_url && (
+                        <button
+                          onClick={(e) => handleOpenShareModal(appointment, e)}
+                          className="p-2 text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-400/10 rounded-lg transition-colors duration-150"
+                          title="Bağlantıyı Paylaş"
+                        >
+                          <Share2 className="h-5 w-5" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDeleteAppointment(appointment.id)}
                         className="p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-400/10 rounded-lg transition-colors duration-150"
                         title="Sil"
                       >
                         <Trash2 className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/appointment/${appointment.id}`);
+                        }}
+                        className="p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-400/10 rounded-lg transition-colors duration-150"
+                        title="Detayları Görüntüle"
+                      >
+                        <ExternalLink className="h-5 w-5" />
                       </button>
                     </div>
                   </td>
@@ -933,6 +965,30 @@ export function Appointments() {
           onClose={() => setShowCreateModal(false)}
           onAppointmentCreated={loadAppointments}
           clinicHours={clinicHours}
+        />
+      )}
+
+      {/* Share Appointment Modal */}
+      {showShareModal && selectedAppointment && (
+        <AppointmentShareModal
+          show={showShareModal}
+          onHide={() => {
+            setShowShareModal(false);
+            setSelectedAppointment(null);
+          }}
+          appointmentInfo={{
+            id: selectedAppointment.id,
+            client: {
+              full_name: selectedAppointment.client?.full_name,
+              email: selectedAppointment.client?.email
+            },
+            professional: {
+              full_name: selectedAppointment.professional?.full_name,
+              title: selectedAppointment.professional?.title
+            },
+            start_time: selectedAppointment.start_time,
+            meeting_url: selectedAppointment.meeting_url
+          }}
         />
       )}
     </div>
