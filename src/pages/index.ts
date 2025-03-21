@@ -19,4 +19,4 @@ export { TestCompleted } from './TestCompleted';
 export { Home } from './Home';
 export { Blog } from './Blog';
 export { BlogDetail } from './BlogDetail';
-export { BlogAdmin } from './BlogAdmin'; 
+export { BlogAdmin } from './BlogAdmin';
