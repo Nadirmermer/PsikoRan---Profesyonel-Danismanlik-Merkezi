@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../lib/theme';
+import logo2 from '../assets/logo/logo_2.png';
 
 export const AppLoader: React.FC = () => {
   const { isDarkMode, initializeTheme } = useTheme();
@@ -22,13 +23,23 @@ export const AppLoader: React.FC = () => {
     >
       <div className="flex flex-col items-center justify-center space-y-6 sm:space-y-8 px-4">
         <div className="relative">
-          <div className="flex items-center justify-center h-32 w-44 sm:h-40 sm:w-56">
+          <motion.div 
+            className="flex items-center justify-center h-32 w-44 sm:h-40 sm:w-56"
+            animate={{ 
+              rotate: 360 
+            }}
+            transition={{ 
+              repeat: Infinity, 
+              duration: 6,
+              ease: "linear"
+            }}
+          >
             <img 
-              src="/app-logo-md.png" 
+              src={logo2} 
               alt="PsikoRan Logo" 
               className="h-full w-full object-contain"
             />
-          </div>
+          </motion.div>
         </div>
         
         <div className="flex flex-col items-center space-y-3 sm:space-y-4 text-center">

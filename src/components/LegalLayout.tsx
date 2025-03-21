@@ -1,4 +1,7 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTheme } from '../lib/theme';
+import logo1 from '../assets/logo/logo_1.png';
 
 interface LegalLayoutProps {
   children: React.ReactNode;
@@ -16,7 +19,7 @@ export function LegalLayout({ children, title, description }: LegalLayoutProps) 
             <Link to="/" className="flex items-center space-x-3">
               <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
                 <img 
-                  src="/app-logo-md.png" 
+                  src={logo1} 
                   alt="PsikoRan Logo" 
                   className="h-5 w-5 object-contain"
                 />

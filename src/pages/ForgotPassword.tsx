@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ArrowLeft, Mail } from 'lucide-react';
+import logo1 from '../assets/logo/logo_1.png';
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -37,7 +38,7 @@ export function ForgotPassword() {
         <div className="flex items-center justify-center space-x-3 mb-12">
           <div className="h-12 w-12 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
             <img 
-              src="/app-logo-sm.png" 
+              src={logo1} 
               alt="PsikoRan Logo" 
               className="h-7 w-7 object-contain"
             />

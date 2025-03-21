@@ -1,6 +1,0 @@
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Bu bir basit placeholder logo örneğidir, gerçek tasarımla değiştirilmelidir -->
-  <rect width="512" height="512" rx="128" fill="#2A486C"/>
-  <path d="M128 192C128 153.399 159.399 122 198 122H314C352.601 122 384 153.399 384 192V320C384 358.601 352.601 390 314 390H198C159.399 390 128 358.601 128 320V192Z" fill="#4F46E5"/>
-  <text x="256" y="300" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="160" fill="white">P</text>
-</svg>

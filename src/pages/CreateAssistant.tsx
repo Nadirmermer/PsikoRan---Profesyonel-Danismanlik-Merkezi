@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { UserPlus, ArrowLeft, Mail, Lock, User, Phone, Eye, EyeOff, Building } from 'lucide-react';
 import { useAuth } from '../lib/auth';
+import logo1 from '../assets/logo/logo_1.png';
 
 export function CreateAssistant() {
   const navigate = useNavigate();
@@ -242,7 +243,7 @@ export function CreateAssistant() {
         <div className="relative z-10 max-w-xl mx-auto">
           <div className="flex items-center space-x-4 mb-16">
             <div className="h-16 w-32 flex items-center justify-center">
-              <img src="/app-logo-md.png" alt="PsikoRan Logo" className="h-full w-full object-contain" />
+              <img src={logo1} alt="PsikoRan Logo" className="h-full w-full object-contain" />
             </div>
             <h2 className="text-4xl font-bold text-slate-800 dark:text-white">
               PsikoRan
@@ -292,7 +293,7 @@ export function CreateAssistant() {
           {/* Mobil Logo */}
           <div className="flex lg:hidden items-center justify-center space-x-3 mb-12">
             <div className="h-12 w-24 flex items-center justify-center">
-              <img src="/app-logo-md.png" alt="PsikoRan Logo" className="h-full w-full object-contain" />
+              <img src={logo1} alt="PsikoRan Logo" className="h-full w-full object-contain" />
             </div>
             <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
               PsikoRan

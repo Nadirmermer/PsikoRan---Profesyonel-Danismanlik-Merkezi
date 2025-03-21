@@ -1,9 +1,9 @@
-import appLogo from '../assets/logo/app-logo.svg';
+import logo1 from '../assets/logo/logo_1.png';
 
 /**
  * Logo görselini PDF ve diğer uygulamalar için hazırlar
  * @returns Logo görselinin URL'si
  */
 export function getLogoUrl(): string {
-  return appLogo;
+  return logo1;
 } 

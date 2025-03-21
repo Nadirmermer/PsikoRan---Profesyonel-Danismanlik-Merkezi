@@ -8,17 +8,17 @@
       "type": "image/svg+xml"
     },
     {
-      "src": "app-logo-sm.png",
+      "src": "logo_2.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "app-logo-md.png",
+      "src": "logo_2.png",
       "type": "image/png",
       "sizes": "512x512"
     },
     {
-      "src": "app-logo-lg.png",
+      "src": "logo_2.png",
       "type": "image/png",
       "sizes": "1024x1024",
       "purpose": "any maskable"

@@ -17,6 +17,7 @@ import { tr } from 'date-fns/locale';
 import { useAuth } from '../lib/auth';
 import { CreateAppointmentModal } from '../components/CreateAppointmentModal';
 import { requestNotificationPermission } from '../utils/notificationUtils';
+import logo2 from '../assets/logo/logo_2.png';
 
 type ViewType = 'daily' | 'weekly' | 'monthly' | 'all';
 
@@ -662,8 +663,8 @@ export function Appointments() {
     // Test bildirimi gönder
     const notification = new Notification('Test Randevu Hatırlatması', {
       body: 'Bu bir test bildirimidir. Gerçek randevularınız için otomatik hatırlatmalar alacaksınız.',
-      icon: '/app-logo-md.png',
-      badge: '/favicon.svg',
+      icon: logo2,
+      badge: logo2,
       tag: 'test-notification'
     });
 

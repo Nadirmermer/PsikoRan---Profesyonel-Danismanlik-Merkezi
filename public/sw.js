@@ -54,9 +54,9 @@ self.addEventListener('push', (event) => {
   // Bildirim gösterme işlemini guarantee et
   event.waitUntil(
     self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: data.icon || '/app-logo-md.png',
-      badge: data.badge || '/favicon.svg',
+      body: data.body || 'Yeni bir bildiriminiz var',
+      icon: data.icon || '/logo_2.png',
+      badge: data.badge || '/logo_2.png',
       data: data.data || {},
       vibrate: [100, 50, 100], // Titreşim paterni (ms)
       actions: data.actions || [],

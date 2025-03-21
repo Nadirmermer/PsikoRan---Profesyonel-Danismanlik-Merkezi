@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { addDays, addHours, addMinutes, format, isAfter, isBefore } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import logo2 from '../assets/logo/logo_2.png';
 
 // Bildirimleri kaydetmek için bir fonksiyon
 export async function saveNotificationSubscription(
@@ -192,8 +193,8 @@ export function createReminderNotificationContent(appointment: any) {
   return {
     title: 'Yaklaşan Randevu Hatırlatması',
     body: `${formattedDate} tarihinde saat ${formattedTime}'de ${appointment.client?.full_name} ile randevunuz var.`,
-    icon: '/app-logo-md.png',
-    badge: '/favicon.svg',
+    icon: logo2,
+    badge: logo2,
     data: {
       url: '/appointments',
       appointmentId: appointment.id
