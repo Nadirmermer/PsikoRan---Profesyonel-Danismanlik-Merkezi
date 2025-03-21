@@ -357,16 +357,20 @@ export function Home() {
                 <Link to={`/blog/${post.slug}`} className="block h-48 overflow-hidden">
                   <img
                     src={post.cover_image}
-                      alt={post.title}
+                    alt={post.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      crossOrigin="anonymous"
-                      loading="lazy"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = 'https://via.placeholder.com/800x400/4F46E5/FFFFFF?text=PsikoRan+Blog';
+                    crossOrigin="anonymous"
+                    loading="lazy"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/assets/images/blog-placeholder.jpg';
+                      // Eğer yerel görsel de yüklenmezse logo_2.png'yi kullan
+                      target.onerror = () => {
+                        target.src = '/assets/images/logo_2.png';
                         target.onerror = null;
-                      }}
-                    />
+                      };
+                    }}
+                  />
                 </Link>
                 <div className="p-6">
                   <div className="flex items-center text-sm text-slate-500 dark:text-slate-400 mb-2">

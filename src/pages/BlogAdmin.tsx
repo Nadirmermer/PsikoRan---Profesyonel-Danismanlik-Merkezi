@@ -521,6 +521,15 @@ export function BlogAdmin() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  
+  // Kullanıcı tipi ve bağlı uzmanlar
+  const [userType, setUserType] = useState<'professional' | 'assistant' | null>(null);
+  const [professionalId, setProfessionalId] = useState<string | null>(null);
+  const [linkedProfessionals, setLinkedProfessionals] = useState<{id: string, full_name: string, title?: string}[]>([]);
+  const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
+  
+  // Yazı önizleme
+  const [showPreview, setShowPreview] = useState(false);
 
   // TipTap editör ayarları
   const editor = useEditor({
@@ -560,13 +569,18 @@ export function BlogAdmin() {
     // Kullanıcı bilgilerini alarak yazar adını otomatik doldur
     if (user) {
       const getUserMetadata = async () => {
+        // Önce kullanıcının uzman olup olmadığını kontrol et
         const { data: profileData, error: profileError } = await supabase
           .from('professionals')
-          .select('full_name, title')
+          .select('id, full_name, title')
           .eq('user_id', user.id)
           .single();
         
         if (profileData) {
+          // Kullanıcı bir ruh sağlığı uzmanı
+          setUserType('professional');
+          setProfessionalId(profileData.id);
+          
           const authorName = profileData.title 
             ? `${profileData.full_name}, ${profileData.title}` 
             : profileData.full_name;
@@ -576,17 +590,38 @@ export function BlogAdmin() {
             author: authorName
           }));
         } else {
+          // Kullanıcı bir asistan olabilir
           const { data: assistantData } = await supabase
             .from('assistants')
-            .select('full_name')
+            .select('id, full_name')
             .eq('user_id', user.id)
             .single();
             
           if (assistantData) {
-            setFormData(prev => ({
-              ...prev,
-              author: assistantData.full_name
-            }));
+            setUserType('assistant');
+            
+            // Asistanın bağlı olduğu uzmanları bul
+            const { data: linkedProfs } = await supabase
+              .from('professionals')
+              .select('id, full_name, title')
+              .eq('assistant_id', assistantData.id);
+              
+            if (linkedProfs && linkedProfs.length > 0) {
+              setLinkedProfessionals(linkedProfs);
+              // Varsayılan olarak ilk uzmanı seç
+              setSelectedProfessionalId(linkedProfs[0].id);
+              
+              // Yazar adını bağlı uzmanın adı olarak ayarla
+              const prof = linkedProfs[0];
+              const authorName = prof.title 
+                ? `${prof.full_name}, ${prof.title}` 
+                : prof.full_name;
+                
+              setFormData(prev => ({
+                ...prev,
+                author: authorName
+              }));
+            }
           }
         }
       };
@@ -653,6 +688,24 @@ export function BlogAdmin() {
     }
   };
 
+  // Dosya adını temizleme fonksiyonu
+  const sanitizeFileName = (filename: string): string => {
+    // Türkçe karakterleri değiştir
+    const turkishMap: {[key: string]: string} = {
+      'ğ': 'g', 'Ğ': 'G', 'ü': 'u', 'Ü': 'U', 'ş': 's', 'Ş': 'S',
+      'ı': 'i', 'İ': 'I', 'ö': 'o', 'Ö': 'O', 'ç': 'c', 'Ç': 'C'
+    };
+    
+    // Önce Türkçe karakterleri değiştir
+    let sanitized = filename;
+    Object.keys(turkishMap).forEach(char => {
+      sanitized = sanitized.replace(new RegExp(char, 'g'), turkishMap[char]);
+    });
+    
+    // Boşlukları ve özel karakterleri temizle, sadece alfanumerik, nokta, alt çizgi ve tire karakterlerini koru
+    return sanitized.replace(/[^a-zA-Z0-9._-]/g, '_');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -661,40 +714,135 @@ export function BlogAdmin() {
 
     try {
       const postData = prepareFormData();
-      let imageUrl = editingPost?.cover_image || '/assets/images/blog/default-post.jpg';
+      let imageUrl = editingPost?.cover_image || '/assets/images/blog-placeholder.jpg'; // Varsayılan görsel yolunu düzelt
 
       // Görsel yükleme işlemi varsa
       if (imageFile) {
         // Önce eski görseli sil (düzenleme durumunda)
-        if (editingPost?.cover_image && editingPost.cover_image !== '/assets/images/blog/default-post.jpg') {
-          const oldImagePath = editingPost.cover_image.split('/').pop();
+        if (editingPost?.cover_image && !editingPost.cover_image.includes('/assets/images/')) {
+          // Timestamp ve diğer query parametrelerini temizle (? karakterinden sonrasını kaldır)
+          const oldImagePath = editingPost.cover_image.split('?')[0].split('/').pop();
           if (oldImagePath) {
-            const { error: deleteError } = await supabase.storage
-              .from('blog_images')
-              .remove([oldImagePath]);
-            
-            if (deleteError) {
-              console.error('Eski görsel silinirken hata oluştu:', deleteError);
+            try {
+              const { error: deleteError } = await supabase.storage
+                .from('blog')
+                .remove([oldImagePath]);
+              
+              if (deleteError) {
+                console.error('Eski görsel silinirken hata oluştu:', deleteError);
+                // Hatayı kaydet ama işlemi durdurmamak için fırlatma
+              }
+            } catch (deleteErr) {
+              console.error('Eski görsel silme işlemi başarısız:', deleteErr);
+              // Hatayı kaydet ama işlemi durdurmamak için fırlatma
             }
           }
         }
 
-        // Yeni görseli yükle
-        const fileName = `${Date.now()}_${imageFile.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('blog_images')
-          .upload(fileName, imageFile);
-
-        if (uploadError) {
-          throw new Error(`Görsel yüklenirken hata oluştu: ${uploadError.message}`);
+        // Dosya adını temizle
+        const safeFileName = sanitizeFileName(imageFile.name);
+        const fileName = `${Date.now()}_${safeFileName}`;
+        
+        // Dosya tipini kontrol et
+        const fileExt = safeFileName.split('.').pop()?.toLowerCase() || '';
+        const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+        
+        // Dosya uzantısı ve MIME tipi kontrolü
+        if (!allowedExts.includes(fileExt) || !allowedMimeTypes.includes(imageFile.type)) {
+          throw new Error('Desteklenmeyen dosya formatı. Lütfen geçerli bir resim dosyası seçin (jpg, jpeg, png, gif, webp, svg)');
+        }
+        
+        // Dosya boyutu kontrolü (10MB'dan büyük olmamalı)
+        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        if (imageFile.size > MAX_FILE_SIZE) {
+          throw new Error('Dosya boyutu çok büyük. Maksimum 10MB boyutunda dosya yükleyebilirsiniz.');
         }
 
-        const { data: urlData } = await supabase.storage
-          .from('blog_images')
-          .getPublicUrl(fileName);
+        // Yeni görseli yükle
+        try {
+          // Bucket kontrolünü sadeleştir
+          let bucket = 'blog';
+          
+          // Varsayılan olarak blog bucketını kullan, hata alınırsa public bucketını dene
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from(bucket)
+            .upload(`${fileName}`, imageFile, {
+              cacheControl: '3600', // 1 saat önbellek
+              upsert: true, // Aynı isimde dosya varsa üzerine yaz
+              contentType: imageFile.type // MIME tipini belirt
+            });
 
-        if (urlData) {
-          imageUrl = urlData.publicUrl;
+          if (uploadError) {
+            console.error('Blog bucket yükleme hatası, public bucket deneniyor:', uploadError);
+            
+            // Blog bucket hatası durumunda public bucket'ı dene
+            const { data: publicUploadData, error: publicUploadError } = await supabase.storage
+              .from('public')
+              .upload(`${fileName}`, imageFile, {
+                cacheControl: '3600',
+                upsert: true,
+                contentType: imageFile.type
+              });
+              
+            if (publicUploadError) {
+              console.error('Public bucket yükleme hatası:', publicUploadError);
+              throw new Error(`Görsel yüklenirken hata oluştu: ${publicUploadError.message}`);
+            } else {
+              // Public bucket başarılı olursa, bucket değişkenini güncelle
+              bucket = 'public';
+              console.log('Görsel public bucket\'a başarıyla yüklendi');
+            }
+          } else {
+            console.log('Görsel blog bucket\'a başarıyla yüklendi');
+          }
+
+          // Görsel URL'ini al ve her zaman farklı cache busting parametresi ekle
+          const { data: urlData } = await supabase.storage
+            .from(bucket)
+            .getPublicUrl(`${fileName}`);
+
+          if (urlData) {
+            // Farklı bir parametre ismi kullan (t yerine v kullan)
+            const cacheBuster = new Date().getTime();
+            imageUrl = `${urlData.publicUrl}?v=${cacheBuster}`;
+            console.log('Yüklenen resim URL:', imageUrl);
+          } else {
+            throw new Error('Görsel URL\'i alınamadı');
+          }
+        } catch (uploadErr: any) {
+          console.error('Görsel yükleme işlemi başarısız:', uploadErr);
+          
+          // Yükleme başarısız olursa placeholder kullan
+          imageUrl = '/assets/images/blog-placeholder.jpg';
+          
+          setErrorMessage(`Görsel yükleme sırasında bir hata oluştu, varsayılan görsel kullanılacak: ${uploadErr.message || 'Beklenmeyen bir hata oluştu'}`);
+          // İşlemi durdurmadan devam et
+        }
+      }
+
+      // Mevcut kullanıcının kimliğini al
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Kullanıcı oturumu bulunamadı.');
+      }
+
+      // Kullanıcı tipine göre author_id ayarla
+      let authorId = user.id;
+
+      if (userType === 'professional') {
+        authorId = user.id; // Zaten kendi ID'si
+      } else if (userType === 'assistant' && selectedProfessionalId) {
+        // Seçilen uzmanın user_id'sini bul
+        const { data: profData } = await supabase
+          .from('professionals')
+          .select('user_id')
+          .eq('id', selectedProfessionalId)
+          .single();
+          
+        if (profData && profData.user_id) {
+          authorId = profData.user_id;
         }
       }
 
@@ -705,6 +853,7 @@ export function BlogAdmin() {
           .update({
             ...postData,
             cover_image: imageUrl,
+            author_id: authorId,
             updated_at: new Date().toISOString()
           })
           .eq('id', editingPost.id);
@@ -717,6 +866,7 @@ export function BlogAdmin() {
           .insert([{
             ...postData,
             cover_image: imageUrl,
+            author_id: authorId,
             created_at: new Date().toISOString()
           }]);
 
@@ -764,7 +914,10 @@ export function BlogAdmin() {
   }
 
   const handleEditPost = (post: BlogPost) => {
+    setFormMode('edit');
     setEditingPost(post);
+    
+    // Post içeriğini forma yükle
     setFormData({
       title: post.title,
       slug: post.slug,
@@ -776,7 +929,18 @@ export function BlogAdmin() {
       is_published: post.is_published,
       reading_time: post.reading_time || 0
     });
-    setImagePreview(post.cover_image);
+    
+    // Görsel URL'ini ayarla
+    if (post.cover_image) {
+      // Her zaman yeni timestamp ekle (cache busting)
+      const timestamp = new Date().getTime();
+      const imageUrl = post.cover_image.includes('?') 
+        ? post.cover_image.split('?')[0] + `?t=${timestamp}` // Mevcut parametreleri temizle
+        : `${post.cover_image}?t=${timestamp}`;
+        
+      setImagePreview(imageUrl);
+    }
+    
     setShowForm(true);
     window.scrollTo(0, 0);
   };
@@ -834,61 +998,61 @@ export function BlogAdmin() {
             </button>
             <h1 className="text-2xl font-bold text-white">Blog Yönetimi</h1>
           </div>
-        <button
-          onClick={() => {
+          <button
+            onClick={() => {
               setFormMode('create');
               setEditingPost(null);
-            resetForm();
+              resetForm();
               setShowForm(true);
             }}
             className="px-4 py-2 bg-white text-primary-700 hover:bg-primary-50 rounded-lg font-medium flex items-center transition-colors shadow-sm"
           >
             <Plus className="h-4 w-4 mr-1.5" />
-              Yeni Yazı
-        </button>
+            Yeni Yazı
+          </button>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {successMessage && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
+        {successMessage && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             className="mb-6 p-4 rounded-lg bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200"
           >
             <div className="flex items-center">
               <Check className="h-5 w-5 mr-2 flex-shrink-0" />
               <span>{successMessage}</span>
-            <button 
-              onClick={() => setSuccessMessage(null)}
+              <button 
+                onClick={() => setSuccessMessage(null)}
                 className="ml-auto p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-full"
-            >
+              >
                 <X className="h-4 w-4" />
-            </button>
-          </div>
-        </motion.div>
-      )}
+              </button>
+            </div>
+          </motion.div>
+        )}
 
-      {errorMessage && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
+        {errorMessage && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             className="mb-6 p-4 rounded-lg bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200"
           >
             <div className="flex items-center">
               <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
               <span>{errorMessage}</span>
-            <button 
-              onClick={() => setErrorMessage(null)}
+              <button 
+                onClick={() => setErrorMessage(null)}
                 className="ml-auto p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-full"
-            >
+              >
                 <X className="h-4 w-4" />
-            </button>
-          </div>
-        </motion.div>
-      )}
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {showForm ? (
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 border border-slate-200 dark:border-slate-700">
@@ -906,40 +1070,40 @@ export function BlogAdmin() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+                <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Başlık
                   </label>
-            <input
-              type="text"
+                  <input
+                    type="text"
                     name="title"
-              value={formData.title}
-              onChange={(e) => {
-                setFormData({ ...formData, title: e.target.value });
-                if (!editingPost) {
-                  setFormData(prev => ({
-                    ...prev,
-                    slug: slugify(e.target.value.toLowerCase(), { lower: true, strict: true })
-                  }));
-                }
-              }}
+                    value={formData.title}
+                    onChange={(e) => {
+                      setFormData({ ...formData, title: e.target.value });
+                      if (!editingPost) {
+                        setFormData(prev => ({
+                          ...prev,
+                          slug: slugify(e.target.value.toLowerCase(), { lower: true, strict: true })
+                        }));
+                      }
+                    }}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
                               bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                               focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     required
-            />
-          </div>
-          
-          <div>
+                  />
+                </div>
+                
+                <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Slug (URL)
                   </label>
                   <div className="flex items-center">
-            <input
-              type="text"
+                    <input
+                      type="text"
                       name="slug"
-              value={formData.slug}
-              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                      value={formData.slug}
+                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
                                 bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                                 focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
@@ -955,107 +1119,153 @@ export function BlogAdmin() {
                     </button>
                   </div>
                 </div>
-          </div>
-          
-          <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Kısa Açıklama
-                </label>
-            <textarea
-                  name="excerpt"
-              value={formData.excerpt}
-              onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-              rows={3}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
-                            bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
-                            focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
-                  required
-            />
-          </div>
-          
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
+                
+                <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Yazar
+                    Kısa Açıklama
                   </label>
-              <input
-              type="text"
-                    name="author"
-              value={formData.author}
-              onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                  <textarea
+                    name="excerpt"
+                    value={formData.excerpt}
+                    onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+                    rows={3}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
                               bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                               focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     required
-            />
-          </div>
-          
-          <div>
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Yazar
+                  </label>
+                  {userType === 'professional' ? (
+                    // Profesyonel kullanıcılar için salt okunur yazar alanı
+                    <input
+                      type="text"
+                      name="author"
+                      value={formData.author}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
+                                bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white 
+                                cursor-not-allowed"
+                      readOnly
+                    />
+                  ) : userType === 'assistant' ? (
+                    // Asistanlar için uzman seçimi
+                    <select
+                      value={selectedProfessionalId || ''}
+                      onChange={(e) => {
+                        const profId = e.target.value;
+                        setSelectedProfessionalId(profId);
+                        
+                        // Seçilen uzmanın adını yazar olarak ayarla
+                        const selectedProf = linkedProfessionals.find(p => p.id === profId);
+                        if (selectedProf) {
+                          const authorName = selectedProf.title 
+                            ? `${selectedProf.full_name}, ${selectedProf.title}` 
+                            : selectedProf.full_name;
+                            
+                          setFormData(prev => ({
+                            ...prev,
+                            author: authorName
+                          }));
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
+                                bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                                focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                      required
+                    >
+                      {linkedProfessionals.map(prof => (
+                        <option key={prof.id} value={prof.id}>
+                          {prof.title ? `${prof.full_name}, ${prof.title}` : prof.full_name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    // Diğer durumlar için normal input
+                    <input
+                      type="text"
+                      name="author"
+                      value={formData.author}
+                      onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
+                                bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                                focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                      required
+                    />
+                  )}
+                </div>
+                
+                <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Kategori
                   </label>
                   <input
                     type="text"
                     name="category"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
                               bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                               focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                     required
                   />
-          </div>
-          
-          <div>
+                </div>
+                
+                <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Etiketler (virgülle ayırın)
                   </label>
-            <input
-              type="text"
+                  <input
+                    type="text"
                     name="tags"
-              value={formData.tags}
-              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                    value={formData.tags}
+                    onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                     placeholder="örn: Psikoloji, Danışmanlık, Terapi"
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
                               bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                               focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
                   />
                 </div>
-          </div>
-          
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+                <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Okuma Süresi (dakika)
                   </label>
-            <input
-              type="number"
+                  <input
+                    type="number"
                     name="reading_time"
-              value={formData.reading_time}
-              onChange={(e) => setFormData({ ...formData, reading_time: parseInt(e.target.value) })}
+                    value={formData.reading_time}
+                    onChange={(e) => setFormData({ ...formData, reading_time: parseInt(e.target.value) })}
                     min="1"
                     max="60"
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
                               bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                               focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
-            />
-          </div>
-          
-          <div className="flex items-center">
+                  />
+                </div>
+                
+                <div className="flex items-center">
                   <label className="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-            <input
-              type="checkbox"
+                    <input
+                      type="checkbox"
                       name="is_published"
-              checked={formData.is_published}
-              onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })}
+                      checked={formData.is_published}
+                      onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })}
                       className="h-4 w-4 rounded border border-slate-300 dark:border-slate-600 
                                 text-primary-600 focus:ring-primary-500 mr-2"
-            />
-              Yayınla
-            </label>
+                    />
+                    Yayınla
+                  </label>
                 </div>
-          </div>
-          
+              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Kapak Görseli
@@ -1075,7 +1285,7 @@ export function BlogAdmin() {
                         <div className="flex justify-center">
                           <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 48 48">
                             <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                  </svg>
+                          </svg>
                         </div>
                         <div className="mt-1 text-sm">
                           {imageFile ? imageFile.name : 'Görsel yüklemek için tıklayın veya sürükleyin'}
@@ -1084,12 +1294,35 @@ export function BlogAdmin() {
                     </label>
                   </div>
                   {imagePreview && (
-                    <div className="w-32 h-32 flex-shrink-0">
+                    <div className="w-32 h-32 flex-shrink-0 relative">
                       <img
                         src={imagePreview}
                         alt="Önizleme"
                         className="w-full h-full object-cover rounded-md shadow-sm"
+                        onError={(e) => {
+                          console.log('Önizleme görseli yüklenemedi, yedek görsel kullanılıyor');
+                          const imgElement = e.currentTarget;
+                          // Hata durumunda varsayılan görsel göster - data: URL'leri için atla
+                          if (!imagePreview.startsWith('data:')) {
+                            // URL'de v parametresi yoksa ekle (cache busting)
+                            if (!imagePreview.includes('?v=')) {
+                              const newSrc = imagePreview + '?v=' + new Date().getTime();
+                              imgElement.src = newSrc;
+                            } else {
+                              // Yine de yüklenemezse varsayılan görseli kullan
+                              imgElement.src = '/assets/images/blog-placeholder.jpg';
+                              imgElement.onerror = null; // Sonsuz döngüyü önle
+                            }
+                          }
+                        }}
                       />
+                      <button
+                        type="button"
+                        onClick={clearImagePreview}
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full shadow-sm hover:bg-red-600 transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1109,17 +1342,28 @@ export function BlogAdmin() {
               </div>
 
               <div className="flex items-center justify-end space-x-3">
-            <button
-              type="button"
-              onClick={() => {
+                <button
+                  type="button"
+                  onClick={() => {
                     resetForm();
-                setShowForm(false);
+                    setShowForm(false);
                   }}
                   className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 
                             dark:hover:bg-slate-700 rounded-md transition-colors"
-            >
-              İptal
-            </button>
+                >
+                  İptal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(true)}
+                  className="px-4 py-2 bg-slate-600 hover:bg-slate-700 dark:bg-slate-700
+                            dark:hover:bg-slate-600 text-white rounded-md transition-colors
+                            flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2
+                            focus:ring-slate-500 mr-2"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Önizle
+                </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
@@ -1145,24 +1389,24 @@ export function BlogAdmin() {
                     </>
                   )}
                 </button>
-          </div>
-        </form>
+              </div>
+            </form>
           </div>
         ) : (
           <div className="space-y-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">Blog Yazıları</h2>
               <div className="flex items-center space-x-2">
-            <button
+                <button
                   onClick={() => fetchPosts()}
                   className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
                   title="Yenile"
-            >
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="h-5 w-5 text-slate-600 dark:text-slate-400">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-            </button>
-          </div>
+                </button>
+              </div>
             </div>
 
             {isLoading ? (
@@ -1174,8 +1418,8 @@ export function BlogAdmin() {
                 <div className="divide-y divide-slate-200 dark:divide-slate-700">
                   {posts.map(post => (
                     <div key={post.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                    <div className="flex flex-col sm:flex-row sm:justify-between">
-                      <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row sm:justify-between">
+                        <div className="flex-1">
                           <h4 className="text-lg font-medium text-slate-900 dark:text-white">{post.title}</h4>
                           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 truncate">{post.excerpt}</p>
                           <div className="mt-2 flex items-center flex-wrap gap-2 text-sm text-slate-500 dark:text-slate-400">
@@ -1198,27 +1442,46 @@ export function BlogAdmin() {
                               {post.is_published ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
                               {post.is_published ? 'Yayında' : 'Taslak'}
                             </span>
+                          </div>
+                        </div>
+                        <div className="mt-2 sm:mt-0 sm:ml-4 flex items-start">
+                          {post.cover_image && (
+                            <div className="hidden sm:block w-16 h-16 mr-3">
+                              <img 
+                                src={post.cover_image.includes('?') 
+                                  ? post.cover_image // Zaten parametre varsa değiştirme
+                                  : `${post.cover_image}?t=${new Date().getTime()}`} 
+                                alt={post.title}
+                                className="w-full h-full object-cover rounded-md shadow-sm"
+                                onError={(e) => {
+                                  console.log('Görsel yüklenemedi, yedek görsel kullanılıyor');
+                                  const imgElement = e.currentTarget;
+                                  imgElement.src = '/assets/images/blog-placeholder.jpg';
+                                  imgElement.onerror = null; // Sonsuz döngüyü önle
+                                }}
+                              />
+                            </div>
+                          )}
+                          <div className="flex">
+                            <button
+                              onClick={() => handleEditPost(post)}
+                              className="inline-flex items-center mr-2 p-1.5 border border-transparent rounded-md text-blue-600 hover:bg-blue-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span className="sr-only">Düzenle</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeletePost(post.id)}
+                              className="inline-flex items-center p-1.5 border border-transparent rounded-md text-red-600 hover:bg-red-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                            >
+                              <Trash className="h-4 w-4" />
+                              <span className="sr-only">Sil</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      <div className="mt-2 sm:mt-0 sm:ml-4 flex">
-                        <button
-                          onClick={() => handleEditPost(post)}
-                            className="inline-flex items-center mr-2 p-1.5 border border-transparent rounded-md text-blue-600 hover:bg-blue-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <Edit className="h-4 w-4" />
-                          <span className="sr-only">Düzenle</span>
-                        </button>
-                        <button
-                          onClick={() => handleDeletePost(post.id)}
-                            className="inline-flex items-center p-1.5 border border-transparent rounded-md text-red-600 hover:bg-red-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-                        >
-                          <Trash className="h-4 w-4" />
-                          <span className="sr-only">Sil</span>
-                        </button>
-                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
                 </div>
               </div>
             ) : (
@@ -1240,9 +1503,110 @@ export function BlogAdmin() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* Yazı Önizleme Modalı */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-auto">
+            <div className="sticky top-0 z-10 bg-white dark:bg-slate-800 p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                Yazı Önizleme
+              </h3>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500 dark:text-slate-400"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {/* Başlık */}
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+                {formData.title}
+              </h1>
+              
+              {/* Kapak Görseli */}
+              {imagePreview && (
+                <div className="mb-6 rounded-lg overflow-hidden shadow-md">
+                  <img 
+                    src={imagePreview}
+                    alt={formData.title} 
+                    className="w-full max-h-[400px] object-cover"
+                    onError={(e) => {
+                      console.log('Önizleme görseli yüklenemedi, yedek görsel kullanılıyor');
+                      const imgElement = e.currentTarget;
+                      // Veri URL'si değilse ve yüklenemezse yedek görsel göster
+                      if (!imagePreview.startsWith('data:')) {
+                        // URL'de v parametresi yoksa ekle (cache busting)
+                        if (!imagePreview.includes('?v=')) {
+                          const newSrc = imagePreview + '?v=' + new Date().getTime();
+                          imgElement.src = newSrc;
+                        } else {
+                          // Yine de yüklenemezse varsayılan görseli kullan
+                          imgElement.src = '/assets/images/blog-placeholder.jpg';
+                          imgElement.onerror = null; // Sonsuz döngüyü önle
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              )}
+              
+              {/* Meta Bilgiler */}
+              <div className="flex flex-wrap gap-3 mb-6 text-sm text-slate-600 dark:text-slate-400">
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-1.5" />
+                  {new Date().toLocaleDateString('tr-TR', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </div>
+                <div className="flex items-center">
+                  <User className="h-4 w-4 mr-1.5" />
+                  {formData.author}
+                </div>
+                <div className="flex items-center">
+                  <Tag className="h-4 w-4 mr-1.5" />
+                  {formData.category}
+                </div>
+                <div className="flex items-center">
+                  <Clock className="h-4 w-4 mr-1.5" />
+                  {formData.reading_time || 0} dk okuma süresi
+                </div>
+              </div>
+              
+              {/* Etiketler */}
+              {formData.tags && (
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {formData.tags.split(',').map((tag, index) => (
+                    <span 
+                      key={index}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300"
+                    >
+                      {tag.trim()}
+                    </span>
+                  ))}
+                </div>
+              )}
+              
+              {/* Özet */}
+              <div className="mb-6 text-lg italic text-slate-600 dark:text-slate-300 border-l-4 border-primary-500 pl-4 py-2">
+                {formData.excerpt}
+              </div>
+              
+              {/* İçerik */}
+              <div className="prose prose-lg max-w-none prose-slate dark:prose-invert" 
+                dangerouslySetInnerHTML={{ __html: formData.content }}
+              />
+            </div>
+          </div>
         </div>
       )}
-      </div>
     </div>
   );
 } 

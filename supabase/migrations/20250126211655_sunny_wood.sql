@@ -931,19 +931,31 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 INSERT INTO storage.buckets (id, name, public, avif_autodetection)
 VALUES ('blog', 'blog', true, false);
 
--- Blog bucket'ı için erişim politikaları
+-- Önceki blog bucket politikalarını temizle
+DROP POLICY IF EXISTS "Blog görselleri herkes tarafından görüntülenebilir" ON storage.objects;
+DROP POLICY IF EXISTS "Kimlik doğrulanmış kullanıcılar blog görsellerini yükleyebilir" ON storage.objects;
+DROP POLICY IF EXISTS "Kimlik doğrulanmış kullanıcılar kendi yükledikleri blog görsellerini silebilir" ON storage.objects;
+
+-- Daha esnek yeni blog bucket politikaları
+-- Herkes tarafından görüntülenebilir (public)
 CREATE POLICY "Blog görselleri herkes tarafından görüntülenebilir" ON storage.objects
   FOR SELECT
   USING (bucket_id = 'blog');
 
--- Blog görselleri için kimlik doğrulanmış kullanıcı erişim politikaları
+-- Kimlik doğrulanmış kullanıcılar yükleyebilir (owner kontrolü yok)
 CREATE POLICY "Kimlik doğrulanmış kullanıcılar blog görsellerini yükleyebilir" ON storage.objects
   FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'blog');
 
-CREATE POLICY "Kimlik doğrulanmış kullanıcılar kendi yükledikleri blog görsellerini silebilir" ON storage.objects
+-- Kimlik doğrulanmış kullanıcılar herhangi bir görüntüyü güncelleyebilir
+CREATE POLICY "Kimlik doğrulanmış kullanıcılar blog görsellerini güncelleyebilir" ON storage.objects
+  FOR UPDATE TO authenticated
+  USING (bucket_id = 'blog');
+
+-- Kimlik doğrulanmış kullanıcılar herhangi bir dosyayı silebilir (owner kontrolü yok)
+CREATE POLICY "Kimlik doğrulanmış kullanıcılar blog görsellerini silebilir" ON storage.objects
   FOR DELETE TO authenticated
-  USING (bucket_id = 'blog' AND auth.uid() = owner);
+  USING (bucket_id = 'blog');
 
 -- Blog fonksiyonlarına erişim izinleri
 GRANT EXECUTE ON FUNCTION get_blog_categories TO authenticated, anon;

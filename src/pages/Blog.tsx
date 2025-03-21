@@ -342,8 +342,12 @@ export function Blog() {
                       loading="lazy"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.src = 'https://via.placeholder.com/800x500/4F46E5/FFFFFF?text=PsikoRan+Blog';
-                        target.onerror = null;
+                        target.src = '/assets/images/blog-placeholder.jpg';
+                        // Eğer yerel görsel de yüklenmezse logo_2.png'yi kullan
+                        target.onerror = () => {
+                          target.src = '/assets/images/logo_2.png';
+                          target.onerror = null;
+                        };
                       }}
                     />
                     <div className="absolute top-3 left-3">

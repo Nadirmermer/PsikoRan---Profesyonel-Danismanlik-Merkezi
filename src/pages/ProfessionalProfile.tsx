@@ -413,7 +413,7 @@ export function ProfessionalProfile() {
                           <div className="flex-shrink-0 mr-4">
                             <div className="h-14 w-14 rounded-md overflow-hidden">
                               <img
-                                src={blog.cover_image || `https://via.placeholder.com/150x150/4F46E5/FFFFFF?text=Blog`}
+                                src={blog.cover_image || `/assets/images/blog-placeholder.jpg`}
                                 alt={blog.title}
                                 className="h-full w-full object-cover"
                               />

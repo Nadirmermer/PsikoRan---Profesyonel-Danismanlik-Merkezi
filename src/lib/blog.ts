@@ -28,7 +28,7 @@ export const sampleBlogPosts: BlogPost[] = [
       <p>Danışan ve terapist arasında güven ilişkisinin kurulması büyük önem taşır. <strong>Dr. Mehmet Yılmaz</strong> danışanlarıyla ilk görüşmede bu ilişkiyi kurmaya özen gösterir.</p>
       <p>Daha fazla bilgi için lütfen uzmanlarımızla iletişime geçin.</p>
     `,
-    cover_image: "https://via.placeholder.com/800x500/4F46E5/FFFFFF?text=Danışmanlık",
+    cover_image: "/assets/images/blog-placeholder.jpg",
     author: "Dr. Mehmet Yılmaz",
     published_at: "2023-05-15T10:00:00Z",
     category: "Psikoloji",
