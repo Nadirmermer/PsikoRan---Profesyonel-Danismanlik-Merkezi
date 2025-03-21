@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" 
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <!-- Ana Sayfa -->
   <url>
     <loc>https://psikoran.com/</loc>
-    <lastmod>2023-11-30</lastmod>
+    <lastmod>2024-07-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
@@ -11,59 +12,111 @@
       <image:title>PsikoRan - Profesyonel Danışmanlık Merkezi</image:title>
     </image:image>
   </url>
+  
+  <!-- Kimlik Doğrulama Sayfaları -->
   <url>
     <loc>https://psikoran.com/login</loc>
-    <lastmod>2023-11-30</lastmod>
+    <lastmod>2024-07-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://psikoran.com/register</loc>
-    <lastmod>2023-11-30</lastmod>
+    <lastmod>2024-07-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://psikoran.com/create-assistant</loc>
+    <lastmod>2024-07-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://psikoran.com/about</loc>
-    <lastmod>2023-11-30</lastmod>
+    <loc>https://psikoran.com/forgot-password</loc>
+    <lastmod>2024-07-01</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-    <image:image>
-      <image:loc>https://psikoran.com/assets/meta/about-image.jpg</image:loc>
-      <image:title>Hakkımızda - PsikoRan</image:title>
-    </image:image>
+    <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://psikoran.com/pricing</loc>
-    <lastmod>2023-11-30</lastmod>
+    <loc>https://psikoran.com/reset-password</loc>
+    <lastmod>2024-07-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <!-- Uygulama Sayfaları (Oturum Gerektiren) -->
+  <url>
+    <loc>https://psikoran.com/professionals</loc>
+    <lastmod>2024-07-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://psikoran.com/clients</loc>
+    <lastmod>2024-07-01</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://psikoran.com/appointments</loc>
+    <lastmod>2024-07-01</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://psikoran.com/payments</loc>
+    <lastmod>2024-07-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://psikoran.com/settings</loc>
+    <lastmod>2024-07-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
+  </url>
+  
+  <!-- Bilgilendirme Sayfaları -->
+  <url>
+    <loc>https://psikoran.com/privacy</loc>
+    <lastmod>2024-07-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://psikoran.com/terms</loc>
+    <lastmod>2024-07-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://psikoran.com/kvkk</loc>
+    <lastmod>2024-07-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
   </url>
   <url>
     <loc>https://psikoran.com/contact</loc>
-    <lastmod>2023-11-30</lastmod>
+    <lastmod>2024-07-01</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.6</priority>
     <image:image>
       <image:loc>https://psikoran.com/assets/meta/contact-image.jpg</image:loc>
       <image:title>İletişim - PsikoRan</image:title>
     </image:image>
   </url>
   <url>
-    <loc>https://psikoran.com/blog</loc>
-    <lastmod>2023-11-30</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://psikoran.com/privacy-policy</loc>
-    <lastmod>2023-11-30</lastmod>
+    <loc>https://psikoran.com/help</loc>
+    <lastmod>2024-07-01</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
+    <priority>0.6</priority>
   </url>
+  
+  <!-- Test Tamamlama Sayfası -->
   <url>
-    <loc>https://psikoran.com/terms-of-service</loc>
-    <lastmod>2023-11-30</lastmod>
+    <loc>https://psikoran.com/test-completed</loc>
+    <lastmod>2024-07-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
