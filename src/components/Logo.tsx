@@ -1,5 +1,5 @@
 import React from 'react';
-import logo1 from '../assets/logo/logo_1.png';
+import logo2 from '../assets/logo/logo_2.png';
 
 interface LogoProps {
   size?: 'small' | 'medium' | 'large';
@@ -55,7 +55,7 @@ export const Logo: React.FC<LogoProps> = ({
     <div className="flex items-center space-x-3">
       <div className={`${sizes[size].container} rounded-lg overflow-hidden`}>
         <img 
-          src={logo1} 
+          src={logo2} 
           alt="PsikoRan Logo" 
           className="w-full h-full object-contain"
         />
@@ -77,7 +77,7 @@ export const Logo: React.FC<LogoProps> = ({
  */
 export const LogoSVG: React.FC = () => (
   <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <image href={logo1} width="60" height="60" x="0" y="0" />
+    <image href={logo2} width="60" height="60" x="0" y="0" />
   </svg>
 );
 

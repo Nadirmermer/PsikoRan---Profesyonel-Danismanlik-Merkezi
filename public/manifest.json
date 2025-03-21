@@ -3,9 +3,9 @@
   "name": "PsikoRan - Profesyonel Danışmanlık Merkezi",
   "icons": [
     {
-      "src": "favicon.svg",
+      "src": "logo_2.png",
       "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/svg+xml"
+      "type": "image/png"
     },
     {
       "src": "logo_2.png",

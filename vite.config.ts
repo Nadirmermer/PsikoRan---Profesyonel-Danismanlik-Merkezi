@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'logo_1.png', 'logo_2.png'],
+      includeAssets: ['logo_2.png'],
       manifest: {
         name: 'PsikoRan - Profesyonel Danışmanlık Merkezi',
         short_name: 'PsikoRan',
@@ -19,9 +19,9 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: 'favicon.svg',
+            src: 'logo_2.png',
             sizes: '64x64 32x32 24x24 16x16',
-            type: 'image/svg+xml'
+            type: 'image/png'
           },
           {
             src: 'logo_2.png',
