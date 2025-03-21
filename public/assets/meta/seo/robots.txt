@@ -6,11 +6,11 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 Disallow: /*.json$
-Disallow: /sw.js
-Disallow: /offline.html
+Disallow: /assets/pwa/sw.js
+Disallow: /assets/pages/offline.html
 
 # Sitemap URL
-Sitemap: https://psikoran.com/sitemap.xml
+Sitemap: https://psikoran.com/assets/meta/seo/sitemap.xml
 
 # Özel crawl oranı
 Crawl-delay: 10
