@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Çevrimdışı - PsikoRan</title>
+  <link rel="icon" href="icons/logo_2-192x192.png" type="image/png" />
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <style>
+    :root {
+      --primary-color: #4f46e5;
+      --dark-color: #1e293b;
+      --light-color: #f8fafc;
+      --danger-color: #ef4444;
+      --success-color: #10b981;
+      --white: #ffffff;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: var(--dark-color);
+      background-color: var(--light-color);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    .main-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    
+    .offline-icon {
+      font-size: 4rem;
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+    }
+    
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+      max-width: 600px;
+    }
+    
+    .card {
+      background-color: var(--white);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 2rem;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 2rem;
+    }
+    
+    .btn {
+      display: inline-block;
+      background-color: var(--primary-color);
+      color: var(--white);
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: opacity 0.3s ease;
+      margin: 0.5rem;
+    }
+    
+    .btn:hover {
+      opacity: 0.9;
+    }
+    
+    .btn-outline {
+      background-color: transparent;
+      border: 1px solid var(--primary-color);
+      color: var(--primary-color);
+    }
+    
+    .btn-outline:hover {
+      background-color: var(--primary-color);
+      color: var(--white);
+    }
+    
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    
+    .feature-card {
+      background-color: var(--white);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 300px;
+      text-align: left;
+    }
+    
+    .feature-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 0.5rem;
+      color: var(--primary-color);
+    }
+    
+    .logo {
+      max-width: 120px;
+      margin-bottom: 1.5rem;
+    }
+    
+    .offline-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem 1rem;
+      background-color: rgba(239, 68, 68, 0.1);
+      color: var(--danger-color);
+      border-radius: 20px;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+    }
+    
+    .offline-status::before {
+      content: "•";
+      font-size: 2rem;
+      margin-right: 0.5rem;
+      line-height: 0;
+    }
+    
+    .footer {
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #64748b;
+    }
+    
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2rem;
+      }
+      
+      p {
+        font-size: 1rem;
+      }
+      
+      .feature-card {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="main-container">
+    <img src="icons/logo_2-192x192.png" alt="PsikoRan Logo" class="logo">
+    
+    <div class="offline-status">Çevrimdışı</div>
+    
+    <div class="card">
+      <h1>İnternet Bağlantısı Yok</h1>
+      <p>Şu anda internet bağlantınız bulunmuyor. PsikoRan uygulamasının bazı özellikleri çevrimdışı olarak kullanılabilir.</p>
+      <button class="btn" id="refreshButton">Yeniden Dene</button>
+      <a href="/" class="btn btn-outline">Ana Sayfaya Dön</a>
+    </div>
+    
+    <h2>Çevrimdışı Çalışan Özellikler</h2>
+    <div class="features">
+      <div class="feature-card">
+        <h3>Randevu Görüntüleme</h3>
+        <p>Daha önce görüntülediğiniz randevuları çevrimdışı modda da görüntüleyebilirsiniz.</p>
+      </div>
+      
+      <div class="feature-card">
+        <h3>Danışan Bilgileri</h3>
+        <p>Daha önce açtığınız danışan bilgilerine çevrimdışı olarak erişebilirsiniz.</p>
+      </div>
+      
+      <div class="feature-card">
+        <h3>Not Ekleme</h3>
+        <p>Çevrimdışıyken not ekleyebilir, çevrimiçi olduğunuzda senkronize edebilirsiniz.</p>
+      </div>
+    </div>
+  </div>
+  
+  <footer class="footer">
+    <p>&copy; 2023 PsikoRan - Profesyonel Danışmanlık Merkezi. Tüm hakları saklıdır.</p>
+  </footer>
+  
+  <script>
+    // Bağlantı durumunu kontrol et
+    function checkConnection() {
+      if (navigator.onLine) {
+        window.location.href = '/';
+      }
+    }
+    
+    // Sayfa yüklendiğinde bağlantı durumunu kontrol et
+    window.addEventListener('load', checkConnection);
+    
+    // Çevrimiçi olduğunda ana sayfaya yönlendir
+    window.addEventListener('online', checkConnection);
+    
+    // Yeniden dene butonuna tıklandığında
+    document.getElementById('refreshButton').addEventListener('click', function() {
+      checkConnection();
+      
+      // Çevrimdışıysa sayfayı yenile
+      if (!navigator.onLine) {
+        window.location.reload();
+      }
+    });
+  </script>
+</body>
+</html> 

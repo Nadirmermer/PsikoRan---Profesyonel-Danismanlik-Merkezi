@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect, useState, Suspense } from 'react';
 import { Login } from './pages/Login';
-import { CreateAssistant } from './pages/CreateAssistant';
+import { Register, CreateAssistant } from './pages/CreateAssistant';
 import { Dashboard } from './pages/Dashboard';
 import { Professionals } from './pages/Professionals';
 import { Clients } from './pages/Clients';
@@ -105,6 +105,7 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/create-assistant" element={<CreateAssistant />} />
         <Route
           path="/"

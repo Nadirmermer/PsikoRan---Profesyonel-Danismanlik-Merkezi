@@ -5,7 +5,7 @@ import { UserPlus, ArrowLeft, Mail, Lock, User, Phone, Eye, EyeOff, Building } f
 import { useAuth } from '../lib/auth';
 import logo2 from '../assets/logo/logo_2.png';
 
-export function CreateAssistant() {
+export function Register() {
   const navigate = useNavigate();
   const { signIn } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -587,3 +587,6 @@ export function CreateAssistant() {
     </div>
   );
 }
+
+// Geriye dönük uyumluluk için orijinal ismi de export edelim
+export const CreateAssistant = Register;

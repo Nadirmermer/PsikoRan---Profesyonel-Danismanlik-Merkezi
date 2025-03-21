@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>PsikoRan Uygulamasını Yükle</title>
+  <link rel="icon" href="icons/logo_2-192x192.png" type="image/png" />
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <style>
+    :root {
+      --primary-color: #4f46e5;
+      --primary-hover: #4338ca;
+      --dark-color: #1e293b;
+      --light-color: #f8fafc;
+      --white: #ffffff;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: var(--dark-color);
+      background-color: var(--light-color);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    header {
+      background-color: var(--white);
+      box-shadow: var(--shadow);
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .logo-container {
+      display: flex;
+      align-items: center;
+    }
+    
+    .logo {
+      max-width: 50px;
+      margin-right: 0.5rem;
+    }
+    
+    .app-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+    
+    .main-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+      flex: 1;
+    }
+    
+    .installation-card {
+      background-color: var(--white);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+    }
+    
+    p {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .btn {
+      display: inline-block;
+      background-color: var(--primary-color);
+      color: var(--white);
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .btn:hover {
+      background-color: var(--primary-hover);
+    }
+    
+    .btn-outline {
+      background-color: transparent;
+      border: 1px solid var(--primary-color);
+      color: var(--primary-color);
+    }
+    
+    .btn-outline:hover {
+      background-color: var(--primary-color);
+      color: var(--white);
+    }
+    
+    .instructions {
+      margin-top: 2rem;
+    }
+    
+    .instructions-title {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: 0.5rem;
+    }
+    
+    .instructions-list {
+      list-style-type: none;
+      margin-bottom: 2rem;
+    }
+    
+    .instructions-list li {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 1.5rem;
+    }
+    
+    .step-number {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-width: 30px;
+      height: 30px;
+      background-color: var(--primary-color);
+      color: var(--white);
+      border-radius: 50%;
+      margin-right: 1rem;
+      font-weight: bold;
+    }
+    
+    .step-content {
+      flex: 1;
+    }
+    
+    .step-content h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .screenshot {
+      max-width: 100%;
+      height: auto;
+      border-radius: 5px;
+      border: 1px solid #e2e8f0;
+      margin-top: 0.5rem;
+    }
+    
+    .browser-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .browser-item {
+      background-color: var(--white);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 1rem;
+      width: calc(33.33% - 1rem);
+      min-width: 200px;
+    }
+    
+    .browser-icon {
+      width: 50px;
+      height: 50px;
+      margin-bottom: 0.5rem;
+    }
+    
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    
+    .feature-card {
+      background-color: var(--white);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+    }
+    
+    .feature-icon {
+      font-size: 2rem;
+      color: var(--primary-color);
+      margin-bottom: 0.5rem;
+    }
+    
+    .feature-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .footer {
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #64748b;
+      background-color: var(--white);
+      margin-top: auto;
+    }
+    
+    @media (max-width: 768px) {
+      .browser-item {
+        width: 100%;
+      }
+      
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <img src="icons/logo_2-192x192.png" alt="PsikoRan Logo" class="logo">
+      <span class="app-name">PsikoRan</span>
+    </div>
+  </header>
+  
+  <div class="main-container">
+    <div class="installation-card">
+      <h1>PsikoRan Uygulaması Kurulumu</h1>
+      <p>PsikoRan'ı bir mobil uygulama veya masaüstü uygulaması olarak yükleyerek daha iyi bir deneyim yaşayabilirsiniz. Yükleme sonrası internet bağlantınız olmadığında bile uygulamayı kullanmaya devam edebilirsiniz.</p>
+      
+      <button id="installButton" class="btn">Uygulamayı Yükle</button>
+      <a href="/" class="btn btn-outline">Uygulamaya Dön</a>
+      
+      <div id="installSuccess" class="hidden" style="margin-top: 1rem; padding: 1rem; background-color: #d1fae5; border-radius: 5px; color: #047857;">
+        <strong>Başarılı!</strong> Uygulama cihazınıza kuruldu. Ana ekranınızdan veya uygulama listenizden PsikoRan'a erişebilirsiniz.
+      </div>
+      
+      <div id="installNotAvailable" class="hidden" style="margin-top: 1rem; padding: 1rem; background-color: #fee2e2; border-radius: 5px; color: #b91c1c;">
+        <strong>Otomatik yükleme mevcut değil!</strong> Lütfen aşağıdaki manuel kurulum talimatlarını takip edin.
+      </div>
+    </div>
+    
+    <div class="instructions">
+      <h2 class="instructions-title">Manuel Kurulum Talimatları</h2>
+      
+      <h3>Mobil Cihazlar İçin</h3>
+      <ul class="instructions-list">
+        <li>
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Tarayıcınızın paylaş/seçenekler menüsünü açın</h3>
+            <p>Safari (iOS) veya Chrome (Android) tarayıcınızda bulunan paylaş düğmesine dokunun.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>"Ana Ekrana Ekle" veya "Uygulamayı Yükle" seçeneğini seçin</h3>
+            <p>iOS'ta "Ana Ekrana Ekle", Android'de "Yükle" veya "Ana Ekrana Ekle" seçeneğine dokunun.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>Uygulamayı yükleyin</h3>
+            <p>Açılan pencerede "Ekle" veya "Yükle" düğmesine dokunun.</p>
+          </div>
+        </li>
+      </ul>
+      
+      <h3>Masaüstü İçin</h3>
+      <ul class="instructions-list">
+        <li>
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>Tarayıcı adres çubuğunun sağındaki "Yükle" simgesine tıklayın</h3>
+            <p>Chrome, Edge veya diğer modern tarayıcılarda adres çubuğunun yanında bir yükleme simgesi göreceksiniz.</p>
+          </div>
+        </li>
+        <li>
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>"Yükle" düğmesine tıklayın</h3>
+            <p>Açılan pencerede "Yükle" düğmesine tıklayarak uygulamayı masaüstünüze yükleyin.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+    
+    <div class="installation-card">
+      <h2>PsikoRan Uygulaması Avantajları</h2>
+      <p>PsikoRan PWA (Progressive Web App) olarak yüklendikten sonra aşağıdaki avantajlara sahip olursunuz:</p>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <div class="feature-title">Kolay Erişim</div>
+          <p>Ana ekrandan tek dokunuşla uygulamaya erişin.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🔄</div>
+          <div class="feature-title">Çevrimdışı Çalışma</div>
+          <p>İnternet bağlantınız olmadığında bile uygulamayı kullanabilirsiniz.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <div class="feature-title">Hızlı Performans</div>
+          <p>Yerel uygulama hızında çalışır ve daha hızlı yüklenir.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🔔</div>
+          <div class="feature-title">Bildirimler</div>
+          <p>Önemli randevular ve bildirimler için sistem bildirimleri alın.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <footer class="footer">
+    <p>&copy; 2023 PsikoRan - Profesyonel Danışmanlık Merkezi. Tüm hakları saklıdır.</p>
+  </footer>
+  
+  <script>
+    // Install PWA
+    let deferredPrompt;
+    const installButton = document.getElementById('installButton');
+    const installSuccess = document.getElementById('installSuccess');
+    const installNotAvailable = document.getElementById('installNotAvailable');
+    
+    // Hide install button if PWA is already installed
+    if (window.matchMedia('(display-mode: standalone)').matches || 
+        window.navigator.standalone === true) {
+      installButton.style.display = 'none';
+      installSuccess.classList.remove('hidden');
+    }
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent Chrome 67 and earlier from automatically showing the prompt
+      e.preventDefault();
+      // Stash the event so it can be triggered later
+      deferredPrompt = e;
+      // Show the install button
+      installButton.classList.remove('hidden');
+      
+      installButton.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          // Show the install prompt
+          deferredPrompt.prompt();
+          // Wait for the user to respond to the prompt
+          const { outcome } = await deferredPrompt.userChoice;
+          
+          if (outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+            installSuccess.classList.remove('hidden');
+            installButton.classList.add('hidden');
+          } else {
+            console.log('User dismissed the install prompt');
+          }
+          
+          // We no longer need the prompt. Clear it up
+          deferredPrompt = null;
+        } else {
+          // The app is already installed or install not available
+          installNotAvailable.classList.remove('hidden');
+        }
+      });
+    });
+    
+    // If PWA install feature not available (iOS Safari, older browsers)
+    if (
+      !window.matchMedia('(display-mode: standalone)').matches && 
+      window.navigator.standalone !== true &&
+      typeof window.BeforeInstallPromptEvent === 'undefined'
+    ) {
+      installButton.addEventListener('click', () => {
+        installNotAvailable.classList.remove('hidden');
+      });
+    }
+    
+    // Check if app was successfully installed
+    window.addEventListener('appinstalled', (evt) => {
+      installSuccess.classList.remove('hidden');
+      installButton.classList.add('hidden');
+      console.log('PsikoRan was successfully installed');
+    });
+  </script>
+</body>
+</html> 
