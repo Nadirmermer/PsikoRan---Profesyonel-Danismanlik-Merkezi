@@ -1,0 +1,10 @@
+export { PersonalInfo } from './PersonalInfo';
+export { WorkingHours } from './WorkingHours';
+export { ClinicInfo } from './ClinicInfo';
+export { BreakSchedule } from './BreakSchedule';
+export { VacationPlanner } from './VacationPlanner';
+export { NotificationSettings } from './NotificationSettings';
+export { PrivacySettings } from './PrivacySettings';
+export { CookieSettings } from './CookieSettings';
+export { AccountDeletion } from './AccountDeletion';
+export { RoomManagement } from './RoomManagement'; 

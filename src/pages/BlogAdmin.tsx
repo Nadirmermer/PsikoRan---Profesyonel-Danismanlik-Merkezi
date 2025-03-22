@@ -669,6 +669,7 @@ export function BlogAdmin() {
   }
 
   const resetForm = () => {
+    // Temel form alanlarını sıfırla
     setFormData({
       title: '',
       slug: '',
@@ -680,6 +681,26 @@ export function BlogAdmin() {
       is_published: true,
       reading_time: 0
     });
+    
+    // Eğer asistan ise ve bağlı uzmanlar varsa, varsayılan olarak ilk uzmanı seç
+    if (userType === 'assistant' && linkedProfessionals.length > 0) {
+      setSelectedProfessionalId(linkedProfessionals[0].id);
+      
+      // Yazar adını da ayarla
+      const prof = linkedProfessionals[0];
+      const authorName = prof.title 
+        ? `${prof.full_name}, ${prof.title}` 
+        : prof.full_name;
+        
+      setFormData(prev => ({
+        ...prev,
+        author: authorName
+      }));
+    } else if (userType === 'professional' && professionalId) {
+      // Profesyonel ise kendi adını korur
+      // Not: Bu alanlar zaten useEffect ile yükleniyor, bu yüzden ekstra bir şey yapmaya gerek yok
+    }
+    
     setImagePreview('');
     setImageFile(null);
     setEditingPost(null);
@@ -706,6 +727,73 @@ export function BlogAdmin() {
     return sanitized.replace(/[^a-zA-Z0-9._-]/g, '_');
   };
 
+  // Görsel yükleme fonksiyonunu basitleştir
+  const handleImageUpload = async (imageFile: File, fileName: string): Promise<string> => {
+    try {
+      // Basit bir şekilde görseli yükle
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('blog')
+        .upload(fileName, imageFile, {
+          cacheControl: '0',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Görsel yükleme hatası:', uploadError);
+        throw uploadError;
+      }
+
+      // Public URL'i al
+      const { data: publicUrlData } = await supabase.storage
+        .from('blog')
+        .getPublicUrl(fileName);
+
+      if (!publicUrlData?.publicUrl) {
+        throw new Error('Görsel URL\'i alınamadı');
+      }
+
+      return publicUrlData.publicUrl;
+    } catch (error) {
+      console.error('Görsel yükleme işlemi başarısız:', error);
+      throw error;
+    }
+  };
+
+  // Görsel önizleme bileşenini güncelle
+  const ImagePreview: React.FC<{ src: string; onError: () => void }> = ({ src, onError }) => {
+    const [retryCount, setRetryCount] = useState(0);
+    const maxRetries = 3;
+
+    const handleImageError = () => {
+      if (retryCount < maxRetries) {
+        // URL'ye timestamp ekleyerek yeniden dene
+        const timestamp = new Date().getTime();
+        const newSrc = src.includes('?') 
+          ? `${src}&t=${timestamp}`
+          : `${src}?t=${timestamp}`;
+        
+        const imgElement = document.querySelector(`img[src^="${src.split('?')[0]}"]`) as HTMLImageElement;
+        if (imgElement) {
+          imgElement.src = newSrc;
+        }
+        setRetryCount(prev => prev + 1);
+      } else {
+        console.log('Maksimum yeniden deneme sayısına ulaşıldı, varsayılan görsele geçiliyor');
+        onError();
+      }
+    };
+
+    return (
+      <img
+        src={src}
+        alt="Önizleme"
+        className="w-full h-full object-cover rounded-lg"
+        onError={handleImageError}
+        loading="lazy"
+      />
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -713,149 +801,55 @@ export function BlogAdmin() {
     setErrorMessage(null);
 
     try {
+      // Asistan ise bir ruh sağlığı uzmanı seçilmiş olmalı
+      if (userType === 'assistant' && !selectedProfessionalId) {
+        throw new Error('Lütfen bir ruh sağlığı uzmanı seçin.');
+      }
+
       const postData = prepareFormData();
-      let imageUrl = editingPost?.cover_image || '/assets/images/blog-placeholder.jpg'; // Varsayılan görsel yolunu düzelt
+      let imageUrl = editingPost?.cover_image || '/assets/images/blog-placeholder.jpg';
 
-      // Görsel yükleme işlemi varsa
       if (imageFile) {
-        // Önce eski görseli sil (düzenleme durumunda)
-        if (editingPost?.cover_image && !editingPost.cover_image.includes('/assets/images/')) {
-          // Timestamp ve diğer query parametrelerini temizle (? karakterinden sonrasını kaldır)
-          const oldImagePath = editingPost.cover_image.split('?')[0].split('/').pop();
-          if (oldImagePath) {
-            try {
-              const { error: deleteError } = await supabase.storage
-                .from('blog')
-                .remove([oldImagePath]);
-              
-              if (deleteError) {
-                console.error('Eski görsel silinirken hata oluştu:', deleteError);
-                // Hatayı kaydet ama işlemi durdurmamak için fırlatma
-              }
-            } catch (deleteErr) {
-              console.error('Eski görsel silme işlemi başarısız:', deleteErr);
-              // Hatayı kaydet ama işlemi durdurmamak için fırlatma
-            }
-          }
-        }
+        // Dosya adını oluştur
+        const timestamp = Date.now();
+        const fileExt = imageFile.name.split('.').pop()?.toLowerCase() || '';
+        const fileName = `${timestamp}_${sanitizeFileName(imageFile.name)}`;
 
-        // Dosya adını temizle
-        const safeFileName = sanitizeFileName(imageFile.name);
-        const fileName = `${Date.now()}_${safeFileName}`;
-        
         // Dosya tipini kontrol et
-        const fileExt = safeFileName.split('.').pop()?.toLowerCase() || '';
-        const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
-        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-        
-        // Dosya uzantısı ve MIME tipi kontrolü
-        if (!allowedExts.includes(fileExt) || !allowedMimeTypes.includes(imageFile.type)) {
-          throw new Error('Desteklenmeyen dosya formatı. Lütfen geçerli bir resim dosyası seçin (jpg, jpeg, png, gif, webp, svg)');
-        }
-        
-        // Dosya boyutu kontrolü (10MB'dan büyük olmamalı)
-        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-        if (imageFile.size > MAX_FILE_SIZE) {
-          throw new Error('Dosya boyutu çok büyük. Maksimum 10MB boyutunda dosya yükleyebilirsiniz.');
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(imageFile.type)) {
+          throw new Error('Desteklenmeyen dosya formatı. Lütfen JPEG, PNG, GIF veya WEBP formatında bir görsel yükleyin.');
         }
 
-        // Yeni görseli yükle
+        // Dosya boyutunu kontrol et (5MB)
+        if (imageFile.size > 5 * 1024 * 1024) {
+          throw new Error('Dosya boyutu çok büyük. Maksimum 5MB boyutunda dosya yükleyebilirsiniz.');
+        }
+
         try {
-          // Bucket kontrolünü sadeleştir
-          let bucket = 'blog';
-          
-          // Varsayılan olarak blog bucketını kullan, hata alınırsa public bucketını dene
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from(bucket)
-            .upload(`${fileName}`, imageFile, {
-              cacheControl: '3600', // 1 saat önbellek
-              upsert: true, // Aynı isimde dosya varsa üzerine yaz
-              contentType: imageFile.type // MIME tipini belirt
-            });
-
-          if (uploadError) {
-            console.error('Blog bucket yükleme hatası, public bucket deneniyor:', uploadError);
-            
-            // Blog bucket hatası durumunda public bucket'ı dene
-            const { data: publicUploadData, error: publicUploadError } = await supabase.storage
-              .from('public')
-              .upload(`${fileName}`, imageFile, {
-                cacheControl: '3600',
-                upsert: true,
-                contentType: imageFile.type
-              });
-              
-            if (publicUploadError) {
-              console.error('Public bucket yükleme hatası:', publicUploadError);
-              throw new Error(`Görsel yüklenirken hata oluştu: ${publicUploadError.message}`);
-            } else {
-              // Public bucket başarılı olursa, bucket değişkenini güncelle
-              bucket = 'public';
-              console.log('Görsel public bucket\'a başarıyla yüklendi');
-            }
-          } else {
-            console.log('Görsel blog bucket\'a başarıyla yüklendi');
-          }
-
-          // Görsel URL'ini al ve her zaman farklı cache busting parametresi ekle
-          const { data: urlData } = await supabase.storage
-            .from(bucket)
-            .getPublicUrl(`${fileName}`);
-
-          if (urlData) {
-            // Farklı bir parametre ismi kullan (t yerine v kullan)
-            const cacheBuster = new Date().getTime();
-            imageUrl = `${urlData.publicUrl}?v=${cacheBuster}`;
-            console.log('Yüklenen resim URL:', imageUrl);
-          } else {
-            throw new Error('Görsel URL\'i alınamadı');
-          }
+          imageUrl = await handleImageUpload(imageFile, fileName);
+          console.log('Yüklenen görsel URL:', imageUrl);
         } catch (uploadErr: any) {
-          console.error('Görsel yükleme işlemi başarısız:', uploadErr);
-          
-          // Yükleme başarısız olursa placeholder kullan
-          imageUrl = '/assets/images/blog-placeholder.jpg';
-          
-          setErrorMessage(`Görsel yükleme sırasında bir hata oluştu, varsayılan görsel kullanılacak: ${uploadErr.message || 'Beklenmeyen bir hata oluştu'}`);
-          // İşlemi durdurmadan devam et
+          console.error('Görsel yükleme hatası:', uploadErr);
+          throw new Error(`Görsel yüklenirken hata oluştu: ${uploadErr.message}`);
         }
       }
 
-      // Mevcut kullanıcının kimliğini al
+      // Blog yazısını kaydet
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('Kullanıcı oturumu bulunamadı.');
-      }
+      if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
 
-      // Kullanıcı tipine göre author_id ayarla
-      let authorId = user.id;
+      const saveData = {
+        ...postData,
+        cover_image: imageUrl,
+        author_id: user.id,
+        updated_at: new Date().toISOString()
+      };
 
-      if (userType === 'professional') {
-        authorId = user.id; // Zaten kendi ID'si
-      } else if (userType === 'assistant' && selectedProfessionalId) {
-        // Seçilen uzmanın user_id'sini bul
-        const { data: profData } = await supabase
-          .from('professionals')
-          .select('user_id')
-          .eq('id', selectedProfessionalId)
-          .single();
-          
-        if (profData && profData.user_id) {
-          authorId = profData.user_id;
-        }
-      }
-
-      // Blog yazısını güncelle veya yeni oluştur
       if (editingPost) {
         const { error } = await supabase
           .from('blog_posts')
-          .update({
-            ...postData,
-            cover_image: imageUrl,
-            author_id: authorId,
-            updated_at: new Date().toISOString()
-          })
+          .update(saveData)
           .eq('id', editingPost.id);
 
         if (error) throw error;
@@ -863,26 +857,18 @@ export function BlogAdmin() {
       } else {
         const { error } = await supabase
           .from('blog_posts')
-          .insert([{
-            ...postData,
-            cover_image: imageUrl,
-            author_id: authorId,
-            created_at: new Date().toISOString()
-          }]);
+          .insert([{ ...saveData, created_at: new Date().toISOString() }]);
 
         if (error) throw error;
         setSuccessMessage('Blog yazısı başarıyla oluşturuldu.');
       }
 
-      // Formu sıfırla
       resetForm();
       setShowForm(false);
-      
-      // Blog yazılarını yeniden yükle
       fetchPosts();
     } catch (err: any) {
-      console.error('Blog yazısı kaydedilirken hata oluştu:', err);
-      setErrorMessage(err.message || 'Blog yazısı kaydedilirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+      console.error('Blog yazısı kaydedilirken hata:', err);
+      setErrorMessage(err.message || 'Blog yazısı kaydedilirken bir hata oluştu');
     } finally {
       setIsSubmitting(false);
     }
@@ -929,6 +915,24 @@ export function BlogAdmin() {
       is_published: post.is_published,
       reading_time: post.reading_time || 0
     });
+    
+    // Eğer asistan kullanıcısıysa, düzenlenen yazının yazarına göre professional seçimini yap
+    if (userType === 'assistant' && linkedProfessionals.length > 0) {
+      // Yazarın adını kullanarak uygun uzmanı bul
+      const matchingProfessional = linkedProfessionals.find(prof => {
+        const profName = prof.title 
+          ? `${prof.full_name}, ${prof.title}` 
+          : prof.full_name;
+        return post.author.includes(prof.full_name);
+      });
+      
+      if (matchingProfessional) {
+        setSelectedProfessionalId(matchingProfessional.id);
+      } else {
+        // Eşleşen profesyonel bulunamazsa ilk profesyoneli seç
+        setSelectedProfessionalId(linkedProfessionals[0].id);
+      }
+    }
     
     // Görsel URL'ini ayarla
     if (post.cover_image) {
@@ -1154,37 +1158,43 @@ export function BlogAdmin() {
                       readOnly
                     />
                   ) : userType === 'assistant' ? (
-                    // Asistanlar için uzman seçimi
-                    <select
-                      value={selectedProfessionalId || ''}
-                      onChange={(e) => {
-                        const profId = e.target.value;
-                        setSelectedProfessionalId(profId);
-                        
-                        // Seçilen uzmanın adını yazar olarak ayarla
-                        const selectedProf = linkedProfessionals.find(p => p.id === profId);
-                        if (selectedProf) {
-                          const authorName = selectedProf.title 
-                            ? `${selectedProf.full_name}, ${selectedProf.title}` 
-                            : selectedProf.full_name;
+                    // Asistanlar için uzman seçimi (zorunlu alan)
+                    <div>
+                      <select
+                        value={selectedProfessionalId || ''}
+                        onChange={(e) => {
+                          const profId = e.target.value;
+                          setSelectedProfessionalId(profId);
+                          
+                          // Seçilen uzmanın adını yazar olarak ayarla
+                          const selectedProf = linkedProfessionals.find(p => p.id === profId);
+                          if (selectedProf) {
+                            const authorName = selectedProf.title 
+                              ? `${selectedProf.full_name}, ${selectedProf.title}` 
+                              : selectedProf.full_name;
                             
-                          setFormData(prev => ({
-                            ...prev,
-                            author: authorName
-                          }));
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
+                            setFormData(prev => ({
+                              ...prev,
+                              author: authorName
+                            }));
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
                                 bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                                 focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
-                      required
-                    >
-                      {linkedProfessionals.map(prof => (
-                        <option key={prof.id} value={prof.id}>
-                          {prof.title ? `${prof.full_name}, ${prof.title}` : prof.full_name}
-                        </option>
-                      ))}
-                    </select>
+                        required
+                      >
+                        <option value="">-- Ruh Sağlığı Uzmanı Seçin --</option>
+                        {linkedProfessionals.map(prof => (
+                          <option key={prof.id} value={prof.id}>
+                            {prof.title ? `${prof.full_name}, ${prof.title}` : prof.full_name}
+                          </option>
+                        ))}
+                      </select>
+                      {!selectedProfessionalId && (
+                        <p className="mt-1 text-xs text-red-500">Bir ruh sağlığı uzmanı seçmelisiniz.</p>
+                      )}
+                    </div>
                   ) : (
                     // Diğer durumlar için normal input
                     <input
@@ -1295,27 +1305,7 @@ export function BlogAdmin() {
                   </div>
                   {imagePreview && (
                     <div className="w-32 h-32 flex-shrink-0 relative">
-                      <img
-                        src={imagePreview}
-                        alt="Önizleme"
-                        className="w-full h-full object-cover rounded-md shadow-sm"
-                        onError={(e) => {
-                          console.log('Önizleme görseli yüklenemedi, yedek görsel kullanılıyor');
-                          const imgElement = e.currentTarget;
-                          // Hata durumunda varsayılan görsel göster - data: URL'leri için atla
-                          if (!imagePreview.startsWith('data:')) {
-                            // URL'de v parametresi yoksa ekle (cache busting)
-                            if (!imagePreview.includes('?v=')) {
-                              const newSrc = imagePreview + '?v=' + new Date().getTime();
-                              imgElement.src = newSrc;
-                            } else {
-                              // Yine de yüklenemezse varsayılan görseli kullan
-                              imgElement.src = '/assets/images/blog-placeholder.jpg';
-                              imgElement.onerror = null; // Sonsuz döngüyü önle
-                            }
-                          }
-                        }}
-                      />
+                      <ImagePreview src={imagePreview} onError={clearImagePreview} />
                       <button
                         type="button"
                         onClick={clearImagePreview}
@@ -1447,19 +1437,7 @@ export function BlogAdmin() {
                         <div className="mt-2 sm:mt-0 sm:ml-4 flex items-start">
                           {post.cover_image && (
                             <div className="hidden sm:block w-16 h-16 mr-3">
-                              <img 
-                                src={post.cover_image.includes('?') 
-                                  ? post.cover_image // Zaten parametre varsa değiştirme
-                                  : `${post.cover_image}?t=${new Date().getTime()}`} 
-                                alt={post.title}
-                                className="w-full h-full object-cover rounded-md shadow-sm"
-                                onError={(e) => {
-                                  console.log('Görsel yüklenemedi, yedek görsel kullanılıyor');
-                                  const imgElement = e.currentTarget;
-                                  imgElement.src = '/assets/images/blog-placeholder.jpg';
-                                  imgElement.onerror = null; // Sonsuz döngüyü önle
-                                }}
-                              />
+                              <ImagePreview src={post.cover_image} onError={() => {}} />
                             </div>
                           )}
                           <div className="flex">
@@ -1532,27 +1510,7 @@ export function BlogAdmin() {
               {/* Kapak Görseli */}
               {imagePreview && (
                 <div className="mb-6 rounded-lg overflow-hidden shadow-md">
-                  <img 
-                    src={imagePreview}
-                    alt={formData.title} 
-                    className="w-full max-h-[400px] object-cover"
-                    onError={(e) => {
-                      console.log('Önizleme görseli yüklenemedi, yedek görsel kullanılıyor');
-                      const imgElement = e.currentTarget;
-                      // Veri URL'si değilse ve yüklenemezse yedek görsel göster
-                      if (!imagePreview.startsWith('data:')) {
-                        // URL'de v parametresi yoksa ekle (cache busting)
-                        if (!imagePreview.includes('?v=')) {
-                          const newSrc = imagePreview + '?v=' + new Date().getTime();
-                          imgElement.src = newSrc;
-                        } else {
-                          // Yine de yüklenemezse varsayılan görseli kullan
-                          imgElement.src = '/assets/images/blog-placeholder.jpg';
-                          imgElement.onerror = null; // Sonsuz döngüyü önle
-                        }
-                      }
-                    }}
-                  />
+                  <ImagePreview src={imagePreview} onError={() => {}} />
                 </div>
               )}
               

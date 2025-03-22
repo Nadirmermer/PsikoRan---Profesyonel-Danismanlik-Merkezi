@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useEffect, useState, Suspense } from 'react';
 import {
   Login, Register, Dashboard, CreateAssistant, Professionals, Clients,
@@ -103,7 +103,9 @@ function AnimatedRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
-        <Route path="/professional/:slug" element={<ProfessionalProfile />} />
+        <Route path="/uzman" element={<Navigate to="/blog" replace />} />
+        <Route path="/uzman/:slug" element={<ProfessionalProfile />} />
+        <Route path="/professional/:slug" element={<Navigate to={location => `/uzman/${location.pathname.split('/').pop()}`} replace />} />
         <Route
           path="/dashboard"
           element={

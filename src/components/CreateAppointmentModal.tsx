@@ -52,6 +52,24 @@ interface Room {
   capacity?: number;
 }
 
+// Break tipini tanımla
+interface Break {
+  id: string;
+  day_of_week: number; // 0: Pazar, 1: Pazartesi, ... 6: Cumartesi
+  start_time: string; // HH:MM formatında
+  end_time: string; // HH:MM formatında
+  description: string;
+}
+
+// Tatil tipini tanımla
+interface Vacation {
+  id: string;
+  start_date: string;
+  end_date: string;
+  title: string;
+  description?: string;
+}
+
 function AlertModal({ isOpen, onClose, title, message }: AlertModalProps) {
   if (!isOpen) return null;
 
@@ -264,6 +282,10 @@ export function CreateAppointmentModal({
   const [professionalWorkingHours, setProfessionalWorkingHours] = useState<ProfessionalWorkingHours | null>(null);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [professionalBreaks, setProfessionalBreaks] = useState<Break[]>([]);
+  const [clinicBreaks, setClinicBreaks] = useState<Break[]>([]);
+  const [professionalVacations, setProfessionalVacations] = useState<Vacation[]>([]);
+  const [clinicVacations, setClinicVacations] = useState<Vacation[]>([]);
 
   const { professional, assistant } = useAuth();
 
@@ -273,6 +295,141 @@ export function CreateAppointmentModal({
       loadRooms();
     }
   }, [isOpen, professional?.id]);
+
+  // Profesyonel molalarını yükleme fonksiyonu
+  async function loadProfessionalBreaks(professionalId: string) {
+    try {
+      console.log("Ruh sağlığı uzmanı molaları yükleniyor, ID:", professionalId);
+      
+      const { data, error } = await supabase
+        .from('professional_breaks')
+        .select('*')
+        .eq('professional_id', professionalId);
+
+      if (error) {
+        console.error('Molalar yüklenirken hata:', error);
+        throw error;
+      }
+      
+      if (data) {
+        setProfessionalBreaks(data);
+        console.log(`${data.length} adet profesyonel molası yüklendi`, data);
+      } else {
+        setProfessionalBreaks([]);
+      }
+    } catch (error) {
+      console.error('Error loading professional breaks:', error);
+      setProfessionalBreaks([]);
+    }
+  }
+
+  // Klinik molalarını yükleme fonksiyonu
+  async function loadClinicBreaks() {
+    try {
+      let query = supabase
+        .from('clinic_breaks')
+        .select('*');
+
+      if (professional) {
+        const { data: prof } = await supabase
+          .from('professionals')
+          .select('assistant_id')
+          .eq('id', professional.id)
+          .single();
+
+        if (prof?.assistant_id) {
+          query = query.eq('assistant_id', prof.assistant_id);
+        }
+      } else if (assistant) {
+        query = query.eq('assistant_id', assistant.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Klinik molaları yüklenirken hata:', error);
+        throw error;
+      }
+      
+      if (data) {
+        setClinicBreaks(data);
+        console.log(`${data.length} adet klinik molası yüklendi`, data);
+      } else {
+        setClinicBreaks([]);
+      }
+    } catch (error) {
+      console.error('Error loading clinic breaks:', error);
+      setClinicBreaks([]);
+    }
+  }
+
+  // Profesyonel tatil günlerini yükleme fonksiyonu
+  async function loadProfessionalVacations(professionalId: string) {
+    try {
+      console.log("Ruh sağlığı uzmanı tatilleri yükleniyor, ID:", professionalId);
+      
+      const { data, error } = await supabase
+        .from('vacations')
+        .select('*')
+        .eq('professional_id', professionalId);
+
+      if (error) {
+        console.error('Tatiller yüklenirken hata:', error);
+        throw error;
+      }
+      
+      if (data) {
+        setProfessionalVacations(data);
+        console.log(`${data.length} adet profesyonel tatili yüklendi`, data);
+      } else {
+        setProfessionalVacations([]);
+      }
+    } catch (error) {
+      console.error('Error loading professional vacations:', error);
+      setProfessionalVacations([]);
+    }
+  }
+
+  // Klinik tatil günlerini yükleme fonksiyonu
+  async function loadClinicVacations() {
+    try {
+      let query = supabase
+        .from('vacations')
+        .select('*')
+        .is('professional_id', null);
+
+      if (professional) {
+        const { data: prof } = await supabase
+          .from('professionals')
+          .select('assistant_id')
+          .eq('id', professional.id)
+          .single();
+
+        if (prof?.assistant_id) {
+          query = query.eq('clinic_id', prof.assistant_id);
+        }
+      } else if (assistant) {
+        query = query.eq('clinic_id', assistant.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Klinik tatilleri yüklenirken hata:', error);
+        throw error;
+      }
+      
+      if (data) {
+        setClinicVacations(data);
+        console.log(`${data.length} adet klinik tatili yüklendi`, data);
+      } else {
+        setClinicVacations([]);
+      }
+    } catch (error) {
+      console.error('Error loading clinic vacations:', error);
+      setClinicVacations([]);
+    }
+  }
 
   async function loadClients() {
     try {
@@ -440,6 +597,43 @@ export function CreateAppointmentModal({
     const days = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'] as const;
     const currentDay = days[dayOfWeek];
     
+    // Belirli bir saatin mola saatlerine denk gelip gelmediğini kontrol et
+    function isTimeInBreaks(hour: number, minute: number, dayOfWeek: number): boolean {
+      // Profesyonel molalarını kontrol et
+      const isProfessionalBreakTime = professionalBreaks.some(breakItem => {
+        // Gün uyuşuyor mu?
+        if (breakItem.day_of_week !== dayOfWeek) return false;
+        
+        // Saat aralığı kontrolü
+        const [startHour, startMinute] = breakItem.start_time.split(':').map(Number);
+        const [endHour, endMinute] = breakItem.end_time.split(':').map(Number);
+        
+        const currentTimeInMinutes = hour * 60 + minute;
+        const startTimeInMinutes = startHour * 60 + startMinute;
+        const endTimeInMinutes = endHour * 60 + endMinute;
+        
+        return currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes;
+      });
+      
+      // Klinik molalarını kontrol et
+      const isClinicBreakTime = clinicBreaks.some(breakItem => {
+        // Gün uyuşuyor mu?
+        if (breakItem.day_of_week !== dayOfWeek) return false;
+        
+        // Saat aralığı kontrolü
+        const [startHour, startMinute] = breakItem.start_time.split(':').map(Number);
+        const [endHour, endMinute] = breakItem.end_time.split(':').map(Number);
+        
+        const currentTimeInMinutes = hour * 60 + minute;
+        const startTimeInMinutes = startHour * 60 + startMinute;
+        const endTimeInMinutes = endHour * 60 + endMinute;
+        
+        return currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes < endTimeInMinutes;
+      });
+      
+      return isProfessionalBreakTime || isClinicBreakTime;
+    }
+    
     console.log(`${date.toLocaleDateString()} (${currentDay}) için müsait saatler hesaplanıyor...`);
     
     // Hem ruh sağlığı uzmanı hem de klinik saatlerini kontrol et
@@ -454,9 +648,9 @@ export function CreateAppointmentModal({
 
     // En geç başlangıç ve en erken bitiş saatlerini al
     const [profOpenHour, profOpenMinute = 0] = profHours.opening.split(':').map(Number);
-    const [profCloseHour, profCloseMinute = 0] = profHours.closing.split(':').map(Number);
-    const [clinicOpenHour, clinicOpenMinute = 0] = clinicDayHours.opening.split(':').map(Number);
-    const [clinicCloseHour, clinicCloseMinute = 0] = clinicDayHours.closing.split(':').map(Number);
+    const [profCloseHour, profCloseMinute] = profHours.closing.split(':').map(Number);
+    const [clinicOpenHour, clinicOpenMinute] = clinicDayHours.opening.split(':').map(Number);
+    const [clinicCloseHour, clinicCloseMinute] = clinicDayHours.closing.split(':').map(Number);
 
     console.log(`Ruh sağlığı uzmanı çalışma saatleri: ${profHours.opening}-${profHours.closing}`);
     console.log(`Klinik çalışma saatleri: ${clinicDayHours.opening}-${clinicDayHours.closing}`);
@@ -483,15 +677,14 @@ export function CreateAppointmentModal({
 
     console.log(`Hesaplanan çalışma saatleri: ${openingHour.toString().padStart(2, '0')}:${openingMinute.toString().padStart(2, '0')}-${closingHour.toString().padStart(2, '0')}:${closingMinute.toString().padStart(2, '0')}`);
 
-    // Müsait zaman dilimlerini oluştur (15'er dakikalık aralıklarla)
+    // Müsait zaman dilimlerini oluştur (saatlik aralıklarla)
     const slots: string[] = [];
     const unavailableSlots: string[] = [];
     let currentHour = openingHour;
     let currentMinute = openingMinute;
     
-    // Dakikaları 15'in katına yuvarla
-    currentMinute = Math.ceil(currentMinute / 15) * 15;
-    if (currentMinute >= 60) {
+    // Dakikaları bir sonraki tam saate yuvarla
+    if (currentMinute > 0) {
       currentHour += 1;
       currentMinute = 0;
     }
@@ -505,7 +698,7 @@ export function CreateAppointmentModal({
     // Bitiş saati kontrolü için
     const endTimeInMinutes = closingHour * 60 + closingMinute;
 
-    while (currentHour * 60 + currentMinute < endTimeInMinutes) {
+    while (currentHour < closingHour) {
       const timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
       
       // Geçmiş saat kontrolü
@@ -520,16 +713,45 @@ export function CreateAppointmentModal({
         }
       }
       
-      // Eğer geçmiş saat değilse, zaman dilimini ekle
-      if (!isPastTime) {
+      // Mola saatlerini kontrol et
+      const isBreakTime = isTimeInBreaks(currentHour, currentMinute, date.getDay());
+      if (isBreakTime) {
+        unavailableSlots.push(`${timeString} (mola saati)`);
+      }
+      
+      // Eğer geçmiş saat veya mola saati değilse, zaman dilimini ekle
+      if (!isPastTime && !isBreakTime) {
         slots.push(timeString);
       }
 
-      // 15 dakika ekle
-      currentMinute += 15;
-      if (currentMinute >= 60) {
-        currentHour += 1;
-        currentMinute = 0;
+      // Bir sonraki saat
+      currentHour += 1;
+    }
+
+    // Son saati kontrol et, sadece kapanış dakikası 0 ise ekle
+    if (closingMinute === 0 && currentHour === closingHour) {
+      const timeString = `${closingHour.toString().padStart(2, '0')}:00`;
+      
+      // Geçmiş saat kontrolü
+      let isPastTime = false;
+      if (isToday) {
+        const timeDate = new Date(date);
+        timeDate.setHours(closingHour, 0, 0, 0);
+        isPastTime = timeDate <= now;
+        if (isPastTime) {
+          unavailableSlots.push(`${timeString} (geçmiş saat)`);
+        }
+      }
+      
+      // Mola saatlerini kontrol et
+      const isBreakTime = isTimeInBreaks(closingHour, 0, date.getDay());
+      if (isBreakTime) {
+        unavailableSlots.push(`${timeString} (mola saati)`);
+      }
+      
+      // Eğer geçmiş saat veya mola saati değilse, zaman dilimini ekle
+      if (!isPastTime && !isBreakTime) {
+        slots.push(timeString);
       }
     }
 
@@ -570,12 +792,16 @@ export function CreateAppointmentModal({
     if (professionalId) {
       try {
         await loadProfessionalWorkingHours(professionalId);
+        await loadProfessionalBreaks(professionalId);
+        await loadProfessionalVacations(professionalId);
+        await loadClinicBreaks();
+        await loadClinicVacations();
       } catch (error) {
-        console.error('Error loading professional working hours:', error);
+        console.error('Error loading professional data:', error);
         setAlertModal({
           isOpen: true,
           title: 'Hata',
-          message: 'Ruh sağlığı uzmanının çalışma saatleri yüklenirken bir hata oluştu.'
+          message: 'Ruh sağlığı uzmanının verileri yüklenirken bir hata oluştu.'
         });
       }
     } else {
@@ -589,6 +815,28 @@ export function CreateAppointmentModal({
 
   // Günün müsait olup olmadığını kontrol eden fonksiyon
   const isDateAvailable = (date: Date) => {
+    // Tarihin tatil günlerine denk gelip gelmediğini kontrol eden iç fonksiyon
+    function isDateInVacations(date: Date): boolean {
+      // Tarih kontrolü için formatlama
+      const formattedDate = format(date, 'yyyy-MM-dd');
+      
+      // Profesyonel tatillerini kontrol et
+      const isProfessionalOnVacation = professionalVacations.some(vacation => {
+        const startDate = vacation.start_date.split('T')[0];
+        const endDate = vacation.end_date.split('T')[0];
+        return formattedDate >= startDate && formattedDate <= endDate;
+      });
+      
+      // Klinik tatillerini kontrol et
+      const isClinicOnVacation = clinicVacations.some(vacation => {
+        const startDate = vacation.start_date.split('T')[0];
+        const endDate = vacation.end_date.split('T')[0];
+        return formattedDate >= startDate && formattedDate <= endDate;
+      });
+      
+      return isProfessionalOnVacation || isClinicOnVacation;
+    }
+
     // Danışan seçilmemişse, tarih müsait değil
     if (!selectedClient) return false;
     
@@ -605,6 +853,11 @@ export function CreateAppointmentModal({
 
     // İkisinden biri çalışmıyorsa veya bilgileri yoksa, tarih müsait değil
     if (!clinicDay || !profDay) return false;
+    
+    // Tatilleri kontrol et
+    if (isDateInVacations(date)) {
+      return false;
+    }
     
     // İkisi de çalışıyorsa, tarih müsait
     return clinicDay.isOpen && profDay.isOpen;

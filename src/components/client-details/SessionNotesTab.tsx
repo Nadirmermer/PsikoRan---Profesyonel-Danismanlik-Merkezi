@@ -488,6 +488,7 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [isCameraAvailable, setIsCameraAvailable] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Modal için referanslar
   const editDialogRef = useRef(null);
@@ -692,29 +693,71 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
     }, 'image/jpeg', 0.95);
   };
 
+  async function uploadFilesToSupabase(files: File[]): Promise<string[]> {
+    const uploadedUrls: string[] = [];
+
+    for (const file of files) {
+      try {
+        const fileName = `${Date.now()}_${file.name}`;
+        
+        // Dosya boyutu kontrolü (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error(`Dosya boyutu çok büyük: ${file.name}. Maksimum 5MB olmalıdır.`);
+        }
+
+        // Dosyayı yükle
+        const { data, error } = await supabase.storage
+          .from('session-attachments')
+          .upload(fileName, file, {
+            cacheControl: '0',
+            upsert: true
+          });
+
+        if (error) throw error;
+
+        // Public URL al
+        const { data: urlData } = await supabase.storage
+          .from('session-attachments')
+          .getPublicUrl(fileName);
+
+        if (!urlData?.publicUrl) {
+          throw new Error('Dosya URL\'i alınamadı');
+        }
+
+        uploadedUrls.push(urlData.publicUrl);
+      } catch (error: any) {
+        console.error('Dosya yükleme hatası:', error);
+        throw new Error(`${file.name} yüklenirken hata oluştu: ${error.message}`);
+      }
+    }
+
+    return uploadedUrls;
+  }
+
+  async function deleteFileFromSupabase(fileUrl: string) {
+    try {
+      // URL'den dosya adını çıkar
+      const fileName = fileUrl.split('/').pop();
+      if (!fileName) throw new Error('Geçersiz dosya URL\'i');
+
+      const { error } = await supabase.storage
+        .from('session-attachments')
+        .remove([fileName]);
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Dosya silme hatası:', error);
+      throw new Error(`Dosya silinirken hata oluştu: ${error.message}`);
+    }
+  }
+
   async function handleAddNote(e: React.FormEvent) {
     e.preventDefault();
-    
-    if (!professional) {
-      setErrorMessage('Oturum bilgileriniz bulunamadı. Lütfen tekrar giriş yapın.');
-      setIsErrorDialogOpen(true);
-      return;
-    }
-
-    const content = newNoteEditor?.getHTML();
-    
-    if (!content || content === '<p></p>') {
-      setErrorMessage('Not içeriği boş olamaz.');
-      setIsErrorDialogOpen(true);
-      return;
-    }
+    setIsSubmitting(true);
 
     try {
-      setLoading(true);
-      
+      // Dosyaları yükle
       let attachmentUrls: string[] = [];
-      
-      // Eğer dosya ekleri varsa, önce onları yükle
       if (newAttachments.length > 0) {
         setUploadingFiles(true);
         attachmentUrls = await uploadFilesToSupabase(newAttachments);
@@ -725,16 +768,16 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
       const iv = await generateIV();
       
       // İçeriği şifrele
-      const encryptedContent = await encryptData(content, encryptionKey, iv);
+      const encryptedContent = await encryptData(newNoteTitle, encryptionKey, iv);
       
       // Notu veritabanına ekle
       const { error } = await supabase.from('session_notes').insert({
         title: newNoteTitle,
-        content: content,
+        content: encryptedContent,
         encrypted_content: encryptedContent,
         encryption_key: encryptionKey,
         iv: iv,
-        professional_id: professional.id,
+        professional_id: professional?.id,
         client_id: clientId,
         attachments: attachmentUrls.length > 0 ? attachmentUrls : null,
       });
@@ -760,6 +803,7 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
     } finally {
       setLoading(false);
       setUploadingFiles(false);
+      setIsSubmitting(false);
     }
   }
 
@@ -997,59 +1041,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
       
       setNewAttachments(newFiles);
       setPreviewAttachments(newPreviews);
-    }
-  }
-
-  // Dosyaları Supabase'e yükleme işlevi
-  async function uploadFilesToSupabase(files: File[]): Promise<string[]> {
-    const fileUrls: string[] = [];
-    
-    for (const file of files) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${clientId}/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `session_notes/${fileName}`;
-      
-      const { error: uploadError, data } = await supabase.storage
-        .from('attachments')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (uploadError) {
-        throw uploadError;
-      }
-      
-      const { data: urlData } = supabase.storage
-        .from('attachments')
-        .getPublicUrl(filePath);
-      
-      fileUrls.push(urlData.publicUrl);
-    }
-    
-    return fileUrls;
-  }
-
-  // Supabase'den dosya silme işlevi
-  async function deleteFileFromSupabase(fileUrl: string) {
-    try {
-      // URL'den dosya adını çıkar
-      const filePath = fileUrl.split('attachments/')[1];
-      
-      if (!filePath) {
-        console.error('Invalid file path from URL:', fileUrl);
-        return;
-      }
-      
-      const { error } = await supabase.storage
-        .from('attachments')
-        .remove([filePath]);
-      
-      if (error) {
-        throw error;
-      }
-    } catch (error) {
-      console.error('Error deleting file from storage:', error);
     }
   }
 

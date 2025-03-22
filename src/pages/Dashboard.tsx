@@ -11,6 +11,8 @@ import {
   parseISO,
   isWithinInterval,
   addDays,
+  isSameDay,
+  isValid,
 } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import {
@@ -77,6 +79,22 @@ interface ClinicHours {
   };
 }
 
+interface Break {
+  id: string;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+  description?: string;
+}
+
+interface Vacation {
+  id: string;
+  start_date: string;
+  end_date: string;
+  title: string;
+  description?: string;
+}
+
 const ROOM_COLORS = [
   'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300',
   'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300',
@@ -92,6 +110,10 @@ export function Dashboard() {
   const [loadingClinicHours, setLoadingClinicHours] = useState(true);
   const [clinicHours, setClinicHours] = useState<ClinicHours | null>(null);
   const [professionalWorkingHours, setProfessionalWorkingHours] = useState<ClinicHours | null>(null);
+  const [professionalBreaks, setProfessionalBreaks] = useState<Break[]>([]);
+  const [clinicBreaks, setClinicBreaks] = useState<Break[]>([]);
+  const [professionalVacations, setProfessionalVacations] = useState<Vacation[]>([]);
+  const [clinicVacations, setClinicVacations] = useState<Vacation[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
@@ -124,9 +146,13 @@ export function Dashboard() {
       try {
         setLoading(true);
         await loadClinicHours();
+        await loadClinicBreaks();
+        await loadClinicVacations();
         await loadRooms();
         if (professional) {
           await loadProfessionalWorkingHours();
+          await loadProfessionalBreaks();
+          await loadProfessionalVacations();
           await loadProfessionalData();
         } else if (assistant) {
           await loadAssistantData();
@@ -165,67 +191,185 @@ export function Dashboard() {
     const dayOfWeek = selectedDate.getDay();
     const days = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'] as const;
     const currentDay = days[dayOfWeek];
+    const dayName = getTurkishDayName(currentDay);
 
-    let openingHour, closingHour;
+    // Tatil günlerini kontrol et
+    if (isDateInVacations(selectedDate)) {
+      console.log(`${format(selectedDate, 'dd.MM.yyyy')} tarihi tatil/izin gününe denk geliyor.`);
+      return [];
+    }
+
+    let openingHour, openingMinute, closingHour, closingMinute;
 
     if (professional) {
-      // Ruh sağlığı uzmanı için hem kendi hem de klinik saatlerini kontrol et
       const profHours = professionalWorkingHours?.[currentDay];
       const clinicDayHours = clinicHours?.[currentDay];
 
       if (!profHours?.isOpen || !clinicDayHours?.isOpen) return [];
 
-      // En geç başlangıç ve en erken bitiş saatlerini al
-      const [profOpenHour] = profHours.opening.split(':').map(Number);
-      const [profCloseHour] = profHours.closing.split(':').map(Number);
-      const [clinicOpenHour] = clinicDayHours.opening.split(':').map(Number);
-      const [clinicCloseHour] = clinicDayHours.closing.split(':').map(Number);
+      const [profOpenHour, profOpenMinute = 0] = profHours.opening.split(':').map(Number);
+      const [profCloseHour, profCloseMinute = 0] = profHours.closing.split(':').map(Number);
+      const [clinicOpenHour, clinicOpenMinute = 0] = clinicDayHours.opening.split(':').map(Number);
+      const [clinicCloseHour, clinicCloseMinute = 0] = clinicDayHours.closing.split(':').map(Number);
 
-      openingHour = Math.max(profOpenHour, clinicOpenHour);
-      closingHour = Math.min(profCloseHour, clinicCloseHour);
+      openingHour = profOpenHour;
+      openingMinute = profOpenMinute;
+      closingHour = profCloseHour;
+      closingMinute = profCloseMinute;
+
+      if (clinicOpenHour > profOpenHour || (clinicOpenHour === profOpenHour && clinicOpenMinute > profOpenMinute)) {
+        openingHour = clinicOpenHour;
+        openingMinute = clinicOpenMinute;
+      }
+
+      if (clinicCloseHour < profCloseHour || (clinicCloseHour === profCloseHour && clinicCloseMinute < profCloseMinute)) {
+        closingHour = clinicCloseHour;
+        closingMinute = clinicCloseMinute;
+      }
     } else {
-      // Asistan için sadece klinik saatlerini kullan
-      [openingHour] = dayHours.opening.split(':').map(Number);
-      [closingHour] = dayHours.closing.split(':').map(Number);
+      [openingHour, openingMinute = 0] = dayHours.opening.split(':').map(Number);
+      [closingHour, closingMinute = 0] = dayHours.closing.split(':').map(Number);
+    }
+
+    // Başlangıç dakikasını bir sonraki tam saate yuvarla
+    if (openingMinute > 0) {
+      openingHour += 1;
+      openingMinute = 0;
     }
 
     const slots: string[] = [];
     let currentHour = openingHour;
+    let currentMinute = openingMinute;
 
+    const endTimeInMinutes = closingHour * 60 + closingMinute;
+
+    // Her tam saat için bir zaman dilimi oluştur
     while (currentHour < closingHour) {
-      const timeString = `${currentHour.toString().padStart(2, '0')}:00`;
-      slots.push(timeString);
+      // Mola zamanı kontrolü
+      const profBreaksForDay = professionalBreaks.filter(b => b.day_of_week === currentDay);
+      const clinicBreaksForDay = clinicBreaks.filter(b => b.day_of_week === currentDay);
+      const currentTimeInBreak = isTimeInBreaks(currentHour, currentMinute, profBreaksForDay, clinicBreaksForDay);
+
+      if (!currentTimeInBreak) {
+        const timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+        slots.push(timeString);
+      }
+      
+      // Bir sonraki saat
       currentHour += 1;
+    }
+
+    // Son saat dilimini sadece kapanış dakikası 0 ise ekle
+    if (closingMinute === 0 && currentHour === closingHour) {
+      // Mola zamanı kontrolü
+      const profBreaksForDay = professionalBreaks.filter(b => b.day_of_week === currentDay);
+      const clinicBreaksForDay = clinicBreaks.filter(b => b.day_of_week === currentDay);
+      const currentTimeInBreak = isTimeInBreaks(closingHour, 0, profBreaksForDay, clinicBreaksForDay);
+
+      if (!currentTimeInBreak) {
+        slots.push(`${closingHour.toString().padStart(2, '0')}:00`);
+      }
     }
 
     return slots;
   }
 
+  function getTurkishDayName(day: string): string {
+    const dayMap: Record<string, string> = {
+      'pazartesi': 'Pazartesi',
+      'sali': 'Salı',
+      'carsamba': 'Çarşamba',
+      'persembe': 'Perşembe',
+      'cuma': 'Cuma',
+      'cumartesi': 'Cumartesi',
+      'pazar': 'Pazar'
+    };
+    return dayMap[day] || day;
+  }
+
+  function isTimeInBreaks(hour: number, minute: number, professionalBreaks: Break[], clinicBreaks: Break[]): boolean {
+    const timeInMinutes = hour * 60 + minute;
+    
+    for (const breakItem of professionalBreaks) {
+      const [startHour, startMinute] = breakItem.start_time.split(':').map(Number);
+      const [endHour, endMinute] = breakItem.end_time.split(':').map(Number);
+      
+      const breakStartInMinutes = startHour * 60 + startMinute;
+      const breakEndInMinutes = endHour * 60 + endMinute;
+      
+      if (timeInMinutes >= breakStartInMinutes && timeInMinutes < breakEndInMinutes) {
+        return true;
+      }
+    }
+    
+    for (const breakItem of clinicBreaks) {
+      const [startHour, startMinute] = breakItem.start_time.split(':').map(Number);
+      const [endHour, endMinute] = breakItem.end_time.split(':').map(Number);
+      
+      const breakStartInMinutes = startHour * 60 + startMinute;
+      const breakEndInMinutes = endHour * 60 + endMinute;
+      
+      if (timeInMinutes >= breakStartInMinutes && timeInMinutes < breakEndInMinutes) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  function isDateInVacations(date: Date): boolean {
+    if (!isValid(date)) return false;
+    
+    for (const vacation of professionalVacations) {
+      const startDate = new Date(vacation.start_date);
+      const endDate = new Date(vacation.end_date);
+      
+      if (isWithinInterval(date, { start: startDate, end: endDate })) {
+        return true;
+      }
+    }
+    
+    for (const vacation of clinicVacations) {
+      const startDate = new Date(vacation.start_date);
+      const endDate = new Date(vacation.end_date);
+      
+      if (isWithinInterval(date, { start: startDate, end: endDate })) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
   function calculateAppointmentPosition(appointment: AppointmentWithRelations) {
     const startTime = new Date(appointment.start_time);
-    const endTime = new Date(appointment.end_time);
+    const startHour = startTime.getHours();
     const startMinute = startTime.getMinutes();
     
-    // Dakikaya göre yüzdesel pozisyon hesapla (0-100 arası)
+    // Tam saat görünümü için, randevunun başlangıç saatini bul
+    // ve başlangıç dakikasını yüzde olarak hesapla
     const topPercentage = (startMinute / 60) * 100;
     
-    // Randevu süresini dakika cinsinden hesapla
+    // Randevu süresini dakika olarak hesapla
+    const endTime = new Date(appointment.end_time);
     const durationInMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
     
-    // Saatlik hücre yüksekliği 96px
-    const hourHeight = 96;
+    // Bir saatin piksel yüksekliği (saat bloğu yüksekliği)
+    const hourHeight = 96; // Yüksekliği tr içindeki h-[96px] değeri ile eşleşmeli
+    
+    // Randevu yüksekliğini hesapla (saatin yüzde kaçını kapsadığına göre)
     const height = (durationInMinutes / 60) * hourHeight;
     
     return {
       top: `${topPercentage}%`,
-      height: `${height}px`,
+      height: `${Math.max(24, height)}px`, // En az 24px yükseklik
       minHeight: '24px'
     };
   }
 
   function calculateAppointmentHeight(durationInMinutes: number) {
-    const hourHeight = 120; // 1 saat = 120px
-    return Math.max(118, (durationInMinutes / 60) * hourHeight); // Minimum 118px
+    const hourHeight = 120;
+    return Math.max(118, (durationInMinutes / 60) * hourHeight);
   }
 
   function calculateTimeLinePosition() {
@@ -242,10 +386,8 @@ export function Dashboard() {
         .order('full_name');
 
       if (professional) {
-        // Eğer profesyonel ise sadece kendi danışanlarını göster
         query = query.eq('professional_id', professional.id);
       } else if (assistant) {
-        // Eğer asistan ise, yönettiği tüm profesyonellerin danışanlarını göster
         const { data: managedProfessionals } = await supabase
           .from('professionals')
           .select('id')
@@ -271,7 +413,6 @@ export function Dashboard() {
       let query = supabase.from('rooms').select('*').order('name');
 
       if (professional) {
-        // Profesyonelin bağlı olduğu kliniğin odalarını getir
         const { data: prof } = await supabase
           .from('professionals')
           .select('assistant_id')
@@ -366,7 +507,7 @@ export function Dashboard() {
   }
 
   async function loadProfessionalData() {
-    if (!professional?.id) return; // Profesyonel ID yoksa fonksiyondan çık
+    if (!professional?.id) return;
     
     try {
       const today = new Date();
@@ -375,7 +516,6 @@ export function Dashboard() {
       const startOfThisMonth = startOfMonth(today);
       const endOfThisMonth = endOfMonth(today);
 
-      // Load today's appointments with full relations
       const { data: todayAppts, error: todayApptsError } = await supabase
         .from('appointments')
         .select(`
@@ -392,7 +532,6 @@ export function Dashboard() {
 
       if (todayApptsError) throw todayApptsError;
 
-      // Load monthly appointments with full relations
       const { data: monthlyAppts, error: monthlyApptsError } = await supabase
         .from('appointments')
         .select(`
@@ -409,7 +548,6 @@ export function Dashboard() {
 
       if (monthlyApptsError) throw monthlyApptsError;
 
-      // Load today's payments
       const { data: todayPays, error: todayPaysError } = await supabase
         .from('payments')
         .select(`
@@ -427,7 +565,6 @@ export function Dashboard() {
 
       if (todayPaysError) throw todayPaysError;
 
-      // Load monthly payments
       const { data: monthlyPays, error: monthlyPaysError } = await supabase
         .from('payments')
         .select(`
@@ -455,14 +592,13 @@ export function Dashboard() {
   }
 
   async function loadAssistantData() {
-    if (!assistant?.id) return; // Asistan ID yoksa fonksiyondan çık
+    if (!assistant?.id) return;
 
     try {
       const startToday = startOfDay(selectedDate);
       const endToday = endOfDay(selectedDate);
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
 
-      // Önce yönetilen profesyonelleri al
       const { data: managedProfessionals, error: profError } = await supabase
         .from('professionals')
         .select('id')
@@ -472,7 +608,6 @@ export function Dashboard() {
 
       const professionalIds = managedProfessionals?.map(p => p.id) || [];
 
-      // Load today's appointments
       const { data: todayAppts, error: apptsError } = await supabase
         .from('appointments')
         .select(`
@@ -489,7 +624,6 @@ export function Dashboard() {
 
       if (apptsError) throw apptsError;
 
-      // Load today's payments
       const { data: todayPays, error: paysError } = await supabase
         .from('payments')
         .select(`
@@ -507,7 +641,6 @@ export function Dashboard() {
 
       if (paysError) throw paysError;
 
-      // Cash status için upsert kullan
       const { data: cashData, error: cashError } = await supabase
         .from('cash_status')
         .upsert(
@@ -573,7 +706,6 @@ export function Dashboard() {
   function getAppointmentDuration(appointment: any) {
     const start = parseISO(appointment.start_time);
     const end = parseISO(appointment.end_time);
-    // Saat cinsinden duration hesapla
     return Math.ceil((end.getTime() - start.getTime()) / (60 * 60 * 1000));
   }
 
@@ -863,20 +995,21 @@ export function Dashboard() {
     }
   }, [formData.startTime, formData.roomId, duration, selectedDate, existingAppointments]);
 
-  // Klinik açık olan günleri kontrol eden fonksiyon
   const isClinicOpen = (date: Date) => {
     const dayOfWeek = date.getDay();
     const days = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'] as const;
     const currentDay = days[dayOfWeek];
 
+    if (isDateInVacations(date)) {
+      return false;
+    }
+
     if (professional) {
-      // Ruh sağlığı uzmanı için hem kendi hem de klinik çalışma saatlerini kontrol et
       const profDay = professionalWorkingHours?.[currentDay];
       const clinicDay = clinicHours?.[currentDay];
       
       return (profDay?.isOpen && clinicDay?.isOpen) || false;
     } else {
-      // Asistan için sadece klinik çalışma saatlerini kontrol et
       return clinicHours?.[currentDay]?.isOpen || false;
     }
   };
@@ -885,14 +1018,12 @@ export function Dashboard() {
     try {
       if (!professional?.id) return;
 
-      // Doğrudan veriyi çekmeye çalış
       const { data, error } = await supabase
         .from('professional_working_hours')
         .select('*')
         .eq('professional_id', professional.id)
         .maybeSingle();
 
-      // If no data found or there's an error other than "no rows", use default values
       if (error && error.code !== 'PGRST116') {
         console.error('Profesyonel çalışma saatleri yüklenirken hata:', error);
       }
@@ -936,7 +1067,6 @@ export function Dashboard() {
           }
         });
       } else {
-        // Veri yoksa varsayılan değerleri kullan
         setProfessionalWorkingHours({
           pazartesi: {
             opening: '09:00',
@@ -977,7 +1107,6 @@ export function Dashboard() {
       }
     } catch (error) {
       console.error('Profesyonel çalışma saatleri yüklenirken hata:', error);
-      // Hata durumunda varsayılan değerleri kullan
       setProfessionalWorkingHours({
         pazartesi: {
           opening: '09:00',
@@ -1018,6 +1147,109 @@ export function Dashboard() {
     }
   }
 
+  async function loadProfessionalBreaks() {
+    if (!professional?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('professional_breaks')
+        .select('*')
+        .eq('professional_id', professional.id);
+        
+      if (error) {
+        console.error('Profesyonel mola saatleri yüklenirken hata:', error);
+        return;
+      }
+      
+      setProfessionalBreaks(data || []);
+    } catch (error) {
+      console.error('Profesyonel mola saatleri yüklenirken hata:', error);
+    }
+  }
+  
+  async function loadClinicBreaks() {
+    try {
+      let query = supabase.from('clinic_breaks').select('*');
+      
+      if (professional) {
+        const { data: prof } = await supabase
+          .from('professionals')
+          .select('assistant_id')
+          .eq('id', professional.id)
+          .single();
+          
+        if (prof?.assistant_id) {
+          query = query.eq('clinic_id', prof.assistant_id);
+        }
+      } else if (assistant) {
+        query = query.eq('clinic_id', assistant.id);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Klinik mola saatleri yüklenirken hata:', error);
+        return;
+      }
+      
+      setClinicBreaks(data || []);
+    } catch (error) {
+      console.error('Klinik mola saatleri yüklenirken hata:', error);
+    }
+  }
+  
+  async function loadProfessionalVacations() {
+    if (!professional?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('vacations')
+        .select('*')
+        .eq('professional_id', professional.id)
+        .is('clinic_id', null);
+        
+      if (error) {
+        console.error('Profesyonel izinleri yüklenirken hata:', error);
+        return;
+      }
+      
+      setProfessionalVacations(data || []);
+    } catch (error) {
+      console.error('Profesyonel izinleri yüklenirken hata:', error);
+    }
+  }
+  
+  async function loadClinicVacations() {
+    try {
+      let query = supabase.from('vacations').select('*').not('clinic_id', 'is', null);
+      
+      if (professional) {
+        const { data: prof } = await supabase
+          .from('professionals')
+          .select('assistant_id')
+          .eq('id', professional.id)
+          .single();
+          
+        if (prof?.assistant_id) {
+          query = query.eq('clinic_id', prof.assistant_id);
+        }
+      } else if (assistant) {
+        query = query.eq('clinic_id', assistant.id);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Klinik izinleri yüklenirken hata:', error);
+        return;
+      }
+      
+      setClinicVacations(data || []);
+    } catch (error) {
+      console.error('Klinik izinleri yüklenirken hata:', error);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -1037,7 +1269,6 @@ export function Dashboard() {
     );
   }
 
-  // Professional Dashboard
   if (professional) {
     const todayEarnings = todayPayments.reduce(
       (sum, payment) => sum + Number(payment.professional_amount),
@@ -1059,7 +1290,6 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Takvim Görünümü */}
           <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
@@ -1097,7 +1327,6 @@ export function Dashboard() {
               </div>
             </div>
 
-            {/* Randevu tablosu */}
             <div className="overflow-x-auto">
               <div className="inline-block min-w-full align-middle">
                 <div className="overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10 md:rounded-lg relative">
@@ -1193,9 +1422,7 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* İstatistikler Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Today's Overview */}
             <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                 <Calendar className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
@@ -1224,7 +1451,6 @@ export function Dashboard() {
               </div>
             </div>
 
-            {/* Monthly Overview */}
             <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                 <DollarSign className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
@@ -1254,7 +1480,6 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Create Appointment Modal */}
           {showCreateModal && (
             <CreateAppointmentModal
               isOpen={showCreateModal}
@@ -1274,7 +1499,6 @@ export function Dashboard() {
     );
   }
 
-  // Assistant Dashboard
   const totalCash =
     cashStatus.opening_balance +
     cashStatus.from_professionals -
@@ -1291,16 +1515,13 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Randevular bölümü */}
         <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-gray-200/50 dark:border-gray-700/50">
-          {/* Randevu başlık ve kontroller */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
               <Clock className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
               Randevular
             </h2>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              {/* Tarih Kontrolleri */}
               <div className="flex items-center w-full sm:w-auto">
                 <button
                   onClick={() => setSelectedDate(addDays(selectedDate, -1))}
@@ -1321,7 +1542,6 @@ export function Dashboard() {
                   <ChevronRight className="h-5 w-5" />
                 </button>
               </div>
-              {/* Yeni Randevu Butonu */}
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="w-full sm:w-auto flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -1332,7 +1552,6 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Randevu tablosu */}
           <div className="overflow-x-auto">
             <div className="inline-block min-w-full align-middle">
               <div className="overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10 md:rounded-lg relative">
@@ -1428,9 +1647,7 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Kasa ve Ödemeler Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Cash Status */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
               <Wallet className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
@@ -1468,7 +1685,6 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Today's Payments */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
               <CreditCard className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
@@ -1502,7 +1718,6 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Create Appointment Modal */}
         {showCreateModal && (
           <CreateAppointmentModal
             isOpen={showCreateModal}
@@ -1522,7 +1737,6 @@ export function Dashboard() {
   );
 }
 
-// Yardımcı fonksiyonu ekleyin
 function getAppointmentDurationInMinutes(appointment: any) {
   const start = parseISO(appointment.start_time);
   const end = parseISO(appointment.end_time);

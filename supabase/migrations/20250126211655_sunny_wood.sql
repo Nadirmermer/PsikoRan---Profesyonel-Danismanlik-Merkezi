@@ -17,6 +17,9 @@
     - professional_working_hours: Profesyonellerin çalışma saatleri
     - blog_posts: Blog yazıları
     - blog_views: Blog görüntülenme istatistikleri
+    - professional_breaks: Günlük molalar
+    - clinic_breaks: Klinik molalar
+    - vacations: Tatil planlaması
 
   2. Security
     - RLS politikaları her tablo için tanımlanmıştır
@@ -40,7 +43,11 @@ CREATE TABLE assistants (
   phone text,
   email text UNIQUE,
   clinic_name text,
-  created_at timestamptz DEFAULT now()
+  profile_image_url text,
+  privacy_settings jsonb DEFAULT '{"data_sharing": false, "usage_tracking": true, "marketing_emails": false, "third_party_access": false}'::jsonb,
+  cookie_settings jsonb DEFAULT '{"essential": true, "analytics": true, "marketing": false, "preferences": true}'::jsonb,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
 );
 
 CREATE TABLE professionals (
@@ -51,6 +58,11 @@ CREATE TABLE professionals (
   title text,
   email text,
   phone text,
+  specialization text,
+  bio text,
+  profile_image_url text,
+  privacy_settings jsonb DEFAULT '{"data_sharing": false, "usage_tracking": true, "marketing_emails": false, "third_party_access": false}'::jsonb,
+  cookie_settings jsonb DEFAULT '{"essential": true, "analytics": true, "marketing": false, "preferences": true}'::jsonb,
   created_at timestamptz DEFAULT now()
 );
 
@@ -89,6 +101,12 @@ CREATE TABLE rooms (
 CREATE TABLE clinic_settings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   assistant_id uuid REFERENCES assistants(id) ON DELETE CASCADE,
+  name text,
+  address text,
+  tax_number text,
+  tax_office text,
+  website text,
+  description text,
   opening_time_monday time NOT NULL DEFAULT '09:00',
   closing_time_monday time NOT NULL DEFAULT '18:00',
   is_open_monday boolean NOT NULL DEFAULT true,
@@ -111,7 +129,8 @@ CREATE TABLE clinic_settings (
   closing_time_sunday time NOT NULL DEFAULT '18:00',
   is_open_sunday boolean NOT NULL DEFAULT false,
   created_at timestamptz DEFAULT now(),
-  clinic_amount numeric NOT NULL DEFAULT 0
+  clinic_amount numeric NOT NULL DEFAULT 0,
+  working_hours jsonb
 );
 
 CREATE TABLE appointments (
@@ -224,6 +243,7 @@ CREATE TABLE professional_working_hours (
   closing_time_sunday time NOT NULL DEFAULT '18:00',
   is_open_sunday boolean NOT NULL DEFAULT false,
   created_at timestamptz DEFAULT now(),
+  hours jsonb,
   CONSTRAINT unique_professional_working_hours UNIQUE (professional_id)
 );
 
@@ -232,11 +252,258 @@ CREATE TABLE notification_subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
   user_type text NOT NULL,
-  subscription jsonb NOT NULL,
+  endpoint text NOT NULL,
+  auth text,
+  p256dh text,
   created_at timestamptz DEFAULT now() NOT NULL,
   updated_at timestamptz DEFAULT now() NOT NULL,
   CONSTRAINT valid_user_type CHECK (user_type IN ('professional', 'assistant', 'client'))
 );
+
+-- Günlük molalar için tablo
+CREATE TABLE professional_breaks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  professional_id UUID REFERENCES professionals(id) ON DELETE CASCADE,
+  day_of_week TEXT NOT NULL,  -- 'monday', 'tuesday', vs.
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (professional_id, day_of_week, start_time)
+);
+
+-- RLS Polices for professional_breaks
+ALTER TABLE professional_breaks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Professionals can view their own breaks"
+  ON professional_breaks
+  FOR SELECT
+  USING (auth.uid() IN (
+    SELECT p.user_id FROM professionals p WHERE p.id = professional_id
+  ));
+
+CREATE POLICY "Professionals can insert their own breaks"
+  ON professional_breaks
+  FOR INSERT
+  WITH CHECK (auth.uid() IN (
+    SELECT p.user_id FROM professionals p WHERE p.id = professional_id
+  ));
+
+CREATE POLICY "Professionals can update their own breaks"
+  ON professional_breaks
+  FOR UPDATE
+  USING (auth.uid() IN (
+    SELECT p.user_id FROM professionals p WHERE p.id = professional_id
+  ));
+
+CREATE POLICY "Professionals can delete their own breaks"
+  ON professional_breaks
+  FOR DELETE
+  USING (auth.uid() IN (
+    SELECT p.user_id FROM professionals p WHERE p.id = professional_id
+  ));
+
+CREATE POLICY "Assistants can view professional breaks for their clinic"
+  ON professional_breaks
+  FOR SELECT
+  USING (auth.uid() IN (
+    SELECT a.user_id FROM assistants a 
+    JOIN professionals p ON p.assistant_id = a.id 
+    WHERE p.id = professional_id
+  ));
+
+CREATE POLICY "Assistants can insert professional breaks for their clinic"
+  ON professional_breaks
+  FOR INSERT
+  WITH CHECK (auth.uid() IN (
+    SELECT a.user_id FROM assistants a 
+    JOIN professionals p ON p.assistant_id = a.id 
+    WHERE p.id = professional_id
+  ));
+
+CREATE POLICY "Assistants can update professional breaks for their clinic"
+  ON professional_breaks
+  FOR UPDATE
+  USING (auth.uid() IN (
+    SELECT a.user_id FROM assistants a 
+    JOIN professionals p ON p.assistant_id = a.id 
+    WHERE p.id = professional_id
+  ));
+
+CREATE POLICY "Assistants can delete professional breaks for their clinic"
+  ON professional_breaks
+  FOR DELETE
+  USING (auth.uid() IN (
+    SELECT a.user_id FROM assistants a 
+    JOIN professionals p ON p.assistant_id = a.id 
+    WHERE p.id = professional_id
+  ));
+
+-- Klinik molalar için tablo
+CREATE TABLE clinic_breaks (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  clinic_id UUID NOT NULL,  -- Bu, klinik ID'si olarak assistant.id'yi referans alır
+  day_of_week TEXT NOT NULL,  -- 'monday', 'tuesday', vs.
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (clinic_id, day_of_week, start_time)
+);
+
+-- RLS Polices for clinic_breaks
+ALTER TABLE clinic_breaks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Assistants can view their clinic breaks"
+  ON clinic_breaks
+  FOR SELECT
+  USING (auth.uid() IN (
+    SELECT a.user_id FROM assistants a WHERE a.id = clinic_id
+  ));
+
+CREATE POLICY "Assistants can insert their clinic breaks"
+  ON clinic_breaks
+  FOR INSERT
+  WITH CHECK (auth.uid() IN (
+    SELECT a.user_id FROM assistants a WHERE a.id = clinic_id
+  ));
+
+CREATE POLICY "Assistants can update their clinic breaks"
+  ON clinic_breaks
+  FOR UPDATE
+  USING (auth.uid() IN (
+    SELECT a.user_id FROM assistants a WHERE a.id = clinic_id
+  ));
+
+CREATE POLICY "Assistants can delete their clinic breaks"
+  ON clinic_breaks
+  FOR DELETE
+  USING (auth.uid() IN (
+    SELECT a.user_id FROM assistants a WHERE a.id = clinic_id
+  ));
+
+CREATE POLICY "Professionals can view clinic breaks"
+  ON clinic_breaks
+  FOR SELECT
+  USING (auth.uid() IN (
+    SELECT p.user_id FROM professionals p 
+    JOIN assistants a ON p.assistant_id = a.id 
+    WHERE a.id = clinic_id
+  ));
+
+-- Tatil planlaması için tablo
+CREATE TABLE vacations (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  professional_id UUID REFERENCES professionals(id) ON DELETE CASCADE NULL,
+  clinic_id UUID NULL,  -- Bu, klinik ID'si olarak assistant.id'yi referans alır
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  CHECK (professional_id IS NOT NULL OR clinic_id IS NOT NULL),
+  CHECK (start_date <= end_date)
+);
+
+-- RLS Polices for vacations
+ALTER TABLE vacations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Professionals can view their vacations"
+  ON vacations
+  FOR SELECT
+  USING (
+    professional_id IS NOT NULL AND auth.uid() IN (
+      SELECT p.user_id FROM professionals p WHERE p.id = professional_id
+    )
+  );
+
+CREATE POLICY "Professionals can insert their vacations"
+  ON vacations
+  FOR INSERT
+  WITH CHECK (
+    professional_id IS NOT NULL AND auth.uid() IN (
+      SELECT p.user_id FROM professionals p WHERE p.id = professional_id
+    )
+  );
+
+CREATE POLICY "Professionals can update their vacations"
+  ON vacations
+  FOR UPDATE
+  USING (
+    professional_id IS NOT NULL AND auth.uid() IN (
+      SELECT p.user_id FROM professionals p WHERE p.id = professional_id
+    )
+  );
+
+CREATE POLICY "Professionals can delete their vacations"
+  ON vacations
+  FOR DELETE
+  USING (
+    professional_id IS NOT NULL AND auth.uid() IN (
+      SELECT p.user_id FROM professionals p WHERE p.id = professional_id
+    )
+  );
+
+CREATE POLICY "Assistants can view clinic vacations"
+  ON vacations
+  FOR SELECT
+  USING (
+    clinic_id IS NOT NULL AND auth.uid() IN (
+      SELECT a.user_id FROM assistants a WHERE a.id = clinic_id
+    )
+  );
+
+CREATE POLICY "Assistants can insert clinic vacations"
+  ON vacations
+  FOR INSERT
+  WITH CHECK (
+    clinic_id IS NOT NULL AND auth.uid() IN (
+      SELECT a.user_id FROM assistants a WHERE a.id = clinic_id
+    )
+  );
+
+CREATE POLICY "Assistants can update clinic vacations"
+  ON vacations
+  FOR UPDATE
+  USING (
+    clinic_id IS NOT NULL AND auth.uid() IN (
+      SELECT a.user_id FROM assistants a WHERE a.id = clinic_id
+    )
+  );
+
+CREATE POLICY "Assistants can delete clinic vacations"
+  ON vacations
+  FOR DELETE
+  USING (
+    clinic_id IS NOT NULL AND auth.uid() IN (
+      SELECT a.user_id FROM assistants a WHERE a.id = clinic_id
+    )
+  );
+
+CREATE POLICY "Professionals can view their clinic vacations"
+  ON vacations
+  FOR SELECT
+  USING (
+    clinic_id IS NOT NULL AND auth.uid() IN (
+      SELECT p.user_id FROM professionals p 
+      JOIN assistants a ON p.assistant_id = a.id 
+      WHERE a.id = clinic_id
+    )
+  );
+
+CREATE POLICY "Assistants can view professional vacations for their clinic"
+  ON vacations
+  FOR SELECT
+  USING (
+    professional_id IS NOT NULL AND auth.uid() IN (
+      SELECT a.user_id FROM assistants a 
+      JOIN professionals p ON p.assistant_id = a.id 
+      WHERE p.id = professional_id
+    )
+  );
 
 -- Enable Row Level Security
 ALTER TABLE assistants ENABLE ROW LEVEL SECURITY;
@@ -927,35 +1194,37 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Blog bucket'ı için storage
-INSERT INTO storage.buckets (id, name, public, avif_autodetection)
-VALUES ('blog', 'blog', true, false);
+-- Önce mevcut bucket'ı ve politikaları temizle
+DROP POLICY IF EXISTS "Blog görselleri herkese açık" ON storage.objects;
+DROP POLICY IF EXISTS "Blog görseli yükleme izni" ON storage.objects;
+DROP POLICY IF EXISTS "Blog görseli silme izni" ON storage.objects;
 
--- Önceki blog bucket politikalarını temizle
-DROP POLICY IF EXISTS "Blog görselleri herkes tarafından görüntülenebilir" ON storage.objects;
-DROP POLICY IF EXISTS "Kimlik doğrulanmış kullanıcılar blog görsellerini yükleyebilir" ON storage.objects;
-DROP POLICY IF EXISTS "Kimlik doğrulanmış kullanıcılar kendi yükledikleri blog görsellerini silebilir" ON storage.objects;
+-- Blog bucket'ını oluştur (eğer yoksa)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('blog', 'blog', true)
+ON CONFLICT (id) DO NOTHING;
 
--- Daha esnek yeni blog bucket politikaları
--- Herkes tarafından görüntülenebilir (public)
-CREATE POLICY "Blog görselleri herkes tarafından görüntülenebilir" ON storage.objects
-  FOR SELECT
-  USING (bucket_id = 'blog');
+-- Bucket izinlerini ayarla
+CREATE POLICY "Blog görselleri herkese açık"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'blog');
 
--- Kimlik doğrulanmış kullanıcılar yükleyebilir (owner kontrolü yok)
-CREATE POLICY "Kimlik doğrulanmış kullanıcılar blog görsellerini yükleyebilir" ON storage.objects
-  FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'blog');
+CREATE POLICY "Blog görseli yükleme izni"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'blog'
+  AND auth.role() = 'authenticated'
+);
 
--- Kimlik doğrulanmış kullanıcılar herhangi bir görüntüyü güncelleyebilir
-CREATE POLICY "Kimlik doğrulanmış kullanıcılar blog görsellerini güncelleyebilir" ON storage.objects
-  FOR UPDATE TO authenticated
-  USING (bucket_id = 'blog');
+CREATE POLICY "Blog görseli silme izni"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'blog'
+  AND auth.role() = 'authenticated'
+);
 
--- Kimlik doğrulanmış kullanıcılar herhangi bir dosyayı silebilir (owner kontrolü yok)
-CREATE POLICY "Kimlik doğrulanmış kullanıcılar blog görsellerini silebilir" ON storage.objects
-  FOR DELETE TO authenticated
-  USING (bucket_id = 'blog');
+-- RLS'yi etkinleştir
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 -- Blog fonksiyonlarına erişim izinleri
 GRANT EXECUTE ON FUNCTION get_blog_categories TO authenticated, anon;

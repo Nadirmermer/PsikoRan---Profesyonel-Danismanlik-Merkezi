@@ -6,7 +6,7 @@ export { Clients } from './Clients';
 export { ClientDetails } from './ClientDetails';
 export { Appointments } from './Appointments';
 export { Payments } from './Payments';
-export { Settings } from './Settings';
+export { default as Settings } from './Settings';
 export { ForgotPassword } from './ForgotPassword';
 export { ResetPassword } from './ResetPassword';
 export { Privacy } from './Privacy';
