@@ -1,9 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, User, Tag, Share2, ExternalLink, Twitter, Facebook, Linkedin, ChevronRight, ArrowRight, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Tag, Share2, ExternalLink, Twitter, Facebook, Linkedin, ChevronRight, ArrowRight, Moon, Sun, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BlogPost as BlogPostType, fetchBlogPostBySlug, formatBlogDate, processProfessionalNames, generateBlogJsonLd } from '../lib/blog';
 import { Helmet } from 'react-helmet';
+
+// ReadTime bileşeni - okuma süresini göstermek için tutarlı bir bileşen
+interface ReadTimeProps {
+  minutes: number;
+  className?: string;
+  iconClassName?: string;
+  textClassName?: string;
+}
+
+const ReadTime: React.FC<ReadTimeProps> = ({ 
+  minutes, 
+  className = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300",
+  iconClassName = "h-3 w-3 mr-1",
+  textClassName = ""
+}) => {
+  const displayMinutes = minutes || 5;
+  
+  return (
+    <span className={className}>
+      <Clock className={iconClassName} />
+      <span className={textClassName}>{displayMinutes} dk</span>
+    </span>
+  );
+};
 
 export function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
@@ -267,23 +291,15 @@ export function BlogPost() {
               <span className="px-1">•</span>
               <span className="inline-flex items-center">
                 <User className="h-4 w-4 mr-1.5" />
-                <Link 
-                  to={`/uzman/${post.author.toLowerCase()
-                    .replace(/\s+/g, '-')
-                    .replace(/[üÜ]/g, 'u')
-                    .replace(/[çÇ]/g, 'c')
-                    .replace(/[şŞ]/g, 's')
-                    .replace(/[ıİ]/g, 'i')
-                    .replace(/[ğĞ]/g, 'g')
-                    .replace(/[öÖ]/g, 'o')
-                    .replace(/[^a-z0-9-]/g, '')}`}
-                  className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                >
-                  {post.author}
-                </Link>
+                {post.author}
               </span>
               <span className="px-1">•</span>
-              <span>{post.reading_time} dk okuma</span>
+              <ReadTime 
+                minutes={post.reading_time} 
+                className="inline-flex items-center px-3 py-1 bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 rounded-full text-xs font-medium"
+                iconClassName="h-3.5 w-3.5 mr-1.5"
+                textClassName="whitespace-nowrap"
+              />
             </div>
 
             <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white leading-tight mb-4">
@@ -335,7 +351,10 @@ export function BlogPost() {
             prose-li:mb-1
             prose-blockquote:border-l-primary-600 dark:prose-blockquote:border-l-primary-400
             prose-blockquote:text-slate-700 dark:prose-blockquote:text-slate-200
-            prose-blockquote:bg-primary-50 dark:prose-blockquote:bg-primary-900/20 prose-blockquote:rounded-r-lg prose-blockquote:py-1 prose-blockquote:pl-4 prose-blockquote:pr-2"
+            prose-blockquote:bg-primary-50 dark:prose-blockquote:bg-primary-900/20 prose-blockquote:rounded-r-lg prose-blockquote:py-1 prose-blockquote:pl-4 prose-blockquote:pr-2
+            prose-strong:text-slate-900 dark:prose-strong:text-white
+            prose-code:text-slate-900 dark:prose-code:text-slate-200
+            prose-code:bg-slate-100 dark:prose-code:bg-slate-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded"
             dangerouslySetInnerHTML={renderContent(post.content)}
           />
 

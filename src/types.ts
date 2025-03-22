@@ -30,7 +30,6 @@ export interface Professional {
   assistant_id?: string;
   is_available?: boolean;
   working_hours?: ClinicHours;
-  slug?: string;
 }
 
 export interface Assistant {

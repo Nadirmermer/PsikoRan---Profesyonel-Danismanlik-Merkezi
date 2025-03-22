@@ -373,13 +373,7 @@ export function Blog() {
                     </span>
                     <span className="flex items-center">
                       <User className="h-3.5 w-3.5 mr-1" />
-                      <Link 
-                        to={`/uzman/${slugifyName(post.author)}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                      >
-                        {post.author}
-                      </Link>
+                      {post.author}
                     </span>
                   </div>
 

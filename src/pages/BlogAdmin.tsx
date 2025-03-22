@@ -59,7 +59,8 @@ interface FormData {
   category: string;
   tags: string;
   is_published: boolean;
-  reading_time?: number;
+  reading_time: number;
+  cover_image?: string;
 }
 
 // Admin tarafında kullanılan BlogPost türü (string veya string[] olarak tags kabul edebilir)
@@ -496,6 +497,30 @@ const categories = [
   { value: 'online-terapi', label: 'Online Terapi' }
 ];
 
+// ReadTime bileşeni - okuma süresini göstermek için tutarlı bir bileşen
+interface ReadTimeProps {
+  minutes: number;
+  className?: string;
+  iconClassName?: string;
+  textClassName?: string;
+}
+
+const ReadTime: React.FC<ReadTimeProps> = ({ 
+  minutes, 
+  className = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300",
+  iconClassName = "h-3 w-3 mr-1",
+  textClassName = ""
+}) => {
+  const displayMinutes = minutes || 5;
+  
+  return (
+    <span className={className}>
+      <Clock className={iconClassName} />
+      <span className={textClassName}>{displayMinutes} dk</span>
+    </span>
+  );
+};
+
 export function BlogAdmin() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -503,7 +528,6 @@ export function BlogAdmin() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [formData, setFormData] = useState<FormData>({
     title: '',
     slug: '',
@@ -521,15 +545,15 @@ export function BlogAdmin() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   
   // Kullanıcı tipi ve bağlı uzmanlar
-  const [userType, setUserType] = useState<'professional' | 'assistant' | null>(null);
-  const [professionalId, setProfessionalId] = useState<string | null>(null);
-  const [linkedProfessionals, setLinkedProfessionals] = useState<{id: string, full_name: string, title?: string}[]>([]);
-  const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
-  
-  // Yazı önizleme
+  const [userType, setUserType] = useState<'professional' | 'assistant' | 'regular'>('regular');
+  const [linkedProfessionals, setLinkedProfessionals] = useState<any[]>([]);
+  const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
   const [showPreview, setShowPreview] = useState(false);
+  // Özel kategori seçimi için state
+  const [customCategory, setCustomCategory] = useState<string>('');
 
   // TipTap editör ayarları
   const editor = useEditor({
@@ -579,10 +603,10 @@ export function BlogAdmin() {
         if (profileData) {
           // Kullanıcı bir ruh sağlığı uzmanı
           setUserType('professional');
-          setProfessionalId(profileData.id);
+          setSelectedProfessionalId(profileData.id);
           
           const authorName = profileData.title 
-            ? `${profileData.full_name}, ${profileData.title}` 
+            ? `${profileData.title} ${profileData.full_name}` 
             : profileData.full_name;
           
           setFormData(prev => ({
@@ -614,7 +638,7 @@ export function BlogAdmin() {
               // Yazar adını bağlı uzmanın adı olarak ayarla
               const prof = linkedProfs[0];
               const authorName = prof.title 
-                ? `${prof.full_name}, ${prof.title}` 
+                ? `${prof.title} ${prof.full_name}` 
                 : prof.full_name;
                 
               setFormData(prev => ({
@@ -634,16 +658,50 @@ export function BlogAdmin() {
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase
+      // Kullanıcı türüne göre farklı sorgular yapılandır
+      let query = supabase
         .from('blog_posts')
         .select('*')
         .order('created_at', { ascending: false });
         
-      if (error) throw error;
+      if (userType === 'professional') {
+        // Ruh sağlığı uzmanları sadece kendi blog yazılarını görebilir
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          query = query.eq('author_id', userData.user.id);
+        }
+      } else if (userType === 'assistant') {
+        // Asistanlar yalnızca bağlı oldukları ruh sağlığı uzmanlarının blog yazılarını görebilir
+        if (linkedProfessionals.length > 0) {
+          // Bağlı uzmanların user_id'lerini alıyoruz
+          const professionalUserIds = await Promise.all(
+            linkedProfessionals.map(async (prof) => {
+              const { data } = await supabase
+                .from('professionals')
+                .select('user_id')
+                .eq('id', prof.id)
+                .single();
+              return data?.user_id;
+            })
+          );
+          
+          // Null olmayan user_id'leri filtreleyelim
+          const validUserIds = professionalUserIds.filter(id => id);
+          
+          if (validUserIds.length > 0) {
+            query = query.in('author_id', validUserIds);
+          }
+        }
+      }
+      
+      const { data, error: fetchError } = await query;
+        
+      if (fetchError) throw fetchError;
       
       setPosts(data || []);
     } catch (err) {
       console.error('Blog yazıları yüklenirken hata oluştu:', err);
+      setError('Blog yazıları yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
     } finally {
       setIsLoading(false);
     }
@@ -689,14 +747,14 @@ export function BlogAdmin() {
       // Yazar adını da ayarla
       const prof = linkedProfessionals[0];
       const authorName = prof.title 
-        ? `${prof.full_name}, ${prof.title}` 
+        ? `${prof.title} ${prof.full_name}` 
         : prof.full_name;
         
       setFormData(prev => ({
         ...prev,
         author: authorName
       }));
-    } else if (userType === 'professional' && professionalId) {
+    } else if (userType === 'professional' && selectedProfessionalId) {
       // Profesyonel ise kendi adını korur
       // Not: Bu alanlar zaten useEffect ile yükleniyor, bu yüzden ekstra bir şey yapmaya gerek yok
     }
@@ -778,7 +836,7 @@ export function BlogAdmin() {
         }
         setRetryCount(prev => prev + 1);
       } else {
-        console.log('Maksimum yeniden deneme sayısına ulaşıldı, varsayılan görsele geçiliyor');
+        console.log('Görsel yüklenemedi, maksimum yeniden deneme sayısına ulaşıldı.');
         onError();
       }
     };
@@ -794,81 +852,119 @@ export function BlogAdmin() {
     );
   };
 
+  // Okuma süresi hesaplama fonksiyonu - uygulama genelinde tutarlılık sağlar
+  function calculateReadingTime(content: string): number {
+    if (!content) return 5; // Varsayılan değer 5 dk
+    
+    // HTML etiketlerini temizle
+    const text = content.replace(/<[^>]*>/g, '');
+    
+    // Türkçe ortalama okuma hızı: 200 kelime/dakika
+    const wordCount = text.trim().split(/\s+/).length;
+    const minutes = Math.max(1, Math.ceil(wordCount / 200));
+    
+    return minutes;
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setSuccessMessage(null);
     setErrorMessage(null);
 
     try {
-      // Asistan ise bir ruh sağlığı uzmanı seçilmiş olmalı
-      if (userType === 'assistant' && !selectedProfessionalId) {
-        throw new Error('Lütfen bir ruh sağlığı uzmanı seçin.');
+      // Kullanıcı bilgisini al
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) throw new Error('Kullanıcı oturumu bulunamadı. Lütfen tekrar giriş yapın.');
+
+      // İçerik kontrolü
+      const editorContent = editor?.getHTML() || '';
+      if (!editorContent || editorContent === '<p></p>') {
+        throw new Error('İçerik boş olamaz, lütfen bir içerik girin.');
       }
 
-      const postData = prepareFormData();
-      let imageUrl = editingPost?.cover_image || '/assets/images/blog-placeholder.jpg';
-
+      // Resim yükleme işlemi
+      let imageUrl = formData.cover_image || '';
       if (imageFile) {
-        // Dosya adını oluştur
-        const timestamp = Date.now();
-        const fileExt = imageFile.name.split('.').pop()?.toLowerCase() || '';
-        const fileName = `${timestamp}_${sanitizeFileName(imageFile.name)}`;
-
-        // Dosya tipini kontrol et
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (!allowedTypes.includes(imageFile.type)) {
-          throw new Error('Desteklenmeyen dosya formatı. Lütfen JPEG, PNG, GIF veya WEBP formatında bir görsel yükleyin.');
+        // Resim uzantı kontrolü
+        const fileExtension = imageFile.name.split('.').pop()?.toLowerCase();
+        if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || '')) {
+          throw new Error('Sadece JPG, PNG, GIF ve WEBP formatındaki resimler desteklenmektedir.');
         }
 
-        // Dosya boyutunu kontrol et (5MB)
+        // Resim boyut kontrolü (5MB)
         if (imageFile.size > 5 * 1024 * 1024) {
-          throw new Error('Dosya boyutu çok büyük. Maksimum 5MB boyutunda dosya yükleyebilirsiniz.');
+          throw new Error('Resim dosyası maksimum 5MB olmalıdır.');
         }
 
-        try {
-          imageUrl = await handleImageUpload(imageFile, fileName);
-          console.log('Yüklenen görsel URL:', imageUrl);
-        } catch (uploadErr: any) {
-          console.error('Görsel yükleme hatası:', uploadErr);
-          throw new Error(`Görsel yüklenirken hata oluştu: ${uploadErr.message}`);
+        const sanitizedFileName = sanitizeFileName(imageFile.name);
+        imageUrl = await handleImageUpload(imageFile, sanitizedFileName);
+      }
+
+      // Okuma süresini içerik uzunluğuna göre hesapla
+      const readingTime = calculateReadingTime(editorContent);
+
+      // Yazar ID'sini belirle
+      let author_id = data.user.id;
+      
+      if (userType === 'assistant' && selectedProfessionalId) {
+        const selectedProfData = await supabase
+          .from('professionals')
+          .select('user_id')
+          .eq('id', selectedProfessionalId)
+          .single();
+        
+        if (selectedProfData.data?.user_id) {
+          author_id = selectedProfData.data.user_id;
         }
       }
 
-      // Blog yazısını kaydet
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Kullanıcı oturumu bulunamadı');
+      // Slug kontrolü
+      const slugValue = formData.slug || generateSlug(formData.title);
 
+      // Blog verisini hazırla
       const saveData = {
-        ...postData,
-        cover_image: imageUrl,
-        author_id: user.id,
+        title: formData.title,
+        slug: slugValue,
+        excerpt: formData.excerpt,
+        content: editorContent,
+        cover_image: imageUrl || null,
+        author: formData.author,
+        author_id,
+        category: formData.category,
+        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : [],
+        is_published: formData.is_published,
+        reading_time: readingTime, // Otomatik hesaplanmış okuma süresi
+        published_at: formData.is_published ? new Date().toISOString() : null,
         updated_at: new Date().toISOString()
       };
 
-      if (editingPost) {
+      if (formMode === 'edit' && editingPost) {
+        // Mevcut blog yazısını güncelle
         const { error } = await supabase
           .from('blog_posts')
           .update(saveData)
           .eq('id', editingPost.id);
 
-        if (error) throw error;
-        setSuccessMessage('Blog yazısı başarıyla güncellendi.');
+        if (error) throw new Error(`Blog yazısı güncellenirken hata oluştu: ${error.message}`);
+        
+        setSuccessMessage('Blog yazısı başarıyla güncellendi!');
       } else {
+        // Yeni blog yazısı ekle
         const { error } = await supabase
           .from('blog_posts')
-          .insert([{ ...saveData, created_at: new Date().toISOString() }]);
+          .insert([saveData]);
 
-        if (error) throw error;
-        setSuccessMessage('Blog yazısı başarıyla oluşturuldu.');
+        if (error) throw new Error(`Blog yazısı eklenirken hata oluştu: ${error.message}`);
+        
+        setSuccessMessage('Blog yazısı başarıyla eklendi!');
       }
 
       resetForm();
       setShowForm(false);
-      fetchPosts();
-    } catch (err: any) {
-      console.error('Blog yazısı kaydedilirken hata:', err);
-      setErrorMessage(err.message || 'Blog yazısı kaydedilirken bir hata oluştu');
+      fetchPosts(); // Listeyi güncelle
+    } catch (error: any) {
+      console.error('Blog yazısı kaydedilirken hata:', error);
+      setErrorMessage(error.message || 'Blog yazısı kaydedilirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
     } finally {
       setIsSubmitting(false);
     }
@@ -882,12 +978,12 @@ export function BlogAdmin() {
     try {
       setIsLoading(true);
       
-      const { error } = await supabase
+      const { error: deleteError } = await supabase
         .from('blog_posts')
         .delete()
         .eq('id', postId);
         
-      if (error) throw error;
+      if (deleteError) throw deleteError;
       
       setSuccessMessage('Blog yazısı başarıyla silindi.');
       fetchPosts();
@@ -921,7 +1017,7 @@ export function BlogAdmin() {
       // Yazarın adını kullanarak uygun uzmanı bul
       const matchingProfessional = linkedProfessionals.find(prof => {
         const profName = prof.title 
-          ? `${prof.full_name}, ${prof.title}` 
+          ? `${prof.title} ${prof.full_name}` 
           : prof.full_name;
         return post.author.includes(prof.full_name);
       });
@@ -989,18 +1085,28 @@ export function BlogAdmin() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-300">
-      {/* Üst başlık - Sticky */}
-      <div className="sticky top-0 z-40 w-full bg-primary-600/90 dark:bg-primary-800/90 backdrop-blur-sm shadow-md">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+      {/* Üst Kısım - Geri Butonu ve Sayfa Başlığı */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
-            <button
+            <button 
               onClick={() => navigate('/blog')}
-              className="mr-3 p-2 hover:bg-white/20 rounded-full transition-colors duration-200 text-white"
+              className="mr-4 p-2 rounded-full text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              aria-label="Geri dön"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="text-2xl font-bold text-white">Blog Yönetimi</h1>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Blog Yönetimi</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {userType === 'professional' 
+                  ? 'Kendi blog yazılarınızı yönetin.' 
+                  : userType === 'assistant' 
+                    ? 'Bağlı uzmanların blog yazılarını yönetin.' 
+                    : 'Blog yazılarını yönetin.'}
+              </p>
+            </div>
           </div>
           <button
             onClick={() => {
@@ -1009,15 +1115,13 @@ export function BlogAdmin() {
               resetForm();
               setShowForm(true);
             }}
-            className="px-4 py-2 bg-white text-primary-700 hover:bg-primary-50 rounded-lg font-medium flex items-center transition-colors shadow-sm"
+            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium flex items-center transition-colors shadow-sm"
           >
             <Plus className="h-4 w-4 mr-1.5" />
             Yeni Yazı
           </button>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {successMessage && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
@@ -1038,45 +1142,56 @@ export function BlogAdmin() {
           </motion.div>
         )}
 
-        {errorMessage && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="mb-6 p-4 rounded-lg bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200"
-          >
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
-              <span>{errorMessage}</span>
-              <button 
-                onClick={() => setErrorMessage(null)}
-                className="ml-auto p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-full"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-
         {showForm ? (
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg p-6 border border-slate-200 dark:border-slate-700">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                {formMode === 'create' ? 'Yeni Blog Yazısı' : 'Blog Yazısını Düzenle'}
-              </h2>
-              <button
-                onClick={() => setShowForm(false)}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500 dark:text-slate-400"
-              >
-                <X className="h-5 w-5" />
-              </button>
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white group flex items-center">
+                  {formMode === 'create' ? 'Yeni Blog Yazısı' : 'Blog Yazısını Düzenle'}
+                  {formMode === 'edit' && (
+                    <span className="ml-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">
+                      Düzenleniyor
+                    </span>
+                  )}
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  {userType === 'professional' 
+                    ? 'Bu yazı sizin adınıza yayınlanacak.' 
+                    : userType === 'assistant' && linkedProfessionals.length > 0
+                      ? 'Yazının yayınlanacağı ruh sağlığı uzmanını seçin.' 
+                      : ''}
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setShowPreview(true)}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium flex items-center transition-colors"
+                >
+                  <Eye className="h-3.5 w-3.5 mr-1.5" />
+                  Önizle
+                </button>
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-500 dark:text-slate-400"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
+
+            {errorMessage && (
+              <div className="mb-6 p-3 rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800/20 text-red-700 dark:text-red-400 flex items-start">
+                <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+                <div>{errorMessage}</div>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Başlık
+              {/* Başlık ve Slug */}
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Başlık <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -1087,78 +1202,97 @@ export function BlogAdmin() {
                       if (!editingPost) {
                         setFormData(prev => ({
                           ...prev,
-                          slug: slugify(e.target.value.toLowerCase(), { lower: true, strict: true })
+                          slug: generateSlug(e.target.value)
                         }));
                       }
                     }}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
-                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
-                              focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
+                            bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                            focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
                     required
+                    placeholder="Yazının başlığını girin"
                   />
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Slug (URL)
-                  </label>
-                  <div className="flex items-center">
-                    <input
-                      type="text"
-                      name="slug"
-                      value={formData.slug}
-                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
-                                bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
-                                focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
-                      required
-                    />
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
                     <button
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(prev.title) }))}
-                      className="ml-2 px-3 py-2 bg-slate-100 dark:bg-slate-600 text-slate-700 dark:text-slate-200 
-                                rounded hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors"
+                      onClick={() => {
+                        const slugFieldset = document.getElementById('slug-fieldset');
+                        if (slugFieldset) {
+                          slugFieldset.classList.toggle('hidden');
+                        }
+                      }}
+                      className="text-sm text-primary-600 dark:text-primary-400 hover:underline flex items-center"
                     >
-                      Oluştur
+                      <span>URL Ayarlarını Göster/Gizle</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </button>
                   </div>
-                </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Kısa Açıklama
-                  </label>
-                  <textarea
-                    name="excerpt"
-                    value={formData.excerpt}
-                    onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
-                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
-                              focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
-                    required
-                  />
+                  <fieldset id="slug-fieldset" className="hidden space-y-2 mt-2 p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                    <legend className="text-xs font-medium text-slate-500 dark:text-slate-400 px-1">SEO URL Ayarları</legend>
+                    
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Slug (URL)
+                      </label>
+                      <div className="flex items-center">
+                        <input
+                          type="text"
+                          name="slug"
+                          value={formData.slug}
+                          onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
+                                bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                                focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
+                          placeholder="url-adresi-burada"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(prev.title) }))}
+                          className="ml-2 px-3 py-2 bg-slate-100 dark:bg-slate-600 text-slate-700 dark:text-slate-200 
+                                rounded-lg hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors text-sm"
+                        >
+                          Otomatik Oluştur
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Blog yazısı adresi. Boş bırakırsanız başlıktan otomatik üretilir.
+                      </p>
+                    </div>
+                  </fieldset>
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Yazar
-                  </label>
-                  {userType === 'professional' ? (
-                    // Profesyonel kullanıcılar için salt okunur yazar alanı
-                    <input
-                      type="text"
-                      name="author"
-                      value={formData.author}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
-                                bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white 
-                                cursor-not-allowed"
-                      readOnly
-                    />
-                  ) : userType === 'assistant' ? (
-                    // Asistanlar için uzman seçimi (zorunlu alan)
+              {/* Kısa Açıklama */}
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Kısa Açıklama <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="excerpt"
+                  value={formData.excerpt}
+                  onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
+                          bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                          focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
+                  required
+                  placeholder="Yazınızın kısa bir özetini yazın (blog listesinde görünecek)"
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                {/* Yazar - Sadece asistanlar için göster */}
+                {userType === 'assistant' && (
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Yazar <span className="text-red-500">*</span>
+                    </label>
                     <div>
                       <select
                         value={selectedProfessionalId || ''}
@@ -1166,11 +1300,10 @@ export function BlogAdmin() {
                           const profId = e.target.value;
                           setSelectedProfessionalId(profId);
                           
-                          // Seçilen uzmanın adını yazar olarak ayarla
                           const selectedProf = linkedProfessionals.find(p => p.id === profId);
                           if (selectedProf) {
                             const authorName = selectedProf.title 
-                              ? `${selectedProf.full_name}, ${selectedProf.title}` 
+                              ? `${selectedProf.title} ${selectedProf.full_name}` 
                               : selectedProf.full_name;
                             
                             setFormData(prev => ({
@@ -1179,55 +1312,69 @@ export function BlogAdmin() {
                             }));
                           }
                         }}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
-                                bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
-                                focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
+                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                              focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
                         required
                       >
-                        <option value="">-- Ruh Sağlığı Uzmanı Seçin --</option>
+                        <option value="">-- Uzman Seçin --</option>
                         {linkedProfessionals.map(prof => (
                           <option key={prof.id} value={prof.id}>
-                            {prof.title ? `${prof.full_name}, ${prof.title}` : prof.full_name}
+                            {prof.title ? `${prof.title} ${prof.full_name}` : prof.full_name}
                           </option>
                         ))}
                       </select>
                       {!selectedProfessionalId && (
-                        <p className="mt-1 text-xs text-red-500">Bir ruh sağlığı uzmanı seçmelisiniz.</p>
+                        <p className="mt-1 text-xs text-red-500">Bir uzman seçmelisiniz</p>
                       )}
                     </div>
-                  ) : (
-                    // Diğer durumlar için normal input
-                    <input
-                      type="text"
-                      name="author"
-                      value={formData.author}
-                      onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
-                                bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
-                                focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
-                      required
-                    />
-                  )}
-                </div>
+                  </div>
+                )}
                 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Kategori
+                {/* Kategori */}
+                <div className={`space-y-1 ${userType === 'assistant' ? '' : 'md:col-span-2'}`}>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Kategori <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    name="category"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
-                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
-                              focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
-                    required
-                  />
+                  <div className="flex items-center space-x-2">
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
+                            bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                            focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
+                      required={formData.category !== 'custom'}
+                    >
+                      <option value="">-- Kategori Seçin --</option>
+                      {categories.map(cat => (
+                        <option key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </option>
+                      ))}
+                      <option value="custom">Yeni Kategori Ekle</option>
+                    </select>
+
+                    {formData.category === 'custom' && (
+                      <input
+                        type="text"
+                        value={customCategory}
+                        onChange={(e) => {
+                          setCustomCategory(e.target.value);
+                          setFormData(prev => ({ ...prev, category: e.target.value }));
+                        }}
+                        placeholder="Yeni kategori"
+                        className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
+                                bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                                focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
+                        required
+                      />
+                    )}
+                  </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {/* Etiketler */}
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                     Etiketler (virgülle ayırın)
                   </label>
                   <input
@@ -1235,132 +1382,147 @@ export function BlogAdmin() {
                     name="tags"
                     value={formData.tags}
                     onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                    placeholder="örn: Psikoloji, Danışmanlık, Terapi"
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
-                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
-                              focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
+                    placeholder="Örn: Psikoloji, Danışmanlık, Terapi"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
+                            bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                            focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
                   />
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Okuma Süresi (dakika)
-                  </label>
-                  <input
-                    type="number"
-                    name="reading_time"
-                    value={formData.reading_time}
-                    onChange={(e) => setFormData({ ...formData, reading_time: parseInt(e.target.value) })}
-                    min="1"
-                    max="60"
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md 
-                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
-                              focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent"
-                  />
-                </div>
-                
-                <div className="flex items-center">
-                  <label className="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+              {/* Yayın Durumu */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Yayın Durumu
+                </label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                     <input
-                      type="checkbox"
+                      type="radio"
                       name="is_published"
                       checked={formData.is_published}
-                      onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })}
-                      className="h-4 w-4 rounded border border-slate-300 dark:border-slate-600 
+                      onChange={() => setFormData({ ...formData, is_published: true })}
+                      className="h-4 w-4 rounded-full border border-slate-300 dark:border-slate-600 
                                 text-primary-600 focus:ring-primary-500 mr-2"
                     />
-                    Yayınla
+                    <span className="text-sm text-slate-700 dark:text-slate-300">Hemen Yayınla</span>
+                  </label>
+                  <label className="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                    <input
+                      type="radio"
+                      name="is_published"
+                      checked={!formData.is_published}
+                      onChange={() => setFormData({ ...formData, is_published: false })}
+                      className="h-4 w-4 rounded-full border border-slate-300 dark:border-slate-600 
+                                text-primary-600 focus:ring-primary-500 mr-2"
+                    />
+                    <span className="text-sm text-slate-700 dark:text-slate-300">Taslak Olarak Kaydet</span>
                   </label>
                 </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {/* Kapak Görseli */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Kapak Görseli
                 </label>
                 <div className="flex items-start space-x-4">
                   <div className="flex-grow">
-                    <label className="block w-full px-4 py-2 border border-slate-300 dark:border-slate-600 
-                                    border-dashed rounded-md text-center cursor-pointer
-                                    hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <label className="block w-full h-[120px] px-4 py-2 border-2 border-slate-300 dark:border-slate-600 
+                                   border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer
+                                   hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                       <input
                         type="file"
                         onChange={handleImageChange}
                         accept="image/*"
                         className="hidden"
                       />
-                      <div className="text-slate-500 dark:text-slate-400">
-                        <div className="flex justify-center">
-                          <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 48 48">
-                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                          </svg>
-                        </div>
+                      <div className="text-slate-500 dark:text-slate-400 text-center">
+                        <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 48 48">
+                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                        </svg>
                         <div className="mt-1 text-sm">
-                          {imageFile ? imageFile.name : 'Görsel yüklemek için tıklayın veya sürükleyin'}
+                          {imageFile ? imageFile.name : 'Görsel seçmek için tıklayın veya sürükleyin'}
                         </div>
                       </div>
                     </label>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Önerilen boyut: 1200x630px, maksimum dosya boyutu: 5MB
+                    </p>
                   </div>
                   {imagePreview && (
-                    <div className="w-32 h-32 flex-shrink-0 relative">
-                      <ImagePreview src={imagePreview} onError={clearImagePreview} />
-                      <button
-                        type="button"
-                        onClick={clearImagePreview}
-                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full shadow-sm hover:bg-red-600 transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                    <div className="w-[120px] h-[120px] flex-shrink-0 relative border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                      <div className="absolute inset-0">
+                        <ImagePreview src={imagePreview} onError={clearImagePreview} />
+                      </div>
+                      <div className="absolute top-1 right-1 flex space-x-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Resim düzenleme/kesme fonksiyonu burada eklenmeli
+                            alert('Resim düzenleme özelliği yakında eklenecek!');
+                          }}
+                          className="p-1 bg-white/80 hover:bg-white text-slate-700 rounded-full shadow-sm"
+                          title="Resmi düzenle"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={clearImagePreview}
+                          className="p-1 bg-red-500/80 hover:bg-red-500 text-white rounded-full shadow-sm"
+                          title="Resmi kaldır"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  İçerik
+              {/* İçerik Editörü */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  İçerik <span className="text-red-500">*</span>
                 </label>
                 {editor && <MenuBar editor={editor} />}
-                <div className="mt-2 p-4 border border-slate-300 dark:border-slate-600 rounded-md 
-                                min-h-[300px] bg-white dark:bg-slate-700 prose prose-sm max-w-none
-                                prose-slate dark:prose-invert focus:ring-2 focus:ring-primary-500 
-                                dark:focus:ring-primary-400 focus:border-transparent overflow-y-auto">
+                <div 
+                  className="p-4 border border-slate-300 dark:border-slate-600 rounded-lg 
+                            min-h-[500px] bg-white dark:bg-slate-700 prose prose-sm max-w-none
+                            prose-slate dark:prose-invert focus:ring-2 focus:ring-primary-500 
+                            dark:focus:ring-primary-400 focus:border-transparent overflow-y-auto shadow-sm"
+                  onClick={() => editor?.commands.focus()}
+                >
                   <EditorContent editor={editor} />
                 </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  İçerik uzunluğuna göre okuma süresi otomatik hesaplanacaktır.
+                </p>
               </div>
 
-              <div className="flex items-center justify-end space-x-3">
+              {/* Form Butonları */}
+              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                 <button
                   type="button"
                   onClick={() => {
                     resetForm();
                     setShowForm(false);
                   }}
-                  className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 
-                            dark:hover:bg-slate-700 rounded-md transition-colors"
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 
+                          hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                 >
                   İptal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowPreview(true)}
-                  className="px-4 py-2 bg-slate-600 hover:bg-slate-700 dark:bg-slate-700
-                            dark:hover:bg-slate-600 text-white rounded-md transition-colors
-                            flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2
-                            focus:ring-slate-500 mr-2"
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  Önizle
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 
-                            dark:hover:bg-primary-600 text-white rounded-md transition-colors
-                            flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 
-                            focus:ring-primary-500 disabled:opacity-50"
+                          dark:hover:bg-primary-600 text-white rounded-lg transition-colors
+                          flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 
+                          focus:ring-primary-500 dark:focus:ring-offset-slate-800 disabled:opacity-50 shadow-sm"
                 >
                   {isSubmitting ? (
                     <>
@@ -1384,183 +1546,279 @@ export function BlogAdmin() {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Blog Yazıları</h2>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => fetchPosts()}
-                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
-                  title="Yenile"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="h-5 w-5 text-slate-600 dark:text-slate-400">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-              </div>
-            </div>
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden border border-slate-200 dark:border-slate-700">
+              <div className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Blog Yazıları</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                      {userType === 'professional' 
+                        ? 'Sadece sizin yazdığınız blog yazılarını görüntülüyorsunuz.' 
+                        : userType === 'assistant' 
+                          ? 'Sadece bağlı olduğunuz ruh sağlığı uzmanlarının blog yazılarını görüntülüyorsunuz.' 
+                          : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => fetchPosts()}
+                      className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                      title="Yenile"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="h-5 w-5 text-slate-600 dark:text-slate-400">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
 
-            {isLoading ? (
-              <div className="flex justify-center items-center py-20">
-                <Loader2 className="h-10 w-10 text-primary-600 dark:text-primary-400 animate-spin" />
-              </div>
-            ) : posts.length > 0 ? (
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                  {posts.map(post => (
-                    <div key={post.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                      <div className="flex flex-col sm:flex-row sm:justify-between">
-                        <div className="flex-1">
-                          <h4 className="text-lg font-medium text-slate-900 dark:text-white">{post.title}</h4>
-                          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 truncate">{post.excerpt}</p>
-                          <div className="mt-2 flex items-center flex-wrap gap-2 text-sm text-slate-500 dark:text-slate-400">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300">
-                              {post.category}
-                            </span>
-                            <span className="inline-flex items-center">
-                              <Calendar className="h-3 w-3 mr-1" />
-                              {formatBlogDate(post.published_at || post.created_at)}
-                            </span>
-                            <span className="inline-flex items-center">
-                              <User className="h-3 w-3 mr-1" />
-                              {post.author}
-                            </span>
-                            <span className={`inline-flex items-center ${
+                {isLoading ? (
+                  <div className="flex justify-center items-center py-20">
+                    <Loader2 className="h-10 w-10 text-primary-600 dark:text-primary-400 animate-spin" />
+                  </div>
+                ) : posts.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {posts.map(post => (
+                      <motion.div 
+                        key={post.id} 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="bg-white dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md dark:shadow-none overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col h-full transition-all duration-200"
+                      >
+                        {/* Görsel kısmı */}
+                        <div className="w-full h-40 relative bg-slate-200 dark:bg-slate-700">
+                          {post.cover_image ? (
+                            <ImagePreview 
+                              src={post.cover_image} 
+                              onError={() => {}} 
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-500">
+                              <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          )}
+                          <div className="absolute top-2 right-2 flex space-x-1">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
                               post.is_published 
-                                ? 'text-green-600 dark:text-green-400' 
-                                : 'text-amber-600 dark:text-amber-400'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400' 
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-400'
                             }`}>
-                              {post.is_published ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
                               {post.is_published ? 'Yayında' : 'Taslak'}
                             </span>
                           </div>
                         </div>
-                        <div className="mt-2 sm:mt-0 sm:ml-4 flex items-start">
-                          {post.cover_image && (
-                            <div className="hidden sm:block w-16 h-16 mr-3">
-                              <ImagePreview src={post.cover_image} onError={() => {}} />
+                        
+                        {/* İçerik kısmı */}
+                        <div className="p-4 flex-1 flex flex-col">
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2 line-clamp-2">
+                            {post.title}
+                          </h3>
+                          
+                          <p className="text-slate-600 dark:text-slate-400 text-sm mb-3 line-clamp-3">
+                            {post.excerpt}
+                          </p>
+                          
+                          <div className="mt-auto">
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300">
+                                {post.category}
+                              </span>
+                              <ReadTime minutes={post.reading_time} />
                             </div>
-                          )}
-                          <div className="flex">
+                            
+                            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                              <div className="flex items-center">
+                                <Calendar className="h-3 w-3 mr-1" />
+                                {formatBlogDate(post.published_at || post.created_at).split(" ").slice(0, 2).join(" ")}
+                              </div>
+                              <div className="flex items-center">
+                                <User className="h-3 w-3 mr-1" />
+                                <span className="truncate max-w-[120px]">{post.author}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* İşlem butonları */}
+                        <div className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 px-4 py-3 flex justify-between items-center">
+                          <div className="flex items-center space-x-2">
+                            <div className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
+                              post.is_published 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400' 
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-400'
+                            }`}>
+                              {post.is_published ? 'Yayında' : 'Taslak'}
+                            </div>
+                          </div>
+                          <div className="flex space-x-1">
                             <button
                               onClick={() => handleEditPost(post)}
-                              className="inline-flex items-center mr-2 p-1.5 border border-transparent rounded-md text-blue-600 hover:bg-blue-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="inline-flex items-center p-1.5 rounded-md text-slate-600 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-slate-700 transition-colors"
+                              title="Düzenle"
                             >
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">Düzenle</span>
+                              <Edit2 className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDeletePost(post.id)}
-                              className="inline-flex items-center p-1.5 border border-transparent rounded-md text-red-600 hover:bg-red-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                              className="inline-flex items-center p-1.5 rounded-md text-slate-600 hover:text-red-600 hover:bg-red-50 dark:text-slate-400 dark:hover:text-red-400 dark:hover:bg-slate-700 transition-colors"
+                              title="Sil"
                             >
-                              <Trash className="h-4 w-4" />
-                              <span className="sr-only">Sil</span>
+                              <Trash2 className="h-4 w-4" />
                             </button>
+                            <a
+                              href={`/blog/${post.slug}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center p-1.5 rounded-md text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 dark:text-slate-400 dark:hover:text-emerald-400 dark:hover:bg-slate-700 transition-colors"
+                              title="Görüntüle"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </a>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-12 text-center bg-white dark:bg-slate-800 rounded-xl shadow border border-slate-200 dark:border-slate-700">
+                    <div className="text-5xl mb-4">📝</div>
+                    <h3 className="text-xl font-medium text-slate-900 dark:text-white mb-2">Henüz Blog Yazısı Bulunmuyor</h3>
+                    <p className="text-slate-600 dark:text-slate-400 mb-6">
+                      İlk blog yazınızı ekleyerek başlayın.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setFormMode('create');
+                        setShowForm(true);
+                      }}
+                      className="px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-white rounded-lg inline-flex items-center"
+                    >
+                      <Plus className="h-4 w-4 mr-1.5" />
+                      Yeni Yazı Ekle
+                    </button>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="py-12 text-center bg-white dark:bg-slate-800 rounded-xl shadow border border-slate-200 dark:border-slate-700">
-                <div className="text-5xl mb-4">📝</div>
-                <h3 className="text-xl font-medium text-slate-900 dark:text-white mb-2">Henüz Blog Yazısı Bulunmuyor</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6">
-                  İlk blog yazınızı ekleyerek başlayın.
-                </p>
-                <button
-                  onClick={() => {
-                    setFormMode('create');
-                    setShowForm(true);
-                  }}
-                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-white rounded-lg inline-flex items-center"
-                >
-                  <Plus className="h-4 w-4 mr-1.5" />
-                  Yeni Yazı Ekle
-                </button>
-              </div>
-            )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Yazı Önizleme Modalı */}
+      {/* Önizleme Modal */}
       {showPreview && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-auto">
-            <div className="sticky top-0 z-10 bg-white dark:bg-slate-800 p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                Yazı Önizleme
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div 
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" 
+            onClick={() => setShowPreview(false)}
+          />
+          <div className="relative bg-white dark:bg-slate-800 w-full max-w-4xl max-h-[90vh] rounded-xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                Önizleme: {formData.title || 'Başlıksız Yazı'}
               </h3>
               <button
                 onClick={() => setShowPreview(false)}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors text-slate-500 dark:text-slate-400"
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-500 dark:text-slate-400"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             
-            <div className="p-6">
+            <div className="overflow-y-auto p-6 flex-grow">
               {/* Başlık */}
               <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
-                {formData.title}
+                {formData.title || 'Başlıksız Yazı'}
               </h1>
               
-              {/* Kapak Görseli */}
-              {imagePreview && (
-                <div className="mb-6 rounded-lg overflow-hidden shadow-md">
-                  <ImagePreview src={imagePreview} onError={() => {}} />
-                </div>
-              )}
-              
-              {/* Meta Bilgiler */}
-              <div className="flex flex-wrap gap-3 mb-6 text-sm text-slate-600 dark:text-slate-400">
+              <div className="flex items-center space-x-3 mb-6 text-sm text-slate-600 dark:text-slate-400">
                 <div className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-1.5" />
-                  {new Date().toLocaleDateString('tr-TR', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  <Calendar className="h-4 w-4 mr-1" />
+                  {new Date().toLocaleDateString('tr-TR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
                   })}
                 </div>
-                <div className="flex items-center">
-                  <User className="h-4 w-4 mr-1.5" />
-                  {formData.author}
-                </div>
-                <div className="flex items-center">
-                  <Tag className="h-4 w-4 mr-1.5" />
-                  {formData.category}
-                </div>
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 mr-1.5" />
-                  {formData.reading_time || 0} dk okuma süresi
-                </div>
+                {formData.reading_time && (
+                  <ReadTime 
+                    minutes={formData.reading_time}
+                    className="inline-flex items-center px-3 py-1 bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 rounded-full text-xs font-medium"
+                    iconClassName="h-3.5 w-3.5 mr-1.5"
+                  />
+                )}
+                {formData.category && (
+                  <div className="px-2 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full">
+                    {formData.category}
+                  </div>
+                )}
               </div>
               
-              {/* Etiketler */}
-              {formData.tags && (
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {formData.tags.split(',').map((tag, index) => (
-                    <span 
-                      key={index}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300"
-                    >
-                      {tag.trim()}
-                    </span>
-                  ))}
+              {imagePreview && (
+                <div className="rounded-lg overflow-hidden mb-8 aspect-[2/1] bg-slate-100 dark:bg-slate-700">
+                  <img 
+                    src={imagePreview} 
+                    alt={formData.title || 'Blog kapak görseli'} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              {formData.excerpt && (
+                <div className="mb-8">
+                  <div className="text-lg italic text-slate-700 dark:text-slate-300 font-medium border-l-4 border-primary-500 pl-4">
+                    {formData.excerpt}
+                  </div>
                 </div>
               )}
               
-              {/* Özet */}
-              <div className="mb-6 text-lg italic text-slate-600 dark:text-slate-300 border-l-4 border-primary-500 pl-4 py-2">
-                {formData.excerpt}
+              <div className="prose prose-slate max-w-none dark:prose-invert
+                prose-headings:font-bold prose-headings:text-slate-900 dark:prose-headings:text-white
+                prose-p:text-slate-600 dark:prose-p:text-slate-300
+                prose-a:text-primary-600 dark:prose-a:text-primary-400 prose-a:font-medium
+                prose-img:rounded-lg prose-img:shadow-lg
+                prose-ul:text-slate-600 dark:prose-ul:text-slate-300
+                prose-ol:text-slate-600 dark:prose-ol:text-slate-300
+                prose-blockquote:border-l-primary-600 dark:prose-blockquote:border-l-primary-400
+                prose-blockquote:text-slate-700 dark:prose-blockquote:text-slate-200
+                prose-blockquote:bg-primary-50 dark:prose-blockquote:bg-primary-900/20
+                prose-strong:text-slate-900 dark:prose-strong:text-white
+                prose-code:text-slate-900 dark:prose-code:text-slate-200
+                prose-code:bg-slate-100 dark:prose-code:bg-slate-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded">
+                {editor && <div dangerouslySetInnerHTML={{ __html: editor.getHTML() }} />}
               </div>
               
-              {/* İçerik */}
-              <div className="prose prose-lg max-w-none prose-slate dark:prose-invert" 
-                dangerouslySetInnerHTML={{ __html: formData.content }}
-              />
+              {formData.author && (
+                <div className="mt-10 pt-6 border-t border-slate-200 dark:border-slate-700">
+                  <div className="flex items-center">
+                    <div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 mr-3">
+                      <User className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-slate-900 dark:text-white">
+                        {formData.author}
+                      </div>
+                      <div className="text-sm text-slate-500 dark:text-slate-400">
+                        Ruh Sağlığı Uzmanı
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="border-t border-slate-200 dark:border-slate-700 p-4 flex justify-end">
+              <button
+                onClick={() => setShowPreview(false)}
+                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 
+                          dark:hover:bg-primary-600 text-white rounded-lg transition-colors
+                          flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 
+                          focus:ring-primary-500 dark:focus:ring-offset-slate-800 shadow-sm"
+              >
+                Düzenlemeye Dön
+              </button>
             </div>
           </div>
         </div>

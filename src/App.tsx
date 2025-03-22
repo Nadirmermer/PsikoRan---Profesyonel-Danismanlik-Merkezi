@@ -5,8 +5,9 @@ import {
   Login, Register, Dashboard, CreateAssistant, Professionals, Clients,
   ClientDetails, Appointments, Payments, Settings, ForgotPassword,
   ResetPassword, Privacy, Terms, KVKK, Contact, Help, Test, TestCompleted, Home,
-  Blog, BlogAdmin, ProfessionalProfile, BlogPost, ExpertsList
+  Blog, BlogAdmin
 } from './pages';
+import { BlogPost } from './pages/BlogPost';
 import AppointmentDetails from './components/AppointmentDetails';
 import { AuthGuard } from './components/AuthGuard';
 import { Layout } from './components/Layout';
@@ -102,9 +103,6 @@ function AnimatedRoutes() {
         <Route path="/" element={<Home />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
-        <Route path="/uzman/:slug" element={<ProfessionalProfile />} />
-        <Route path="/uzmanlar" element={<ExpertsList />} />
-        <Route path="/experts" element={<ExpertsList />} />
         <Route
           path="/dashboard"
           element={

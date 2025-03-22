@@ -168,29 +168,10 @@ export const slugifyName = (name: string): string => {
     .replace(/[^a-z0-9-]/g, '');
 };
 
-// Uzman isimlerini otomatik olarak link haline getir
+// Uzman isimlerini işle - artık link yapmıyoruz
 export const processProfessionalNames = (content: string): string => {
-  // Tipik bir uzman ismi formatı: Dr. XX YY, Uzm. Psk. XX YY, Psk. XX YY
-  const professionalPatterns = [
-    /Dr\.\s+([A-ZÇĞİÖŞÜÇĞİÖŞÜa-zçğıöşüçğıöşü]+\s+[A-ZÇĞİÖŞÜÇĞİÖŞÜa-zçğıöşüçğıöşü]+)/g,
-    /Uzm\.\s+Psk\.\s+([A-ZÇĞİÖŞÜÇĞİÖŞÜa-zçğıöşüçğıöşü]+\s+[A-ZÇĞİÖŞÜÇĞİÖŞÜa-zçğıöşüçğıöşü]+)/g,
-    /Psk\.\s+([A-ZÇĞİÖŞÜÇĞİÖŞÜa-zçğıöşüçğıöşü]+\s+[A-ZÇĞİÖŞÜÇĞİÖŞÜa-zçğıöşüçğıöşü]+)/g,
-    /Psikolog\s+([A-ZÇĞİÖŞÜÇĞİÖŞÜa-zçğıöşüçğıöşü]+\s+[A-ZÇĞİÖŞÜÇĞİÖŞÜa-zçğıöşüçğıöşü]+)/g,
-    /Psikiyatrist\s+([A-ZÇĞİÖŞÜÇĞİÖŞÜa-zçğıöşüçğıöşü]+\s+[A-ZÇĞİÖŞÜÇĞİÖŞÜa-zçğıöşüçğıöşü]+)/g
-  ];
-
-  let processedContent = content;
-  
-  // Uzman isimlerini linkle değiştir
-  professionalPatterns.forEach(pattern => {
-    processedContent = processedContent.replace(pattern, (match, name) => {
-      // İsmi URL uyumlu hale getir (slug)
-      const nameSlug = slugifyName(name);
-      return `<a href="/uzman/${nameSlug}" class="text-primary-600 dark:text-primary-400 hover:underline">${match}</a>`;
-    });
-  });
-  
-  return processedContent;
+  // Bu fonksiyonu artık kullanmıyoruz, içeriği olduğu gibi döndürüyoruz
+  return content;
 };
 
 /**
