@@ -186,7 +186,7 @@ export const processProfessionalNames = (content: string): string => {
     processedContent = processedContent.replace(pattern, (match, name) => {
       // İsmi URL uyumlu hale getir (slug)
       const nameSlug = slugifyName(name);
-      return `<a href="/professional/${nameSlug}" class="text-primary-600 dark:text-primary-400 hover:underline">${match}</a>`;
+      return `<a href="/uzman/${nameSlug}" class="text-primary-600 dark:text-primary-400 hover:underline">${match}</a>`;
     });
   });
   

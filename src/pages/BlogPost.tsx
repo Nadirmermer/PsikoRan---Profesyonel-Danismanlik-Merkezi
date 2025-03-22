@@ -268,7 +268,7 @@ export function BlogPost() {
               <span className="inline-flex items-center">
                 <User className="h-4 w-4 mr-1.5" />
                 <Link 
-                  to={`/professional/${post.author.toLowerCase()
+                  to={`/uzman/${post.author.toLowerCase()
                     .replace(/\s+/g, '-')
                     .replace(/[üÜ]/g, 'u')
                     .replace(/[çÇ]/g, 'c')

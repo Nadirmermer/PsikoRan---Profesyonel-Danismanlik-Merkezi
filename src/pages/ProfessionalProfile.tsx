@@ -41,90 +41,105 @@ export function ProfessionalProfile() {
 
       try {
         setLoading(true);
-        
-        // Slug'dan profesyonel bilgilerini al (slug olarak id veya urlize edilmiş isim kullanılabilir)
-        const { data: profData, error: profError } = await supabase
+        console.log('Yükleniyor... Slug değeri:', slug);
+
+        // Tüm profesyonelleri çekelim ve bir seferde eşleşmeleri deneyelim
+        const { data: allProfs, error: allProfsError } = await supabase
           .from('professionals')
-          .select('*')
-          .or(`id.eq.${slug},slug.eq.${slug}`)
-          .single();
-        
-        if (profError) {
-          throw profError;
+          .select('*');
+          
+        if (allProfsError) {
+          throw allProfsError;
         }
         
-        if (profData) {
-          // Örnek veri ile doldur (gerçek uygulamada veritabanından gelecek)
-          const professionalData: Professional = {
-            ...profData,
-            bio: profData.bio || 'Deneyimli bir uzman olan Dr. Ayşe Yılmaz, çeşitli alanlarda danışmanlık hizmeti vermektedir. Uzun yıllardır üniversite ve özel kliniklerde çalışmış olan Dr. Yılmaz, özellikle anksiyete, depresyon ve ilişki sorunları konularında uzmanlaşmıştır.',
-            education: profData.education || [
-              'İstanbul Üniversitesi, Klinik Psikoloji Yüksek Lisans',
-              'Boğaziçi Üniversitesi, Psikoloji Lisans'
-            ],
-            experience: profData.experience || [
-              'Özgür Ruh Sağlığı Merkezi, Klinik Psikolog (2018-Günümüz)',
-              'İstanbul Psikiyatri Merkezi, Uzman Psikolog (2015-2018)',
-              'Bilgi Üniversitesi, Psikologlar Merkezi (2012-2015)'
-            ],
-            certifications: profData.certifications || [
-              'Bilişsel Davranışçı Terapi Sertifikası',
-              'EMDR Terapi Eğitimi',
-              'Çift Terapisi Eğitimi'
-            ]
-          };
+        if (!allProfs || allProfs.length === 0) {
+          console.log('Hiç profesyonel bulunamadı');
+          throw new Error('Hiç profesyonel bulunamadı');
+        }
+        
+        console.log(`${allProfs.length} profesyonel bulundu, eşleşme aranıyor...`);
+        
+        // Arama terimi için normalizasyon yapalım
+        const normalizedSlug = slug.toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[üÜ]/g, 'u')
+          .replace(/[çÇ]/g, 'c')
+          .replace(/[şŞ]/g, 's')
+          .replace(/[ıİ]/g, 'i')
+          .replace(/[ğĞ]/g, 'g')
+          .replace(/[öÖ]/g, 'o')
+          .replace(/[^a-z0-9-]/g, '');
+        
+        console.log('Normalize edilmiş slug:', normalizedSlug);
+        
+        // Tüm eşleşme yöntemlerini deneyelim
+        // Her profesyonel için slug oluşturalım ve uzaklık hesaplayalım
+        const professionals = allProfs.map(prof => {
+          // Eğer var olan slug varsa onu kullan
+          const profSlug = prof.slug || (prof.full_name ? prof.full_name.toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[üÜ]/g, 'u')
+            .replace(/[çÇ]/g, 'c')
+            .replace(/[şŞ]/g, 's')
+            .replace(/[ıİ]/g, 'i')
+            .replace(/[ğĞ]/g, 'g')
+            .replace(/[öÖ]/g, 'o')
+            .replace(/[^a-z0-9-]/g, '') : '');
+            
+          const exactMatch = profSlug === normalizedSlug;
+          const partialMatch = profSlug.includes(normalizedSlug) || normalizedSlug.includes(profSlug);
+          const nameMatch = prof.full_name && normalizedSlug.includes(prof.full_name.toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[üÜ]/g, 'u')
+            .replace(/[çÇ]/g, 'c')
+            .replace(/[şŞ]/g, 's')
+            .replace(/[ıİ]/g, 'i')
+            .replace(/[ğĞ]/g, 'g')
+            .replace(/[öÖ]/g, 'o')
+            .replace(/[^a-z0-9-]/g, ''));
           
-          setProfessional(professionalData);
+          // Eşleşme puanları (tam eşleşmeden başlayıp azalan bir öncelik sırası)
+          const matchScore = exactMatch ? 100 : (partialMatch ? 50 : (nameMatch ? 25 : 0));
+          
+          return {
+            ...prof,
+            profSlug,
+            matchScore
+          };
+        });
+        
+        // Eşleşme puanına göre sırala (en yüksek puan ilk sırada)
+        const sortedProfessionals = [...professionals].sort((a, b) => b.matchScore - a.matchScore);
+        
+        // En iyi eşleşmeyi al (eğer varsa)
+        const bestMatch = sortedProfessionals.length > 0 && sortedProfessionals[0].matchScore > 0 
+          ? sortedProfessionals[0] 
+          : null;
+          
+        // Log sonuçları
+        if (bestMatch) {
+          console.log(`En iyi eşleşme: ${bestMatch.full_name} (Puan: ${bestMatch.matchScore})`);
+        } else {
+          console.log('Hiçbir eşleşme bulunamadı');
+        }
+        
+        if (bestMatch) {
+          // Eşleşen profesyonel bulundu
+          setProfessional(bestMatch);
           
           // İlgili blog yazılarını getir
           const { data: blogData, error: blogError } = await supabase
             .from('blog_posts')
             .select('*')
-            .or(`author.ilike.%${profData.full_name}%,content.ilike.%${profData.full_name}%`)
+            .or(`author.ilike.%${bestMatch.full_name}%,content.ilike.%${bestMatch.full_name}%`)
             .limit(3);
             
           if (!blogError && blogData) {
             setRelatedBlogs(blogData);
           }
         } else {
-          // Örnek veri ile çalış (geliştirme/test amaçlı)
-          setProfessional({
-            id: '1',
-            full_name: 'Dr. Ayşe Yılmaz',
-            title: 'Klinik Psikolog',
-            email: 'ayse.yilmaz@example.com',
-            phone: '+90 (555) 123 45 67',
-            specialization: 'Anksiyete, Depresyon, İlişki Sorunları',
-            profile_image_url: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80',
-            bio: 'Deneyimli bir uzman olan Dr. Ayşe Yılmaz, çeşitli alanlarda danışmanlık hizmeti vermektedir. Uzun yıllardır üniversite ve özel kliniklerde çalışmış olan Dr. Yılmaz, özellikle anksiyete, depresyon ve ilişki sorunları konularında uzmanlaşmıştır.',
-            education: [
-              'İstanbul Üniversitesi, Klinik Psikoloji Yüksek Lisans',
-              'Boğaziçi Üniversitesi, Psikoloji Lisans'
-            ],
-            experience: [
-              'Özgür Ruh Sağlığı Merkezi, Klinik Psikolog (2018-Günümüz)',
-              'İstanbul Psikiyatri Merkezi, Uzman Psikolog (2015-2018)',
-              'Bilgi Üniversitesi, Psikologlar Merkezi (2012-2015)'
-            ],
-            certifications: [
-              'Bilişsel Davranışçı Terapi Sertifikası',
-              'EMDR Terapi Eğitimi',
-              'Çift Terapisi Eğitimi'
-            ]
-          });
-          
-          // Örnek ilgili blog yazıları
-          setRelatedBlogs([
-            {
-              id: '1',
-              title: 'Psikolojik Danışmanlık Sürecinde Dikkat Edilmesi Gerekenler',
-              excerpt: 'Psikolojik danışmanlık sürecine başlarken hem danışanların hem de uzmanların dikkat etmesi gereken önemli noktalar vardır.',
-              cover_image: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80',
-              author: 'Dr. Ayşe Yılmaz',
-              published_at: '2023-05-15',
-              slug: 'psikolojik-danismanlik-surecinde-dikkat-edilmesi-gerekenler'
-            }
-          ]);
+          // Hiçbir eşleşme bulunamadı
+          throw new Error('Uzman bulunamadı. Lütfen URL\'i kontrol ediniz.');
         }
       } catch (err) {
         console.error('Uzman bilgileri yüklenirken hata oluştu:', err);
@@ -279,12 +294,14 @@ export function ProfessionalProfile() {
                   </div>
                 </div>
                 
-                <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-6">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">Hakkında</h3>
-                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {professional.bio}
-                  </p>
-                </div>
+                {professional.bio && (
+                  <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-6">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">Hakkında</h3>
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                      {professional.bio}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -345,6 +362,16 @@ export function ProfessionalProfile() {
                         </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {(!professional.education || professional.education.length === 0) && 
+                  (!professional.experience || professional.experience.length === 0) &&
+                  (!professional.certifications || professional.certifications.length === 0) && (
+                  <div className="text-center py-8">
+                    <p className="text-slate-500 dark:text-slate-400">
+                      Uzman henüz detaylı bilgilerini eklememiş.
+                    </p>
                   </div>
                 )}
               </div>

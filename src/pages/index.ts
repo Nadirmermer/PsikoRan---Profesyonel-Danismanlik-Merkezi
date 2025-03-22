@@ -21,3 +21,4 @@ export { Blog } from './Blog';
 export { BlogPost } from './BlogPost';
 export { BlogAdmin } from './BlogAdmin';
 export { ProfessionalProfile } from './ProfessionalProfile';
+export { default as ExpertsList } from './ExpertsList';

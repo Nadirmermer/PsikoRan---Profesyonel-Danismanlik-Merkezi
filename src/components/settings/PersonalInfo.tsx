@@ -11,6 +11,9 @@ interface UserData {
   title?: string;
   specialization?: string;
   bio?: string;
+  education?: string[];
+  experience?: string[];
+  certifications?: string[];
 }
 
 interface PasswordChangeModalProps {
@@ -174,13 +177,21 @@ export function PersonalInfo() {
     phone: '',
     title: '',
     specialization: '',
-    bio: ''
+    bio: '',
+    education: [],
+    experience: [],
+    certifications: []
   });
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  
+  // Çoklu giriş için geçici alanlar
+  const [educationInput, setEducationInput] = useState('');
+  const [experienceInput, setExperienceInput] = useState('');
+  const [certificationInput, setCertificationInput] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -210,7 +221,10 @@ export function PersonalInfo() {
             phone: data.phone || '',
             title: data.title || '',
             specialization: data.specialization || '',
-            bio: data.bio || ''
+            bio: data.bio || '',
+            education: data.education || [],
+            experience: data.experience || [],
+            certifications: data.certifications || []
           });
         }
       } else if (assistant) {
@@ -257,7 +271,10 @@ export function PersonalInfo() {
             phone: userData.phone,
             title: userData.title,
             specialization: userData.specialization,
-            bio: userData.bio
+            bio: userData.bio,
+            education: userData.education,
+            experience: userData.experience,
+            certifications: userData.certifications
           })
           .eq('id', professional.id);
 
@@ -287,6 +304,28 @@ export function PersonalInfo() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setUserData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Liste tipindeki alanlar için yeni yardımcı fonksiyonlar
+  const addListItem = (fieldName: 'education' | 'experience' | 'certifications', value: string) => {
+    if (!value.trim()) return;
+    
+    setUserData(prev => ({
+      ...prev,
+      [fieldName]: [...(prev[fieldName] || []), value.trim()]
+    }));
+
+    // İlgili input'u temizle
+    if (fieldName === 'education') setEducationInput('');
+    else if (fieldName === 'experience') setExperienceInput('');
+    else if (fieldName === 'certifications') setCertificationInput('');
+  };
+
+  const removeListItem = (fieldName: 'education' | 'experience' | 'certifications', index: number) => {
+    setUserData(prev => ({
+      ...prev,
+      [fieldName]: prev[fieldName]?.filter((_, i) => i !== index) || []
+    }));
   };
 
   if (loading) {
@@ -455,6 +494,159 @@ export function PersonalInfo() {
                   disabled={!isEditing}
                   className="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-800 dark:text-white sm:text-sm disabled:opacity-75 disabled:bg-slate-100 dark:disabled:bg-slate-900"
                 />
+              </div>
+
+              {/* Eğitim Bilgileri */}
+              <div className="sm:col-span-2 border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Eğitim Bilgileri
+                </label>
+                
+                {userData.education && userData.education.length > 0 ? (
+                  <div className="mb-3 space-y-2">
+                    {userData.education.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-2 rounded-md">
+                        <span className="text-sm text-slate-800 dark:text-slate-200">{item}</span>
+                        {isEditing && (
+                          <button
+                            type="button"
+                            onClick={() => removeListItem('education', index)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+                    Henüz eğitim bilgisi eklenmemiş.
+                  </p>
+                )}
+                
+                {isEditing && (
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={educationInput}
+                      onChange={(e) => setEducationInput(e.target.value)}
+                      placeholder="Örn: İstanbul Üniversitesi, Psikoloji Lisans"
+                      className="flex-1 rounded-l-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-800 dark:text-white sm:text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addListItem('education', educationInput)}
+                      className="bg-primary-600 text-white px-3 py-2 rounded-r-md hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600"
+                    >
+                      Ekle
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Deneyim Bilgileri */}
+              <div className="sm:col-span-2 border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Deneyim
+                </label>
+                
+                {userData.experience && userData.experience.length > 0 ? (
+                  <div className="mb-3 space-y-2">
+                    {userData.experience.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-2 rounded-md">
+                        <span className="text-sm text-slate-800 dark:text-slate-200">{item}</span>
+                        {isEditing && (
+                          <button
+                            type="button"
+                            onClick={() => removeListItem('experience', index)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+                    Henüz deneyim bilgisi eklenmemiş.
+                  </p>
+                )}
+                
+                {isEditing && (
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={experienceInput}
+                      onChange={(e) => setExperienceInput(e.target.value)}
+                      placeholder="Örn: İstanbul Psikiyatri Merkezi, Uzman Psikolog (2015-2018)"
+                      className="flex-1 rounded-l-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-800 dark:text-white sm:text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addListItem('experience', experienceInput)}
+                      className="bg-primary-600 text-white px-3 py-2 rounded-r-md hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600"
+                    >
+                      Ekle
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Sertifikalar */}
+              <div className="sm:col-span-2 border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Sertifikalar ve Eğitimler
+                </label>
+                
+                {userData.certifications && userData.certifications.length > 0 ? (
+                  <div className="mb-3 space-y-2">
+                    {userData.certifications.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-2 rounded-md">
+                        <span className="text-sm text-slate-800 dark:text-slate-200">{item}</span>
+                        {isEditing && (
+                          <button
+                            type="button"
+                            onClick={() => removeListItem('certifications', index)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+                    Henüz sertifika bilgisi eklenmemiş.
+                  </p>
+                )}
+                
+                {isEditing && (
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={certificationInput}
+                      onChange={(e) => setCertificationInput(e.target.value)}
+                      placeholder="Örn: Bilişsel Davranışçı Terapi Sertifikası"
+                      className="flex-1 rounded-l-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-800 dark:text-white sm:text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addListItem('certifications', certificationInput)}
+                      className="bg-primary-600 text-white px-3 py-2 rounded-r-md hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600"
+                    >
+                      Ekle
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )}

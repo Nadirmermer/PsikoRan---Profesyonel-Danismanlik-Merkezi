@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Calendar, Clipboard, Users, Clock, MessageSquare, BarChart, Award, Sun, Moon, LogIn, ArrowRight, Menu, X, ChevronRight, User } from 'lucide-react';
+import { Shield, Calendar, Clipboard, Users, Clock, MessageSquare, BarChart, Award, Sun, Moon, LogIn, ArrowRight, Menu, X, ChevronRight, User, BookOpen } from 'lucide-react';
 import logo2 from '../assets/logo/logo_2.png';
 import { motion } from 'framer-motion';
 import { fetchBlogPosts, formatBlogDate } from '../lib/blog';
@@ -138,33 +138,34 @@ export function Home() {
             </div>
             
             {/* Masaüstü Menü */}
-            <div className="hidden md:flex items-center space-x-4">
-              {/* Tema değiştirme butonu */}
-              <button
-                onClick={toggleDarkMode}
-                className="p-3 rounded-lg bg-white dark:bg-slate-800 shadow-lg hover:shadow-xl transition-all duration-300 group border border-slate-200 dark:border-slate-700"
+            <div className="hidden md:flex md:items-center md:justify-center md:flex-1 space-x-6">
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
               >
-                {isDarkMode ? (
-                  <Sun className="h-5 w-5 text-amber-500 group-hover:rotate-90 transition-transform duration-300" />
-                ) : (
-                  <Moon className="h-5 w-5 text-primary-600 group-hover:rotate-90 transition-transform duration-300" />
-                )}
-              </button>
-
-              <Link
-                to="/login"
-                className="px-4 py-2 rounded-lg text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-medium flex items-center space-x-1 transition-colors"
+                <Link to="/blog" className="text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-medium transition-colors">
+                  Blog
+                </Link>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <LogIn className="h-4 w-4 mr-1" />
-                <span>Giriş Yap</span>
-              </Link>
-              <Link
-                to="/create-assistant"
-                className="px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-white font-medium transition-colors flex items-center space-x-1"
+                <Link to="/uzmanlar" className="text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-medium transition-colors">
+                  Uzmanlarımız
+                </Link>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
               >
-                <span>Asistan Hesabı</span>
-                <ArrowRight className="h-4 w-4 ml-1" />
-              </Link>
+                <Link to="/contact" className="text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-medium transition-colors">
+                  İletişim
+                </Link>
+              </motion.div>
             </div>
             
             {/* Mobil Menü Butonları */}
@@ -203,6 +204,22 @@ export function Home() {
               className="md:hidden py-3 border-t border-slate-200 dark:border-slate-700"
             >
               <div className="flex flex-col space-y-3 pt-2 pb-3">
+                <Link
+                  to="/blog"
+                  className="px-4 py-2 rounded-lg text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-medium flex items-center justify-center space-x-1 transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <BookOpen className="h-4 w-4 mr-1" />
+                  <span>Blog</span>
+                </Link>
+                <Link
+                  to="/uzmanlar"
+                  className="px-4 py-2 rounded-lg text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-medium flex items-center justify-center space-x-1 transition-colors"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Users className="h-4 w-4 mr-1" />
+                  <span>Uzmanlarımız</span>
+                </Link>
                 <Link
                   to="/login"
                   className="px-4 py-2 rounded-lg text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-medium flex items-center justify-center space-x-1 transition-colors"
@@ -395,7 +412,7 @@ export function Home() {
                   
                   <div className="flex items-center justify-between">
                     <Link
-                      to={`/professional/${slugifyName(post.author)}`}
+                      to={`/uzman/${slugifyName(post.author)}`}
                       className="flex items-center text-slate-500 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 text-sm"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -743,6 +760,16 @@ export function Home() {
                   Hızlı Bağlantılar
                 </h3>
                 <ul className="space-y-2">
+                  <li>
+                    <Link to="/uzmanlar" className="text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 text-sm">
+                      Uzmanlarımız
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/blog" className="text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 text-sm">
+                      Blog
+                    </Link>
+                  </li>
                   <li>
                     <Link to="/login" className="text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 text-sm">
                       Giriş Yap

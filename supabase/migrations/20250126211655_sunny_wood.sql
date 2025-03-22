@@ -61,6 +61,7 @@ CREATE TABLE professionals (
   specialization text,
   bio text,
   profile_image_url text,
+  slug text,
   privacy_settings jsonb DEFAULT '{"data_sharing": false, "usage_tracking": true, "marketing_emails": false, "third_party_access": false}'::jsonb,
   cookie_settings jsonb DEFAULT '{"essential": true, "analytics": true, "marketing": false, "preferences": true}'::jsonb,
   created_at timestamptz DEFAULT now()
@@ -1331,3 +1332,49 @@ GRANT EXECUTE ON FUNCTION get_popular_blog_posts TO authenticated, anon;
 -- Blog görüntülenme tablosu için gerekli izinler
 GRANT INSERT ON blog_views TO anon;
 GRANT ALL ON blog_views TO authenticated;
+
+-- Mevcut tüm professionals tablosunda slug alanını doldur
+UPDATE professionals
+SET slug = LOWER(REGEXP_REPLACE(
+  REGEXP_REPLACE(
+    REGEXP_REPLACE(
+      REGEXP_REPLACE(
+        REGEXP_REPLACE(
+          REGEXP_REPLACE(
+            REGEXP_REPLACE(
+              REGEXP_REPLACE(full_name, ' ', '-'), 
+              '[üÜ]', 'u'), 
+            '[çÇ]', 'c'), 
+          '[şŞ]', 's'), 
+        '[ıİ]', 'i'), 
+      '[ğĞ]', 'g'), 
+    '[öÖ]', 'o'), 
+  '[^a-z0-9-]', '', 'g'));
+
+-- Yeni profesyonel kaydı oluşturulduğunda veya full_name güncellendiğinde slug'ı otomatik doldur
+CREATE OR REPLACE FUNCTION generate_professional_slug()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.slug := LOWER(REGEXP_REPLACE(
+    REGEXP_REPLACE(
+      REGEXP_REPLACE(
+        REGEXP_REPLACE(
+          REGEXP_REPLACE(
+            REGEXP_REPLACE(
+              REGEXP_REPLACE(
+                REGEXP_REPLACE(NEW.full_name, ' ', '-'), 
+                '[üÜ]', 'u'), 
+              '[çÇ]', 'c'), 
+            '[şŞ]', 's'), 
+          '[ıİ]', 'i'), 
+        '[ğĞ]', 'g'), 
+      '[öÖ]', 'o'), 
+    '[^a-z0-9-]', '', 'g'));
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER professionals_slug_trigger
+BEFORE INSERT OR UPDATE OF full_name ON professionals
+FOR EACH ROW
+EXECUTE FUNCTION generate_professional_slug();
