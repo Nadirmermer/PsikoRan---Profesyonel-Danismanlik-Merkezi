@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Search as SearchIcon, FileText as FileTextIcon, Trash2 as TrashIcon, ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon, AlertTriangle as AlertTriangleIcon } from 'lucide-react';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { useAuth } from '../../lib/auth';
+import { supabase } from '../../lib/supabase';
 import { AVAILABLE_TESTS } from '../../data/tests';
 import { generateTestPDF } from '../../utils/generateTestPDF';
-import { useAuth } from '../../lib/auth';
 import { Test } from '../../data/tests/types';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
@@ -51,14 +51,14 @@ interface SupabaseClientData {
 }
 
 interface TestResultsTabProps {
+  clientId: string;
   testResults: TestResult[];
-  supabase: SupabaseClient;
-  loadTestResults: () => Promise<void>;
+  loadTestResults: () => Promise<boolean>;
 }
 
 const TestResultsTab: React.FC<TestResultsTabProps> = ({ 
+  clientId,
   testResults, 
-  supabase,
   loadTestResults
 }) => {
   const { professional } = useAuth();

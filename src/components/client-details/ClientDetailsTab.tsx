@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface ClientDetailsTabProps {
   client: Client;
-  loadClient: () => Promise<void>;
+  loadClient?: () => Promise<boolean>;
 }
 
 export const ClientDetailsTab: React.FC<ClientDetailsTabProps> = ({ client, loadClient }) => {
@@ -30,7 +30,9 @@ export const ClientDetailsTab: React.FC<ClientDetailsTabProps> = ({ client, load
 
       if (error) throw error;
 
-      await loadClient();
+      if (loadClient) {
+        await loadClient();
+      }
       setEditMode(false);
       alert('Danışan bilgileri başarıyla güncellendi.');
     } catch (error) {

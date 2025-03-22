@@ -456,7 +456,7 @@ interface SessionNote {
 interface SessionNotesTabProps {
   clientId: string;
   sessionNotes: SessionNote[];
-  loadSessionNotes: () => Promise<void>;
+  loadSessionNotes: () => Promise<boolean>;
 }
 
 export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
@@ -468,27 +468,23 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [editingNote, setEditingNote] = useState<SessionNote | null>(null);
   const [editedNoteContent, setEditedNoteContent] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [editedNoteTitle, setEditedNoteTitle] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
   const [newAttachments, setNewAttachments] = useState<File[]>([]);
   const [editAttachments, setEditAttachments] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [previewAttachments, setPreviewAttachments] = useState<string[]>([]);
   const [editPreviewAttachments, setEditPreviewAttachments] = useState<string[]>([]);
   const [removedAttachments, setRemovedAttachments] = useState<string[]>([]);
-  const [showCamera, setShowCamera] = useState(false);
-  const [editShowCamera, setEditShowCamera] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const [isCameraAvailable, setIsCameraAvailable] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   
   // Modal için referanslar
   const editDialogRef = useRef(null);
@@ -586,113 +582,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
     }
   }, [editingNote, editNoteEditor, isEditDialogOpen]);
 
-  // Kamera erişilebilirlik kontrolü
-  useEffect(() => {
-    const checkCameraAvailability = async () => {
-      try {
-        // Tarayıcı API'lerini kontrol et
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          setIsCameraAvailable(false);
-          return;
-        }
-
-        // Kamera erişimi izni kontrolü
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        // Test başarılı, kamera var
-        setIsCameraAvailable(true);
-        
-        // Stream'i temizle
-        stream.getTracks().forEach(track => track.stop());
-      } catch (error) {
-        // Kamera erişimi yoksa veya reddedildiyse
-        console.log('Kamera erişimi yok veya reddedildi:', error);
-        setIsCameraAvailable(false);
-      }
-    };
-
-    checkCameraAvailability();
-  }, []);
-
-  // Kamera açma fonksiyonu
-  const startCamera = async (isEditing: boolean = false) => {
-    try {
-      if (isEditing) {
-        setEditShowCamera(true);
-      } else {
-        setShowCamera(true);
-      }
-      
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment', // Arka kamerayı tercih et (mobil cihazlar için)
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
-      
-      setCameraStream(stream);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (error) {
-      console.error('Kamera erişiminde hata:', error);
-      setErrorMessage('Kameraya erişim sağlanamadı. Lütfen kamera izinlerinizi kontrol edin.');
-      setIsErrorDialogOpen(true);
-    }
-  };
-
-  // Kamera kapatma fonksiyonu
-  const stopCamera = () => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
-      setCameraStream(null);
-    }
-    setShowCamera(false);
-    setEditShowCamera(false);
-  };
-
-  // Fotoğraf çekme fonksiyonu
-  const capturePhoto = (isEditing: boolean = false) => {
-    if (!videoRef.current || !canvasRef.current) return;
-    
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    
-    // Canvas boyutunu video boyutuna eşitle
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Videodan görüntüyü canvas'a çiz
-    const context = canvas.getContext('2d');
-    if (!context) return;
-    
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Canvas'tan veri URL'ini al
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
-      
-      // Blob'u dosyaya çevir
-      const fileName = `photo_${Date.now()}.jpg`;
-      const photoFile = new File([blob], fileName, { type: 'image/jpeg' });
-      
-      // Önizleme URL'i oluştur
-      const url = URL.createObjectURL(blob);
-      
-      if (isEditing) {
-        setEditAttachments(prev => [...prev, photoFile]);
-        setEditPreviewAttachments(prev => [...prev, url]);
-      } else {
-        setNewAttachments(prev => [...prev, photoFile]);
-        setPreviewAttachments(prev => [...prev, url]);
-      }
-      
-      // Kamerayı kapat
-      stopCamera();
-    }, 'image/jpeg', 0.95);
-  };
-
   async function uploadFilesToSupabase(files: File[]): Promise<string[]> {
     const uploadedUrls: string[] = [];
 
@@ -753,13 +642,12 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
 
   async function handleAddNote(e: React.FormEvent) {
     e.preventDefault();
-    setIsSubmitting(true);
+    setLoading(true);
 
     try {
       // Dosyaları yükle
       let attachmentUrls: string[] = [];
       if (newAttachments.length > 0) {
-        setUploadingFiles(true);
         attachmentUrls = await uploadFilesToSupabase(newAttachments);
       }
       
@@ -792,7 +680,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
       setNewNoteTitle('');
       newNoteEditor?.commands.clearContent();
       setNewAttachments([]);
-      setPreviewAttachments([]);
       
       // Notları yeniden yükle
       await loadSessionNotes();
@@ -802,8 +689,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
       setIsErrorDialogOpen(true);
     } finally {
       setLoading(false);
-      setUploadingFiles(false);
-      setIsSubmitting(false);
     }
   }
 
@@ -836,7 +721,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
 
       // Yeni dosyalar varsa yükle
       if (editAttachments.length > 0) {
-        setUploadingFiles(true);
         const newUrls = await uploadFilesToSupabase(editAttachments);
         attachmentUrls = [...attachmentUrls, ...newUrls];
       }
@@ -894,7 +778,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
         setEditingNote(null);
         setEditedNoteContent('');
         setEditAttachments([]);
-        setEditPreviewAttachments([]);
         setRemovedAttachments([]);
       }, 300);
       
@@ -904,7 +787,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
       setIsErrorDialogOpen(true);
     } finally {
       setLoading(false);
-      setUploadingFiles(false);
     }
   }
 
@@ -970,7 +852,7 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
     const maxFiles = 5;
     const existingFilesCount = isEditing 
       ? (editingNote?.attachments?.length || 0) + editAttachments.length
-      : newAttachments.length;
+      : files.length;
     
     // Toplam dosya sayısı kontrol ediliyor
     if (existingFilesCount + files.length > maxFiles) {
@@ -1134,60 +1016,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
               />
             </label>
           </div>
-          
-          {/* Kamera erişimi düğmesi */}
-          {isCameraAvailable && (
-            <div className="flex justify-center mt-2">
-              <button
-                type="button"
-                onClick={() => startCamera(false)}
-                className="flex items-center px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors duration-200 border border-blue-200 dark:border-blue-800"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                </svg>
-                Kamera ile Fotoğraf Çek
-              </button>
-            </div>
-          )}
-          
-          {/* Kamera görünümü */}
-          {showCamera && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-              <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 w-full max-w-xl">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">Fotoğraf Çek</h3>
-                  <button
-                    type="button"
-                    onClick={stopCamera}
-                    className="p-1 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="relative bg-black rounded-lg overflow-hidden">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full"
-                  />
-                  <canvas ref={canvasRef} className="hidden" />
-                </div>
-                <div className="flex justify-center mt-4">
-                  <button
-                    type="button"
-                    onClick={() => capturePhoto(false)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                  >
-                    Fotoğraf Çek
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
           
           {/* Yüklenen dosyaların önizlemesi */}
           {previewAttachments.length > 0 && (
@@ -1376,68 +1204,14 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
                       </label>
                     </div>
                     
-                    {/* Kamera erişimi düğmesi - Düzenleme formu */}
-                    {isCameraAvailable && (
-                      <div className="flex justify-center mt-2">
-                        <button
-                          type="button"
-                          onClick={() => startCamera(true)}
-                          className="flex items-center px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors duration-200 border border-blue-200 dark:border-blue-800"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                          </svg>
-                          Kamera ile Fotoğraf Çek
-                        </button>
-                      </div>
-                    )}
-                    
-                    {/* Kamera görünümü - Düzenleme formu */}
-                    {editShowCamera && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-                        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 w-full max-w-xl">
-                          <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Fotoğraf Çek</h3>
-                            <button
-                              type="button"
-                              onClick={stopCamera}
-                              className="p-1 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                          <div className="relative bg-black rounded-lg overflow-hidden">
-                            <video
-                              ref={videoRef}
-                              autoPlay
-                              playsInline
-                              className="w-full"
-                            />
-                            <canvas ref={canvasRef} className="hidden" />
-                          </div>
-                          <div className="flex justify-center mt-4">
-                            <button
-                              type="button"
-                              onClick={() => capturePhoto(true)}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                            >
-                              Fotoğraf Çek
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Mevcut dosya eklerini göster */}
-                    {editingNote?.attachments && editingNote.attachments.length > 0 && (
+                    {/* Yüklenen dosyaların önizlemesi */}
+                    {editPreviewAttachments.length > 0 && (
                       <div className="mt-3">
                         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Mevcut Dosyalar
                         </h4>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                          {editingNote.attachments.map((url, index) => (
+                          {editPreviewAttachments.map((url, index) => (
                             <div key={`existing-${index}`} className="relative group">
                               <div className="relative h-20 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
                                 {url.includes('.pdf') ? (
@@ -1491,13 +1265,13 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
                     )}
                     
                     {/* Yeni yüklenen dosyaların önizlemesi */}
-                    {editPreviewAttachments.length > 0 && (
+                    {editAttachments.length > 0 && (
                       <div className="mt-3">
                         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Yeni Eklenecek Dosyalar
                         </h4>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                          {editPreviewAttachments.map((url, index) => (
+                          {editAttachments.map((url, index) => (
                             <div key={`new-${index}`} className="relative group">
                               <div className="relative h-20 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
                                 {url.includes('.pdf') ? (
@@ -1835,5 +1609,3 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
     </div>
   );
 };
-
-export default SessionNotesTab; 

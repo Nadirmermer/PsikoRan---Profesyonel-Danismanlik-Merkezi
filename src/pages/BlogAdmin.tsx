@@ -641,10 +641,10 @@ export function BlogAdmin() {
                 ? `${prof.title} ${prof.full_name}` 
                 : prof.full_name;
                 
-              setFormData(prev => ({
-                ...prev,
+            setFormData(prev => ({
+              ...prev,
                 author: authorName
-              }));
+            }));
             }
           }
         }
@@ -1090,13 +1090,6 @@ export function BlogAdmin() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
-            <button 
-              onClick={() => navigate('/blog')}
-              className="mr-4 p-2 rounded-full text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              aria-label="Geri dön"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Blog Yönetimi</h1>
               <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -1108,52 +1101,52 @@ export function BlogAdmin() {
               </p>
             </div>
           </div>
-          <button
-            onClick={() => {
+        <button
+          onClick={() => {
               setFormMode('create');
               setEditingPost(null);
-              resetForm();
+            resetForm();
               setShowForm(true);
             }}
             className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium flex items-center transition-colors shadow-sm"
           >
             <Plus className="h-4 w-4 mr-1.5" />
-            Yeni Yazı
-          </button>
-        </div>
+              Yeni Yazı
+        </button>
+      </div>
 
-        {successMessage && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
+      {successMessage && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             className="mb-6 p-4 rounded-lg bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200"
           >
             <div className="flex items-center">
               <Check className="h-5 w-5 mr-2 flex-shrink-0" />
               <span>{successMessage}</span>
-              <button 
-                onClick={() => setSuccessMessage(null)}
+            <button 
+              onClick={() => setSuccessMessage(null)}
                 className="ml-auto p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded-full"
-              >
+            >
                 <X className="h-4 w-4" />
-              </button>
-            </div>
-          </motion.div>
-        )}
+            </button>
+          </div>
+        </motion.div>
+      )}
 
         {showForm ? (
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border border-slate-200 dark:border-slate-700">
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
               <div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white group flex items-center">
-                  {formMode === 'create' ? 'Yeni Blog Yazısı' : 'Blog Yazısını Düzenle'}
+                {formMode === 'create' ? 'Yeni Blog Yazısı' : 'Blog Yazısını Düzenle'}
                   {formMode === 'edit' && (
                     <span className="ml-2 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">
                       Düzenleniyor
                     </span>
                   )}
-                </h2>
+              </h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   {userType === 'professional' 
                     ? 'Bu yazı sizin adınıza yayınlanacak.' 
@@ -1170,12 +1163,12 @@ export function BlogAdmin() {
                   <Eye className="h-3.5 w-3.5 mr-1.5" />
                   Önizle
                 </button>
-                <button
-                  onClick={() => setShowForm(false)}
+              <button
+                onClick={() => setShowForm(false)}
                   className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-500 dark:text-slate-400"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+              >
+                <X className="h-5 w-5" />
+              </button>
               </div>
             </div>
 
@@ -1193,27 +1186,27 @@ export function BlogAdmin() {
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                     Başlık <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
+            <input
+              type="text"
                     name="title"
-                    value={formData.title}
-                    onChange={(e) => {
-                      setFormData({ ...formData, title: e.target.value });
-                      if (!editingPost) {
-                        setFormData(prev => ({
-                          ...prev,
+              value={formData.title}
+              onChange={(e) => {
+                setFormData({ ...formData, title: e.target.value });
+                if (!editingPost) {
+                  setFormData(prev => ({
+                    ...prev,
                           slug: generateSlug(e.target.value)
-                        }));
-                      }
-                    }}
+                  }));
+                }
+              }}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
-                            bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                             focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
                     required
                     placeholder="Yazının başlığını girin"
-                  />
-                </div>
-                
+            />
+          </div>
+          
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
                     <button
@@ -1238,61 +1231,61 @@ export function BlogAdmin() {
                     
                     <div className="space-y-1">
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                        Slug (URL)
-                      </label>
-                      <div className="flex items-center">
-                        <input
-                          type="text"
-                          name="slug"
-                          value={formData.slug}
-                          onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    Slug (URL)
+                  </label>
+                  <div className="flex items-center">
+            <input
+              type="text"
+                      name="slug"
+              value={formData.slug}
+              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                           className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
                                 bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                                 focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
                           placeholder="url-adresi-burada"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(prev.title) }))}
-                          className="ml-2 px-3 py-2 bg-slate-100 dark:bg-slate-600 text-slate-700 dark:text-slate-200 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, slug: generateSlug(prev.title) }))}
+                      className="ml-2 px-3 py-2 bg-slate-100 dark:bg-slate-600 text-slate-700 dark:text-slate-200 
                                 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-500 transition-colors text-sm"
-                        >
+                    >
                           Otomatik Oluştur
-                        </button>
-                      </div>
+                    </button>
+                  </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                         Blog yazısı adresi. Boş bırakırsanız başlıktan otomatik üretilir.
                       </p>
                     </div>
                   </fieldset>
                 </div>
-              </div>
-              
+          </div>
+          
               {/* Kısa Açıklama */}
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Kısa Açıklama <span className="text-red-500">*</span>
                 </label>
-                <textarea
+            <textarea
                   name="excerpt"
-                  value={formData.excerpt}
-                  onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-                  rows={3}
+              value={formData.excerpt}
+              onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+              rows={3}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
-                          bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                            bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                           focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
                   required
                   placeholder="Yazınızın kısa bir özetini yazın (blog listesinde görünecek)"
-                />
-              </div>
-              
+            />
+          </div>
+          
               <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
                 {/* Yazar - Sadece asistanlar için göster */}
                 {userType === 'assistant' && (
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                       Yazar <span className="text-red-500">*</span>
-                    </label>
+                  </label>
                     <div>
                       <select
                         value={selectedProfessionalId || ''}
@@ -1315,7 +1308,7 @@ export function BlogAdmin() {
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
                               bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                               focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
-                        required
+                    required
                       >
                         <option value="">-- Uzman Seçin --</option>
                         {linkedProfessionals.map(prof => (
@@ -1327,7 +1320,7 @@ export function BlogAdmin() {
                       {!selectedProfessionalId && (
                         <p className="mt-1 text-xs text-red-500">Bir uzman seçmelisiniz</p>
                       )}
-                    </div>
+          </div>
                   </div>
                 )}
                 
@@ -1338,10 +1331,10 @@ export function BlogAdmin() {
                   </label>
                   <div className="flex items-center space-x-2">
                     <select
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
-                            bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                             focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
                       required={formData.category !== 'custom'}
                     >
@@ -1366,38 +1359,38 @@ export function BlogAdmin() {
                         className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
                                 bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                                 focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
-                        required
-                      />
+                    required
+                  />
                     )}
                   </div>
-                </div>
-                
+          </div>
+          
                 {/* Etiketler */}
                 <div className="space-y-1">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                     Etiketler (virgülle ayırın)
                   </label>
-                  <input
-                    type="text"
+            <input
+              type="text"
                     name="tags"
-                    value={formData.tags}
-                    onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+              value={formData.tags}
+              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                     placeholder="Örn: Psikoloji, Danışmanlık, Terapi"
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg
-                            bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
+                              bg-white dark:bg-slate-700 text-slate-900 dark:text-white 
                             focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent shadow-sm"
                   />
                 </div>
-              </div>
-              
+          </div>
+          
               {/* Yayın Durumu */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Yayın Durumu
-                </label>
+                  </label>
                 <div className="flex flex-wrap items-center gap-3">
                   <label className="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                    <input
+            <input
                       type="radio"
                       name="is_published"
                       checked={formData.is_published}
@@ -1408,19 +1401,19 @@ export function BlogAdmin() {
                     <span className="text-sm text-slate-700 dark:text-slate-300">Hemen Yayınla</span>
                   </label>
                   <label className="inline-flex items-center px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                    <input
+            <input
                       type="radio"
                       name="is_published"
                       checked={!formData.is_published}
                       onChange={() => setFormData({ ...formData, is_published: false })}
                       className="h-4 w-4 rounded-full border border-slate-300 dark:border-slate-600 
                                 text-primary-600 focus:ring-primary-500 mr-2"
-                    />
+            />
                     <span className="text-sm text-slate-700 dark:text-slate-300">Taslak Olarak Kaydet</span>
-                  </label>
+            </label>
                 </div>
-              </div>
-              
+          </div>
+          
               {/* Kapak Görseli */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -1430,7 +1423,7 @@ export function BlogAdmin() {
                   <div className="flex-grow">
                     <label className="block w-full h-[120px] px-4 py-2 border-2 border-slate-300 dark:border-slate-600 
                                    border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer
-                                   hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                    hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                       <input
                         type="file"
                         onChange={handleImageChange}
@@ -1439,8 +1432,8 @@ export function BlogAdmin() {
                       />
                       <div className="text-slate-500 dark:text-slate-400 text-center">
                         <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 48 48">
-                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                        </svg>
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                  </svg>
                         <div className="mt-1 text-sm">
                           {imageFile ? imageFile.name : 'Görsel seçmek için tıklayın veya sürükleyin'}
                         </div>
@@ -1492,7 +1485,7 @@ export function BlogAdmin() {
                 <div 
                   className="p-4 border border-slate-300 dark:border-slate-600 rounded-lg 
                             min-h-[500px] bg-white dark:bg-slate-700 prose prose-sm max-w-none
-                            prose-slate dark:prose-invert focus:ring-2 focus:ring-primary-500 
+                                prose-slate dark:prose-invert focus:ring-2 focus:ring-primary-500 
                             dark:focus:ring-primary-400 focus:border-transparent overflow-y-auto shadow-sm"
                   onClick={() => editor?.commands.focus()}
                 >
@@ -1505,23 +1498,23 @@ export function BlogAdmin() {
 
               {/* Form Butonları */}
               <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => {
+            <button
+              type="button"
+              onClick={() => {
                     resetForm();
-                    setShowForm(false);
+                setShowForm(false);
                   }}
                   className="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 
                           hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                >
-                  İptal
-                </button>
+            >
+              İptal
+            </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 
                           dark:hover:bg-primary-600 text-white rounded-lg transition-colors
-                          flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 
+                            flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 
                           focus:ring-primary-500 dark:focus:ring-offset-slate-800 disabled:opacity-50 shadow-sm"
                 >
                   {isSubmitting ? (
@@ -1541,16 +1534,16 @@ export function BlogAdmin() {
                     </>
                   )}
                 </button>
-              </div>
-            </form>
+          </div>
+        </form>
           </div>
         ) : (
           <div className="space-y-6">
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden border border-slate-200 dark:border-slate-700">
               <div className="p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Blog Yazıları</h2>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Blog Yazıları</h2>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                       {userType === 'professional' 
                         ? 'Sadece sizin yazdığınız blog yazılarını görüntülüyorsunuz.' 
@@ -1559,26 +1552,26 @@ export function BlogAdmin() {
                           : ''}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => fetchPosts()}
-                      className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
-                      title="Yenile"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="h-5 w-5 text-slate-600 dark:text-slate-400">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+              <div className="flex items-center space-x-2">
+            <button
+                  onClick={() => fetchPosts()}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+                  title="Yenile"
+            >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="h-5 w-5 text-slate-600 dark:text-slate-400">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+            </button>
+          </div>
+            </div>
 
-                {isLoading ? (
-                  <div className="flex justify-center items-center py-20">
-                    <Loader2 className="h-10 w-10 text-primary-600 dark:text-primary-400 animate-spin" />
-                  </div>
-                ) : posts.length > 0 ? (
+            {isLoading ? (
+              <div className="flex justify-center items-center py-20">
+                <Loader2 className="h-10 w-10 text-primary-600 dark:text-primary-400 animate-spin" />
+              </div>
+            ) : posts.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {posts.map(post => (
+                  {posts.map(post => (
                       <motion.div 
                         key={post.id} 
                         initial={{ opacity: 0, y: 10 }}
@@ -1623,19 +1616,19 @@ export function BlogAdmin() {
                           
                           <div className="mt-auto">
                             <div className="flex flex-wrap gap-2 mb-2">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300">
-                                {post.category}
-                              </span>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300">
+                              {post.category}
+                            </span>
                               <ReadTime minutes={post.reading_time} />
                             </div>
                             
                             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                               <div className="flex items-center">
-                                <Calendar className="h-3 w-3 mr-1" />
+                              <Calendar className="h-3 w-3 mr-1" />
                                 {formatBlogDate(post.published_at || post.created_at).split(" ").slice(0, 2).join(" ")}
                               </div>
                               <div className="flex items-center">
-                                <User className="h-3 w-3 mr-1" />
+                              <User className="h-3 w-3 mr-1" />
                                 <span className="truncate max-w-[120px]">{post.author}</span>
                               </div>
                             </div>
@@ -1651,23 +1644,23 @@ export function BlogAdmin() {
                                 : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-400'
                             }`}>
                               {post.is_published ? 'Yayında' : 'Taslak'}
-                            </div>
-                          </div>
+                        </div>
+                      </div>
                           <div className="flex space-x-1">
-                            <button
-                              onClick={() => handleEditPost(post)}
+                        <button
+                          onClick={() => handleEditPost(post)}
                               className="inline-flex items-center p-1.5 rounded-md text-slate-600 hover:text-blue-600 hover:bg-blue-50 dark:text-slate-400 dark:hover:text-blue-400 dark:hover:bg-slate-700 transition-colors"
                               title="Düzenle"
-                            >
+                        >
                               <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeletePost(post.id)}
+                        </button>
+                        <button
+                          onClick={() => handleDeletePost(post.id)}
                               className="inline-flex items-center p-1.5 rounded-md text-slate-600 hover:text-red-600 hover:bg-red-50 dark:text-slate-400 dark:hover:text-red-400 dark:hover:bg-slate-700 transition-colors"
                               title="Sil"
-                            >
+                        >
                               <Trash2 className="h-4 w-4" />
-                            </button>
+                        </button>
                             <a
                               href={`/blog/${post.slug}`}
                               target="_blank"
@@ -1677,34 +1670,34 @@ export function BlogAdmin() {
                             >
                               <Eye className="h-4 w-4" />
                             </a>
-                          </div>
-                        </div>
+                      </div>
+                    </div>
                       </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-12 text-center bg-white dark:bg-slate-800 rounded-xl shadow border border-slate-200 dark:border-slate-700">
-                    <div className="text-5xl mb-4">📝</div>
-                    <h3 className="text-xl font-medium text-slate-900 dark:text-white mb-2">Henüz Blog Yazısı Bulunmuyor</h3>
-                    <p className="text-slate-600 dark:text-slate-400 mb-6">
-                      İlk blog yazınızı ekleyerek başlayın.
-                    </p>
-                    <button
-                      onClick={() => {
-                        setFormMode('create');
-                        setShowForm(true);
-                      }}
-                      className="px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-white rounded-lg inline-flex items-center"
-                    >
-                      <Plus className="h-4 w-4 mr-1.5" />
-                      Yeni Yazı Ekle
-                    </button>
-                  </div>
-                )}
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 text-center bg-white dark:bg-slate-800 rounded-xl shadow border border-slate-200 dark:border-slate-700">
+                <div className="text-5xl mb-4">📝</div>
+                <h3 className="text-xl font-medium text-slate-900 dark:text-white mb-2">Henüz Blog Yazısı Bulunmuyor</h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-6">
+                  İlk blog yazınızı ekleyerek başlayın.
+                </p>
+                <button
+                  onClick={() => {
+                    setFormMode('create');
+                    setShowForm(true);
+                  }}
+                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-white rounded-lg inline-flex items-center"
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Yeni Yazı Ekle
+                </button>
+              </div>
+            )}
               </div>
             </div>
-          </div>
-        )}
+        </div>
+      )}
       </div>
 
       {/* Önizleme Modal */}

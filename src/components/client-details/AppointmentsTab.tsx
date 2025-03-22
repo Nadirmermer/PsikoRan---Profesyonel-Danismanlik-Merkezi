@@ -14,13 +14,18 @@ interface Appointment {
 }
 
 interface AppointmentsTabProps {
-  pastAppointments: Appointment[];
-  upcomingAppointments: Appointment[];
+  clientId: string;
+  appointments: {
+    upcoming: Appointment[];
+    past: Appointment[];
+  };
+  loadAppointments: () => Promise<boolean>;
 }
 
 export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
-  pastAppointments,
-  upcomingAppointments,
+  clientId,
+  appointments,
+  loadAppointments,
 }) => {
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -28,9 +33,9 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
         <h3 className="text-base sm:text-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-3 sm:mb-4">
           Gelecek Randevular
         </h3>
-        {upcomingAppointments.length > 0 ? (
+        {appointments.upcoming.length > 0 ? (
           <div className="space-y-4">
-            {upcomingAppointments.map((appointment) => (
+            {appointments.upcoming.map((appointment) => (
               <div
                 key={appointment.id}
                 className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-200 hover:scale-[1.02]"
@@ -74,9 +79,9 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
         <h3 className="text-base sm:text-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-3 sm:mb-4">
           Geçmiş Randevular
         </h3>
-        {pastAppointments.length > 0 ? (
+        {appointments.past.length > 0 ? (
           <div className="space-y-4">
-            {pastAppointments.map((appointment) => (
+            {appointments.past.map((appointment) => (
               <div
                 key={appointment.id}
                 className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50/50 dark:bg-gray-700/50 rounded-xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-200 hover:scale-[1.02]"

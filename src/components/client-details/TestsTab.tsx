@@ -4,6 +4,7 @@ import { AVAILABLE_TESTS } from '../../data/tests';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
+import { useAuth } from '../../lib/auth';
 
 // Test kategorileri
 const TEST_CATEGORIES = [
@@ -15,15 +16,14 @@ const TEST_CATEGORIES = [
 
 interface TestsTabProps {
   clientId: string;
-  professional: any;
-  supabase: SupabaseClient;
+  client: any;
 }
 
 export const TestsTab: React.FC<TestsTabProps> = ({ 
   clientId, 
-  professional, 
-  supabase
+  client
 }) => {
+  const { professional } = useAuth();
   const [searchTest, setSearchTest] = useState('');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [shareOptions, setShareOptions] = useState<any[]>([]);
@@ -31,7 +31,6 @@ export const TestsTab: React.FC<TestsTabProps> = ({
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [client, setClient] = useState<any>(null);
   const [testInfo, setTestInfo] = useState<any>(null);
 
   // Testleri filtrele
@@ -65,7 +64,7 @@ export const TestsTab: React.FC<TestsTabProps> = ({
       }
       
       // Ensure we have a valid session
-      const session = await supabase.auth.getSession();
+      const session = await professional?.supabase.auth.getSession();
       if (!session.data.session) {
         console.error('Oturum bulunamadı');
         throw new Error('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
@@ -74,7 +73,7 @@ export const TestsTab: React.FC<TestsTabProps> = ({
       console.log('Kullanıcı oturumu:', session.data.session.user.id);
 
       // Danışan bilgilerini al
-      const { data: clientData, error: clientError } = await supabase
+      const { data: clientData, error: clientError } = await professional?.supabase
         .from('clients')
         .select('*')
         .eq('id', clientId)
@@ -84,8 +83,6 @@ export const TestsTab: React.FC<TestsTabProps> = ({
         console.error('Danışan bilgileri alınamadı:', clientError);
         throw new Error('Danışan bilgileri alınamadı.');
       }
-      
-      setClient(clientData);
       
       // Benzersiz token oluştur
       const randomToken = Math.random().toString(36).substring(2, 15) + 
@@ -106,7 +103,7 @@ export const TestsTab: React.FC<TestsTabProps> = ({
       console.log('RPC fonksiyonu için parametreler:', insertData);
 
       // RPC fonksiyonunu çağır
-      const { data: rpcData, error: rpcError } = await supabase.rpc('create_test_token', insertData);
+      const { data: rpcData, error: rpcError } = await professional?.supabase.rpc('create_test_token', insertData);
       
       console.log('RPC sonucu:', rpcData);
       
