@@ -8,245 +8,216 @@ Her madde bir çeşit ruh durumunu anlatmaktadır. Her maddede o durumun dereces
 kendi ruh durumunuzu göz önünde bulundurarak, size en uygun olan ifadeyi seçiniz.
 `;
 
-// Puanlama kriterleri ve açıklamalar
-export const beckDepressionCriteria = {
-  scoring: {
-    normal: { min: 5, max: 9, description: 'Normal düzey' },
-    mild: { min: 10, max: 18, description: 'Hafif-orta düzey depresyon' },
-    moderate: { min: 19, max: 29, description: 'Orta-şiddetli düzey depresyon' },
-    severe: { min: 30, max: 63, description: 'Şiddetli düzey depresyon' }
-  },
-  cutoffScore: 17,
-  factors: {
-    hopelessness: {
-      name: 'Umutsuzluk',
-      description: 'Kişinin umutsuzluğunu ölçer',
-      questions: [1, 2, 4, 9, 11, 12, 13, 15, 17]
-    },
-    negativeSelf: {
-      name: 'Kendine Yönelik Olumsuz Duygular',
-      description: 'Kişinin kendine yönelik olumsuz duygularını ölçer',
-      questions: [3, 7]
-    },
-    somaticConcerns: {
-      name: 'Bedensel Kaygılar',
-      description: 'Kişinin bedensel kaygılarını ölçer',
-      questions: [14, 20]
-    },
-    guilt: {
-      name: 'Suçluluk Duyguları',
-      description: 'Kişinin suçluluk duygularını ölçer',
-      questions: [5, 6, 8, 13]
-    }
-  },
-  interpretation: [
-    '5-9 puan: Normal düzey',
-    '10-18 puan: Hafif-orta düzey depresyon',
-    '19-29 puan: Orta-şiddetli düzey depresyon',
-    '30-63 puan: Şiddetli düzey depresyon',
-    '17 ve üzeri: Tedavi gerektiren depresyon düzeyi'
-  ],
-  notes: [
-    'Beck Depresyon Envanteri, depresyon belirtilerinin şiddetini ölçmek için kullanılır.',
-    'Her madde 0-3 arası puanlanır.',
-    'Toplam puan 0-63 arasında değişir.',
-    'Kesme puanı 17\'dir. 17 ve üstü puanlar tedavi gerektirir.',
-    'Dört ana faktör üzerinden değerlendirme yapılır: Umutsuzluk, Kendine Yönelik Olumsuz Duygular, Bedensel Kaygılar ve Suçluluk Duyguları.'
-  ]
+// Puan aralıklarına göre depresyon seviyesini belirleyen yardımcı fonksiyon
+const getDepressionLevel = (score: number): string => {
+  if (score >= 0 && score <= 4) {
+    return 'Normal';
+  } else if (score >= 5 && score <= 9) {
+    return 'Normal';
+  } else if (score >= 10 && score <= 18) {
+    return 'Hafif-orta depresyon';
+  } else if (score >= 19 && score <= 29) {
+    return 'Orta-şiddetli depresyon';
+  } else if (score >= 30 && score <= 63) {
+    return 'Şiddetli depresyon';
+  }
+  return 'Değerlendirme tamamlandı';
 };
 
 export const beckDepressionTest: Test = {
   id: 'beck-depression',
-  name: 'Beck Depresyon Ölçeği',
+  name: 'Beck Depresyon Testi',
   description: beckDepressionIntro,
+  infoText: 'Bu test, kişinin depresif belirtilerini değerlendirmek için kullanılır.',
+  reference: 'https://www.researchgate.net/profile/Elif-Gueneri-Yoeyen/publication/331407570_Psikolojide_Kullanilan_Olcekler/links/5c77e2c0458515831f76da91/Psikolojide-Kullanilan-Oelcekler.pdf',
   questions: [
     {
       id: 'BD1',
       options: [
-        { value: 0, text: 'Kendimi üzüntülü ve sıkıntılı hissetmiyorum' },
-        { value: 1, text: 'Kendimi üzüntülü ve sıkıntılı hissediyorum' },
-        { value: 2, text: 'Hep üzüntülü ve sıkıntılıyım. Bundan kurtulamıyorum' },
-        { value: 3, text: 'O kadar üzüntülü ve sıkıntılıyım ki artık dayanamıyorum' }
+        { value: 0, text: 'Kendimi üzgün hissetmiyorum.' },
+        { value: 1, text: 'Kendimi üzgün hissediyorum.' },
+        { value: 2, text: 'Her zaman için üzgünüm ve kendimi bu duygudan kurtaramıyorum.' },
+        { value: 3, text: 'Öylesine üzgün ve mutsuzum ki dayanamıyorum.' }
       ]
     },
     {
       id: 'BD2',
       options: [
-        { value: 0, text: 'Gelecek hakkında umutsuz ve karamsar değilim' },
-        { value: 1, text: 'Gelecek hakkında karamsarım' },
-        { value: 2, text: 'Gelecekten beklediğim hiçbir şey yok' },
-        { value: 3, text: 'Geleceğim hakkında umutsuzum ve sanki hiçbir şey düzelmeyecekmiş gibi geliyor' }
+        { value: 0, text: 'Gelecekten umutsuz değilim.' },
+        { value: 1, text: 'Gelecek konusunda umutsuzum.' },
+        { value: 2, text: 'Gelecekten beklediğim hiçbir şey yok.' },
+        { value: 3, text: 'Benim için gelecek olmadığı gibi bu durum düzelmeyecek.' }
       ]
     },
     {
       id: 'BD3',
       options: [
-        { value: 0, text: 'Kendimi başarısız bir insan olarak görmüyorum' },
-        { value: 1, text: 'Çevremdeki birçok kişiden daha çok başarısızlıklarım olmuş gibi hissediyorum' },
-        { value: 2, text: 'Geçmişe baktığımda başarısızlıklarla dolu olduğunu görüyorum' },
-        { value: 3, text: 'Kendimi tümüyle başarısız biri olarak görüyorum' }
+        { value: 0, text: 'Kendimi başarısız görmüyorum.' },
+        { value: 1, text: 'Herkesten daha fazla başarısızlıklarım oldu sayılır.' },
+        { value: 2, text: 'Geriye dönüp baktığımda, pek çok başarısızlıklarımın olduğunu görüyorum.' },
+        { value: 3, text: 'Kendimi bir" insan olarak tümüyle başarısız görüyorum.' }
       ]
     },
     {
       id: 'BD4',
       options: [
-        { value: 0, text: 'Birçok şeyden eskisi kadar zevk alıyorum' },
-        { value: 1, text: 'Eskiden olduğu gibi her şeyden hoşlanmıyorum' },
-        { value: 2, text: 'Artık hiçbir şey bana tam anlamıyla zevk vermiyor' },
-        { value: 3, text: 'Her şeyden sıkılıyorum' }
+        { value: 0, text: 'Her şeyden eskisi kadar zevk alabiliyorum.' },
+        { value: 1, text: 'Her şeyden eskisi kadar zevk alamıyorum' },
+        { value: 2, text: 'Artık hiçbir şeyden gerçek bir zevk alamıyorum.' },
+        { value: 3, text: 'Beni doyuran hiçbir şey yok. Her şey çok can sıkıcı.' }
       ]
     },
     {
       id: 'BD5',
       options: [
-        { value: 0, text: 'Kendimi herhangi bir şekilde suçlu hissetmiyorum' },
-        { value: 1, text: 'Kendimi zaman zaman suçlu hissediyorum' },
-        { value: 2, text: 'Çoğu zaman kendimi suçlu hissediyorum' },
-        { value: 3, text: 'Kendimi her zaman suçlu hissediyorum' }
+        { value: 0, text: 'Kendimi suçlu hissetmiyorum.' },
+        { value: 1, text: 'Arada bir kendimi suçlu hissettiğim oluyor.' },
+        { value: 2, text: 'Kendimi çoğunlukla suçlu hissediyorum.' },
+        { value: 3, text: 'Kendimi her an için suçlu hissediyorum.' }
       ]
     },
     {
       id: 'BD6',
       options: [
-        { value: 0, text: 'Bana cezalandırılmışım gibi gelmiyor' },
-        { value: 1, text: 'Cezalandırılabileceğimi hissediyorum' },
-        { value: 2, text: 'Cezalandırılmayı bekliyorum' },
-        { value: 3, text: 'Cezalandırıldığımı hissediyorum' }
+        { value: 0, text: 'Cezalandırılıyormuşum gibi duygular içinde değilim.' },
+        { value: 1, text: 'Sanki bazı şeyler için cezalandırılabilirmişim gibi duygular içindeyim.' },
+        { value: 2, text: 'Cezalandırılacakmışım gibi duygular yaşıyorum.' },
+        { value: 3, text: 'Bazı şeyler için cezalandırılıyorum.' }
       ]
     },
     {
       id: 'BD7',
       options: [
-        { value: 0, text: 'Kendimden memnunum' },
-        { value: 1, text: 'Kendi kendimden pek memnun değilim' },
-        { value: 2, text: 'Kendime çok kızıyorum' },
-        { value: 3, text: 'Kendimden nefret ediyorum' }
+        { value: 0, text: 'Kendimi hayal kırıklığına uğratmadım.' },
+        { value: 1, text: 'Kendimi hayal kırıklığına uğrattım' },
+        { value: 2, text: 'Kendimden hiç hoşlanmıyorum.' },
+        { value: 3, text: 'Kendimden nefret ediyorum.' }
       ]
     },
     {
       id: 'BD8',
       options: [
-        { value: 0, text: 'Başkalarından daha kötü olduğumu sanmıyorum' },
-        { value: 1, text: 'Zayıf yanlarım veya hatalarım için kendi kendimi eleştiririm' },
-        { value: 2, text: 'Hatalarımdan dolayı ve her zaman kendimi kabahatli bulurum' },
-        { value: 3, text: 'Her aksilik karşısında kendimi hatalı bulurum' }
+        { value: 0, text: 'Kendimi diğer insanlardan daha kötü durumda görmüyorum.' },
+        { value: 1, text: 'Kendimi zayıflıklarım ve hatalarım için eleştiriyorum.' },
+        { value: 2, text: 'Kendimi hatalarım için her zaman suçluyorum' },
+        { value: 3, text: 'Her kötü olayda kendimi suçluyorum.' }
       ]
     },
     {
       id: 'BD9',
       options: [
-        { value: 0, text: 'Kendimi öldürmek gibi düşüncelerim yok' },
-        { value: 1, text: 'Zaman zaman kendimi öldürmeyi düşündüğüm olur. Fakat yapmıyorum' },
-        { value: 2, text: 'Kendimi öldürmek isterdim' },
-        { value: 3, text: 'Fırsatını bulsam kendimi öldürürdüm' }
+        { value: 0, text: 'Kendimi öldürmek gibi düşüncelerim yok.' },
+        { value: 1, text: 'Bazen, kendimi öldürmeyi düşünüyorum ama böyle bir şeyi yapamam.' },
+        { value: 2, text: 'Kendimi öldürebilmeyi çok isterdim.' },
+        { value: 3, text: 'Eğer fırsatını bulursam kendimi öldürürüm.' }
       ]
     },
     {
       id: 'BD10',
       options: [
-        { value: 0, text: 'Her zamankinden fazla içimden ağlamak gelmiyor' },
-        { value: 1, text: 'Zaman zaman içimdem ağlamak geliyor' },
-        { value: 2, text: 'Çoğu zaman ağlıyorum' },
-        { value: 3, text: 'Eskiden ağlayabilirdim şimdi istesem de ağlayamıyorum' }
+        { value: 0, text: 'Herkesten daha fazla ağladığımı sanmıyorum.' },
+        { value: 1, text: 'Eskisine göre şimdilerde daha çok ağlıyorum.' },
+        { value: 2, text: 'Şimdilerde her an ağlıyorum.' },
+        { value: 3, text: 'Eskiden ağlayabilirdim, şimdilerde istesem de ağlayamıyorum.' }
       ]
     },
     {
       id: 'BD11',
       options: [
-        { value: 0, text: 'Şimdi her zaman olduğumdan daha sinirli değilim' },
-        { value: 1, text: 'Eskisine kıyasla daha kolay kızıyor ya da sinirleniyorum' },
-        { value: 2, text: 'Şimdi hep sinirliyim' },
-        { value: 3, text: 'Bir zamanlar beni sinirlendiren şeyler şimdi hiç sinirlendirmiyor' }
+        { value: 0, text: 'Eskisine göre daha sinirli veya tedirgin sayılmam.' },
+        { value: 1, text: 'Her zamankinden biraz daha fazla tedirginim.' },
+        { value: 2, text: 'Çoğu zaman sinirli ve tedirginim.' },
+        { value: 3, text: 'Şimdilerde her an için tedirgin ve sinirliyim.' }
       ]
     },
     {
       id: 'BD12',
       options: [
-        { value: 0, text: 'Başkaları ile görüşmek, konuşmak isteğimi kaybetmedim' },
-        { value: 1, text: 'Başkaları ile eskiden daha az konuşmak, görüşmek istiyorum' },
-        { value: 2, text: 'Başkaları ile konuşma ve görüşme isteğimin çoğunu kaybettim' },
-        { value: 3, text: 'Hiç kimseyle konuşmak görüşmek istemiyorum' }
+        { value: 0, text: 'Diğer insanlara karşı ilgimi kaybetmedim.' },
+        { value: 1, text: 'Eskisine göre insanlarla daha az ilgiliyim.' },
+        { value: 2, text: 'Diğer insanlara karşı ilgimin çoğunu kaybettim.' },
+        { value: 3, text: 'Diğer insanlara karşı hiç ilgim Kalmadı.' }
       ]
     },
     {
       id: 'BD13',
       options: [
-        { value: 0, text: 'Eskiden olduğu gibi kolay karar verebiliyorum' },
-        { value: 1, text: 'Eskiden olduğu kadar kolay karar veremiyorum' },
-        { value: 2, text: 'Karar verirken eskisine kıyasla çok güçlük çekiyorum' },
-        { value: 3, text: 'Artık hiç karar veremiyorum' }
+        { value: 0, text: 'Eskisi gibi rahat ve kolay kararlar verebiliyorum.' },
+        { value: 1, text: 'Eskisine kıyasla, şimdilerde karar vermeyi daha çok erteliyorum.' },
+        { value: 2, text: 'Eskisine göre, karar vermekte oldukça güçlük çekiyorum.' },
+        { value: 3, text: 'Artık hiç karar veremiyorum.' }
       ]
     },
     {
       id: 'BD14',
       options: [
-        { value: 0, text: 'Aynada kendime baktığımda değişiklik görmüyorum' },
-        { value: 1, text: 'Daha yaşlanmış ve çirkinleşmişim gibi geliyor' },
-        { value: 2, text: 'Görünüşümün çok değiştiğini ve çirkinleştiğimi hissediyorum' },
-        { value: 3, text: 'Kendimi çok çirkin buluyorum' }
+        { value: 0, text: 'Eskisinden daha kötü bir dış görünüşüm olduğunu sanmıyorum.' },
+        { value: 1, text: 'Sanki yaşlanmış ve çekiciliğimi kaybetmişim gibi düşünüyor ve üzülüyorum.' },
+        { value: 2, text: 'Dış görünüşümde artık değiştirilmesi mümkün olmayan ve beni çirkinleştiren değişiklikler olduğunu hissediyorum.' },
+        { value: 3, text: 'Çok çirkin olduğumu düşünüyorum.' }
       ]
     },
     {
       id: 'BD15',
       options: [
-        { value: 0, text: 'Eskisi kadar iyi çalışabiliyorum' },
-        { value: 1, text: 'Bir şeyler yapabilmek için gayret göstermem gerekiyor' },
-        { value: 2, text: 'Herhangi bir şeyi yapabilmek için kendimi çok zorlamam gerekiyor' },
-        { value: 3, text: 'Hiçbir şey yapamıyorum' }
+        { value: 0, text: 'Eskisi kadar iyi çalışabiliyorum.' },
+        { value: 1, text: 'Bir işe başlayabilmek için eskisine göre daha fazla çaba harcıyorum.' },
+        { value: 2, text: 'Ne iş olursa olsun, yapabilmek için kendimi çok zorluyorum.' },
+        { value: 3, text: 'Hiç çalışamıyorum.' }
       ]
     },
     {
       id: 'BD16',
       options: [
-        { value: 0, text: 'Her zamanki gibi iyi uyuyabiliyorum' },
-        { value: 1, text: 'Eskiden olduğu gibi iyi uyuyamıyorum' },
-        { value: 2, text: 'Her zamankinden 1-2 saat daha erken uyanıyorum ve tekrar uyuyamıyorum' },
-        { value: 3, text: 'Her zamankinden çok daha erken uyanıyor ve tekrar uyuyamıyorum' }
+        { value: 0, text: 'Eskisi kadar rahat ve kolay uyuyabiliyorum.' },
+        { value: 1, text: 'Şimdilerde eskisi kadar kolay ve rahat uyuyamıyorum.' },
+        { value: 2, text: 'Eskisine göre 1 veya 2 saat erken uyanıyor ve tekrar uyumakta güçlük çekiyorum.' },
+        { value: 3, text: 'Eskisine göre çok erken uyanıyor ve tekrar uyuyamıyorum.' }
       ]
     },
     {
       id: 'BD17',
       options: [
-        { value: 0, text: 'Her zamankinden daha çabuk yorulmuyorum' },
-        { value: 1, text: 'Her zamankinden daha çabuk yoruluyorum' },
-        { value: 2, text: 'Yaptığım her şey beni yoruyor' },
-        { value: 3, text: 'Kendimi hemen hiçbir şey yapamayacak kadar yorgun hissediyorum' }
+        { value: 0, text: 'Eskisine göre daha çabuk yorulduğumu sanmıyorum.' },
+        { value: 1, text: 'Eskisinden daha çabuk ve kolay yoruluyorum.' },
+        { value: 2, text: 'Şimdilerde neredeyse her şeyden kolay ve çabuk yoruluyorum.' },
+        { value: 3, text: 'Artık hiçbir şey yapamayacak kadar yoruluyorum.' }
       ]
     },
     {
       id: 'BD18',
       options: [
-        { value: 0, text: 'İştahım her zamanki gibi' },
-        { value: 1, text: 'İştahım her zamanki kadar iyi değil' },
-        { value: 2, text: 'İştahım çok azaldı' },
-        { value: 3, text: 'Artık hiç iştahım yok' }
+        { value: 0, text: 'İştahım eskisinden pek farklı değil.' },
+        { value: 1, text: 'İştahım eskisi kadar iyi değil.' },
+        { value: 2, text: 'Şimdilerde iştahım epey kötü.' },
+        { value: 3, text: 'Artık hiç iştahım yok.' }
       ]
     },
     {
       id: 'BD19',
       options: [
-        { value: 0, text: 'Son zamanlarda kilo vermedim' },
-        { value: 1, text: 'İki kilodan fazla kilo verdim' },
-        { value: 2, text: 'Dört kilodan fazla kilo verdim' },
-        { value: 3, text: 'Altı kilodan fazla kilo vermeye çalışıyorum' }
+        { value: 0, text: 'Son zamanlarda pek kilo kaybettiğimi sanmıyorum.' },
+        { value: 1, text: 'Son zamanlarda istemediğim halde iki buçuk kilodan fazla kaybettim.' },
+        { value: 2, text: 'Son zamanlarda beş kilodan fazla kaybettim.' },
+        { value: 3, text: 'Son zamanlarda yedi buçuk kilodan fazla kaybettim.' }
       ]
     },
     {
       id: 'BD20',
       options: [
-        { value: 0, text: 'Sağlığım beni fazla endişelendirmiyor' },
-        { value: 1, text: 'Ağrı, sancı, mide bozukluğu veya kabızlık gibi rahatsızlıklar beni endişelendiriyor' },
-        { value: 2, text: 'Sağlığım beni endişelendirdiği için başka şeyleri düşünmek zorlaşıyor' },
-        { value: 3, text: 'Sağlığım hakkında o kadar endişeliyim ki başka hiçbir şey düşünemiyorum' }
+        { value: 0, text: 'Sağlığım beni pek endişelendirmiyor.' },
+        { value: 1, text: 'Son zamanlarda ağrı, sızı, mide bozukluğu, kabızlık gibi sıkıntılarım var.' },
+        { value: 2, text: 'Ağrı, sızı gibi bu sıkıntılarım beni epey endişelendirdiği için başka şeyleri düşünmek zor geliyor.' },
+        { value: 3, text: 'Bu tür sıkıntılar beni öylesine endişelendiriyor ki, artık başka şeyleri düşünemiyorum.' }
       ]
     },
     {
       id: 'BD21',
       options: [
-        { value: 0, text: 'Son zamanlarda cinsel konulara olan ilgimde bir değişme fark etmedim' },
-        { value: 1, text: 'Cinsel konularla eskisinden daha az ilgiliyim' },
-        { value: 2, text: 'Cinsel konularla şimdi çok daha az ilgiliyim' },
-        { value: 3, text: 'Cinsel konular olan ilgimi tamamen kaybettim' }
+        { value: 0, text: 'Son zamanlarda cinsel yaşantımda dikkatimi çeken bir şey yok.' },
+        { value: 1, text: 'Eskisine göre cinsel konularla daha az ilgileniyorum.' },
+        { value: 2, text: 'Şimdilerde cinsellikle pek ilgili değilim.' },
+        { value: 3, text: 'Cinsel konulara ilgimi tamamen kaybettim.' }
       ]
     }
   ],
@@ -254,106 +225,41 @@ export const beckDepressionTest: Test = {
     return Object.values(answers).reduce((sum, value) => sum + (Number(value) || 0), 0);
   },
   interpretScore: (score) => {
-    if (score < 5) return 'Geçersiz skor';
-    if (score <= beckDepressionCriteria.scoring.normal.max) return beckDepressionCriteria.scoring.normal.description;
-    if (score <= beckDepressionCriteria.scoring.mild.max) return beckDepressionCriteria.scoring.mild.description;
-    if (score <= beckDepressionCriteria.scoring.moderate.max) return beckDepressionCriteria.scoring.moderate.description;
-    if (score <= beckDepressionCriteria.scoring.severe.max) return beckDepressionCriteria.scoring.severe.description;
-    return 'Geçersiz skor';
+    return getDepressionLevel(score);
   },
   generateReport: (answers) => {
     const totalScore = Object.values(answers).reduce((sum, value) => sum + (Number(value) || 0), 0);
+    const severityLevel = getDepressionLevel(totalScore);
     
-    // Faktör puanlarını hesapla
+    // Alt ölçek puanlarını hesapla
     const factorScores = {
-      hopelessness: beckDepressionCriteria.factors.hopelessness.questions.reduce((sum, q) => sum + (Number(answers[`BD${q}`]) || 0), 0),
-      negativeSelf: beckDepressionCriteria.factors.negativeSelf.questions.reduce((sum, q) => sum + (Number(answers[`BD${q}`]) || 0), 0),
-      somaticConcerns: beckDepressionCriteria.factors.somaticConcerns.questions.reduce((sum, q) => sum + (Number(answers[`BD${q}`]) || 0), 0),
-      guilt: beckDepressionCriteria.factors.guilt.questions.reduce((sum, q) => sum + (Number(answers[`BD${q}`]) || 0), 0)
+      umutsuzluk: ['BD1', 'BD2', 'BD4', 'BD9', 'BD11', 'BD12', 'BD13', 'BD15', 'BD17'].reduce((sum, id) => sum + (Number(answers[id]) || 0), 0),
+      kendineYonelikOlumsuzDuygular: ['BD3', 'BD7'].reduce((sum, id) => sum + (Number(answers[id]) || 0), 0),
+      bedenselsKaygilar: ['BD14', 'BD20'].reduce((sum, id) => sum + (Number(answers[id]) || 0), 0),
+      suclulukDuyguları: ['BD5', 'BD6', 'BD8', 'BD13'].reduce((sum, id) => sum + (Number(answers[id]) || 0), 0)
     };
-
-    // Faktör ortalamalarını hesapla
+    
+    // Alt ölçek ortalamalarını hesapla
     const factorAverages = {
-      hopelessness: factorScores.hopelessness / beckDepressionCriteria.factors.hopelessness.questions.length,
-      negativeSelf: factorScores.negativeSelf / beckDepressionCriteria.factors.negativeSelf.questions.length,
-      somaticConcerns: factorScores.somaticConcerns / beckDepressionCriteria.factors.somaticConcerns.questions.length,
-      guilt: factorScores.guilt / beckDepressionCriteria.factors.guilt.questions.length
+      umutsuzluk: factorScores.umutsuzluk / 9,
+      kendineYonelikOlumsuzDuygular: factorScores.kendineYonelikOlumsuzDuygular / 2,
+      bedenselsKaygilar: factorScores.bedenselsKaygilar / 2,
+      suclulukDuyguları: factorScores.suclulukDuyguları / 4
     };
-
-    // Depresyon düzeyini belirle
-    let severityLevel = '';
-    let requiresTreatment = false;
-    if (totalScore <= beckDepressionCriteria.scoring.normal.max) {
-      severityLevel = beckDepressionCriteria.scoring.normal.description;
-    } else if (totalScore <= beckDepressionCriteria.scoring.mild.max) {
-      severityLevel = beckDepressionCriteria.scoring.mild.description;
-    } else if (totalScore <= beckDepressionCriteria.scoring.moderate.max) {
-      severityLevel = beckDepressionCriteria.scoring.moderate.description;
-    } else if (totalScore <= beckDepressionCriteria.scoring.severe.max) {
-      severityLevel = beckDepressionCriteria.scoring.severe.description;
-    }
-
-    // Tedavi gereksinimi kontrolü
-    if (totalScore >= beckDepressionCriteria.cutoffScore) {
-      requiresTreatment = true;
-    }
-
+    
     // Risk faktörlerini belirle
     const riskFactors = [];
-    if (Number(answers.BD9) >= 2) {
-      riskFactors.push('Yüksek intihar riski');
+    if (answers['BD9'] >= 1) {
+      riskFactors.push('İntihar düşüncesi');
     }
-    if (factorAverages.hopelessness > 2) {
-      riskFactors.push('Yüksek umutsuzluk düzeyi');
-    }
-    if (factorAverages.negativeSelf > 2) {
-      riskFactors.push('Belirgin olumsuz benlik algısı');
-    }
-
-    // Öne çıkan belirtileri belirle
-    const prominentSymptoms = Object.entries(answers)
-      .filter(([_, value]) => Number(value) >= 2)
-      .map(([key]) => {
-        const questionNumber = parseInt(key.replace('BD', ''));
-        return {
-          question: questionNumber,
-          severity: Number(answers[key]),
-          response: beckDepressionTest.questions[questionNumber - 1].options.find(opt => opt.value === Number(answers[key]))?.text
-        };
-      });
-
+    
     return {
-      totalScore,
-      severityLevel,
-      requiresTreatment,
-      factorScores,
-      factorAverages,
-      riskFactors,
-      prominentSymptoms,
-      interpretation: {
-        overall: `Danışanın Beck Depresyon Ölçeği toplam puanı ${totalScore} olup, bu puan "${severityLevel}" düzeyine işaret etmektedir.${
-          requiresTreatment ? ' Bu düzey klinik olarak anlamlı olup tedavi gerektirir.' : ''
-        }`,
-        factors: `
-          Faktör analizi sonuçlarına göre:
-          - Umutsuzluk: ${factorAverages.hopelessness.toFixed(2)} (${factorScores.hopelessness} puan)
-          - Olumsuz Benlik: ${factorAverages.negativeSelf.toFixed(2)} (${factorScores.negativeSelf} puan)
-          - Bedensel Belirtiler: ${factorAverages.somaticConcerns.toFixed(2)} (${factorScores.somaticConcerns} puan)
-          - Suçluluk Duyguları: ${factorAverages.guilt.toFixed(2)} (${factorScores.guilt} puan)
-        `,
-        risks: riskFactors.length > 0 
-          ? `Önemli risk faktörleri: ${riskFactors.join(', ')}`
-          : 'Belirgin risk faktörü saptanmamıştır.',
-        symptoms: prominentSymptoms.length > 0
-          ? `Öne çıkan belirtiler:\n${prominentSymptoms.map(s => `- ${s.response}`).join('\n')}`
-          : 'Belirgin semptom saptanmamıştır.',
-        recommendations: [
-          requiresTreatment ? 'Klinik değerlendirme ve tedavi önerilir.' : 'Takip önerilir.',
-          factorAverages.hopelessness > 2 ? 'Umutsuzluk düzeyi için özel müdahale gerekebilir.' : '',
-          Number(answers.BD9) >= 2 ? 'İntihar riski için acil değerlendirme gereklidir.' : '',
-          factorAverages.somaticConcerns > 2 ? 'Bedensel belirtiler için tıbbi değerlendirme önerilebilir.' : ''
-        ].filter(r => r !== '')
-      }
+      score: totalScore,
+      severityLevel: severityLevel,
+      factorScores: factorScores,
+      factorAverages: factorAverages,
+      riskFactors: riskFactors,
+      requiresTreatment: totalScore >= 17
     };
   }
 }; 

@@ -27,6 +27,7 @@ interface TestResult {
   answers: Record<string, any>;
   created_at: string;
   duration_seconds?: number;
+  is_public_access?: boolean;
 }
 
 // Tema sabitleri
@@ -119,6 +120,7 @@ class TestPDFGenerator {
     this.drawHeader();
     this.drawTestInfo();
     this.drawResults();
+    this.drawQuestionsAndAnswers();
     this.drawFooter();
     return this.pdf;
   }
@@ -165,7 +167,7 @@ class TestPDFGenerator {
   }
 
   private drawHeader(): void {
-    const headerHeight = 120; // Yüksekliği artırdım
+    const headerHeight = 120;
     
     // Ana header container - beyaz arka plan
     this.drawRoundedRect(0, 0, this.pageWidth, headerHeight, 'white');
@@ -174,10 +176,10 @@ class TestPDFGenerator {
     this.pdf.setFillColor(THEME.colors.primary.r, THEME.colors.primary.g, THEME.colors.primary.b);
     this.pdf.rect(0, 0, this.pageWidth, 5, 'F');
     
-    // Logo çiz - boyutu artırıldı
+    // Logo çiz
     this.drawLogo(this.marginLeft, 15, 70, 70);
     
-    // Danışan adı - X pozisyonu logo boyutuna göre ayarlandı
+    // Danışan adı
     const clientNameX = this.marginLeft + 90;
     this.setColor('primary');
     this.setFont('heading', 'h1');
@@ -195,11 +197,17 @@ class TestPDFGenerator {
     const testInfo = turkishToAscii(`${this.test.name}`);
     this.pdf.text(testInfo, clientNameX, 65);
     
-    // Uzman bilgisi - Y pozisyonunu artırdım
+    // Uzman bilgisi
     this.setColor('textLight');
     this.setFont('body', 'normal');
     const professionalInfo = turkishToAscii(`Uzman: ${this.professional.full_name}${this.professional.title ? `, ${this.professional.title}` : ''}`);
     this.pdf.text(professionalInfo, clientNameX, 85);
+    
+    // Test uygulama yöntemi bilgisi
+    const testCompletedBy = this.result.is_public_access 
+      ? turkishToAscii(`Çevrimiçi link ile tamamlandı`) 
+      : turkishToAscii(`Seans sırasında tamamlandı`);
+    this.pdf.text(testCompletedBy, clientNameX, 105);
     
     // Tarih ve kurum bilgileri
     const date = new Date(this.result.created_at);
@@ -211,17 +219,16 @@ class TestPDFGenerator {
       minute: '2-digit'
     }));
     
-    // Sağ tarafta bilgi kutusu - Y pozisyonunu değiştirdim
+    // Sağ tarafta bilgi kutusu
     const infoBoxWidth = 200;
     const infoBoxX = this.pageWidth - this.marginRight - infoBoxWidth;
-    const infoBoxY = 50; // Kutuyu biraz aşağı aldım
+    const infoBoxY = 50;
     
-    this.drawRoundedRect(infoBoxX, infoBoxY, infoBoxWidth, 50, 'lightGray'); // Yüksekliği artırdım
+    this.drawRoundedRect(infoBoxX, infoBoxY, infoBoxWidth, 50, 'lightGray');
     
     this.setColor('text');
     this.setFont('body', 'small');
     
-    // Tarih ve süre bilgileri - Y pozisyonlarını ayarladım
     const tarihText = turkishToAscii(`Tarih: ${dateTimeStr}`);
     const sureText = turkishToAscii(`Süre: ${formatDuration(this.result.duration_seconds)}`);
     const kurumText = turkishToAscii(`Kurum: ${this.client.professional?.clinic_name || '-'}`);
@@ -237,7 +244,7 @@ class TestPDFGenerator {
   }
 
   private drawTestInfo(): void {
-    const startY = 150; // Başlangıç Y pozisyonunu artırdım
+    const startY = 150;
     
     // Başlık
     this.setColor('primary');
@@ -249,18 +256,22 @@ class TestPDFGenerator {
     this.pdf.setLineWidth(0.5);
     this.pdf.line(this.marginLeft, startY + 5, this.marginLeft + 100, startY + 5);
     
-    // Test açıklaması
+    // Test bilgisi
     this.setColor('text');
     this.setFont('body', 'normal');
-    const testDescription = turkishToAscii(this.test.description || "Bu test için açıklama bulunmamaktadır.");
-    
-    // Çok satırlı metin için
-    const splitText = this.pdf.splitTextToSize(testDescription, this.contentWidth);
+    const testInfoText = turkishToAscii(this.test.infoText || this.test.description || "Bu test için tanılama kriterleri bulunmamaktadır.");
+    const splitText = this.pdf.splitTextToSize(testInfoText, this.contentWidth);
     this.pdf.text(splitText, this.marginLeft, startY + 25);
+    
+    // Referans bilgisi
+    if (this.test.reference) {
+      this.setFont('body', 'small');
+      this.pdf.text(turkishToAscii(`Referans: ${this.test.reference}`), this.marginLeft, startY + 25 + splitText.length * 7 + 15);
+    }
   }
 
   private drawResults(): void {
-    const startY = 230; // Başlangıç Y pozisyonunu artırdım
+    const startY = 230;
     
     // Başlık
     this.setColor('primary');
@@ -274,38 +285,170 @@ class TestPDFGenerator {
     
     // Sonuç kutusu
     const boxY = startY + 20;
-    const boxHeight = 100; // Kutu yüksekliğini artırdım
+    const boxHeight = 80;
     this.drawRoundedRect(this.marginLeft, boxY, this.contentWidth, boxHeight, 'lightGray');
-    
+
     // Skor
     this.setColor('primary');
     this.setFont('heading', 'h1');
     const scoreText = turkishToAscii(`${this.result.score}`);
     this.pdf.text(scoreText, this.marginLeft + 30, boxY + 45);
-    
-    // Skor açıklaması - X pozisyonunu artırdım
+
+    // Test yorumlaması
     this.setColor('text');
     this.setFont('body', 'normal');
-    let interpretation = "";
     
-    // Basit bir skor yorumlama örneği
-    if (this.result.score >= 80) {
-      interpretation = "Mükemmel";
-    } else if (this.result.score >= 60) {
-      interpretation = "İyi";
-    } else if (this.result.score >= 40) {
-      interpretation = "Orta";
-        } else {
-      interpretation = "Geliştirilmesi gerekiyor";
+    try {
+      let interpretation = '';
+      if (typeof this.test.interpretScore === 'function') {
+        interpretation = this.test.interpretScore(this.result.score);
+      }
+
+      if (!interpretation || interpretation.trim() === '') {
+        interpretation = 'Test tamamlandı';
+      }
+      
+      const interpretationText = turkishToAscii(`Değerlendirme: ${interpretation}`);
+      const splitInterpretation = this.pdf.splitTextToSize(interpretationText, this.contentWidth - 150);
+      this.pdf.text(splitInterpretation, this.marginLeft + 120, boxY + 45);
+    } catch (error) {
+      console.error('Skor yorumlama hatası:', error);
+      const fallbackText = turkishToAscii('Değerlendirme: Test tamamlandı');
+      this.pdf.text(fallbackText, this.marginLeft + 120, boxY + 45);
+    }
+  }
+
+  private drawQuestionsAndAnswers(): void {
+    this.pdf.addPage();
+    
+    // Sayfa başlığı
+    this.setColor('primary');
+    this.setFont('heading', 'h2');
+    this.pdf.text(turkishToAscii("Test Soruları ve Cevapları"), this.marginLeft, 50);
+    
+    // Alt çizgi
+    this.pdf.setDrawColor(THEME.colors.primary.r, THEME.colors.primary.g, THEME.colors.primary.b);
+    this.pdf.setLineWidth(0.5);
+    this.pdf.line(this.marginLeft, 55, this.marginLeft + 200, 55);
+    
+    let currentY = 80;
+    const lineHeight = 35; // Satır yüksekliği artırıldı
+    const rowPadding = 5; // Satır içi padding
+    const columnSpacing = 15; // Sütunlar arası boşluk
+    
+    // Sütun genişlikleri
+    const columnWidths = {
+      number: 25,    // Soru No sütunu
+      question: 350, // Soru sütunu
+      answer: 100    // Cevap sütunu
+    };
+    
+    // Sütun başlangıç pozisyonları
+    const columnPositions = {
+      number: this.marginLeft + 10,
+      question: this.marginLeft + columnWidths.number + columnSpacing,
+      answer: this.marginLeft + columnWidths.number + columnWidths.question + columnSpacing * 2
+    };
+    
+    // Test questions ve options kontrolü
+    if (!this.test.questions || this.test.questions.length === 0) {
+      this.setColor('text');
+      this.setFont('body', 'normal');
+      this.pdf.text(turkishToAscii("Test soruları mevcut değil."), this.marginLeft, currentY);
+      return;
     }
     
-    const interpretationText = turkishToAscii(`Değerlendirme: ${interpretation}`);
-    this.pdf.text(interpretationText, this.marginLeft + 120, boxY + 45);
+    // Tablo başlıkları
+    this.setColor('primary');
+    this.setFont('body', 'normal');
+    this.pdf.text(turkishToAscii("No"), columnPositions.number, currentY);
+    this.pdf.text(turkishToAscii("Soru"), columnPositions.question, currentY);
+    this.pdf.text(turkishToAscii("Cevap"), columnPositions.answer, currentY);
     
-    // Ek açıklama
-    this.setFont('body', 'small');
-    const additionalInfo = turkishToAscii("Bu sonuç, testin tamamlanma süresine ve verilen cevapların doğruluğuna göre hesaplanmıştır.");
-    this.pdf.text(additionalInfo, this.marginLeft + 20, boxY + 80);
+    // Başlık altı çizgisi
+    this.pdf.setDrawColor(THEME.colors.primary.r, THEME.colors.primary.g, THEME.colors.primary.b);
+    this.pdf.setLineWidth(0.5);
+    this.pdf.line(this.marginLeft, currentY + 5, this.pageWidth - this.marginRight, currentY + 5);
+    
+    currentY += 15;
+    
+    // Her soru için
+    for (let i = 0; i < this.test.questions.length; i++) {
+      const question = this.test.questions[i];
+      
+      // Eğer sayfa sonuna yaklaştıysak yeni sayfa ekle
+      if (currentY > this.pageHeight - 100) {
+        this.pdf.addPage();
+        currentY = 50;
+        
+        // Yeni sayfada başlık
+        this.setColor('primary');
+        this.setFont('heading', 'h3');
+        this.pdf.text(turkishToAscii("Test Soruları ve Cevapları (devam)"), this.marginLeft, 30);
+        this.pdf.line(this.marginLeft, 35, this.marginLeft + 200, 35);
+        currentY = 50;
+        
+        // Tablo başlıklarını tekrar çiz
+        this.setColor('primary');
+        this.setFont('body', 'normal');
+        this.pdf.text(turkishToAscii("No"), columnPositions.number, currentY);
+        this.pdf.text(turkishToAscii("Soru"), columnPositions.question, currentY);
+        this.pdf.text(turkishToAscii("Cevap"), columnPositions.answer, currentY);
+        
+        // Başlık altı çizgisi
+        this.pdf.setDrawColor(THEME.colors.primary.r, THEME.colors.primary.g, THEME.colors.primary.b);
+        this.pdf.setLineWidth(0.5);
+        this.pdf.line(this.marginLeft, currentY + 5, this.pageWidth - this.marginRight, currentY + 5);
+        
+        currentY += 15;
+      }
+      
+      // Zebra çizgili arka plan
+      if (i % 2 === 0) {
+        this.drawRoundedRect(this.marginLeft, currentY, this.contentWidth, lineHeight, 'lightGray');
+      } else {
+        this.drawRoundedRect(this.marginLeft, currentY, this.contentWidth, lineHeight, 'white');
+      }
+      
+      // Soru numarası
+      this.setColor('primary');
+      this.setFont('body', 'normal');
+      const questionNumber = turkishToAscii(`${i + 1}`);
+      this.pdf.text(questionNumber, columnPositions.number, currentY + rowPadding + 5);
+      
+      // Soru metni
+      this.setColor('text');
+      const questionText = turkishToAscii(question.text || 'Soru');
+      const splitQuestion = this.pdf.splitTextToSize(questionText, columnWidths.question - 10);
+      this.pdf.text(splitQuestion, columnPositions.question, currentY + rowPadding + 5);
+      
+      // Cevap bölümü
+      const answerId = question.id;
+      const answerValue = this.result.answers[answerId];
+      
+      // Verilen cevabı bul
+      let answerText = 'Cevap bulunamadı';
+      if (answerValue !== undefined && question.options) {
+        const selectedOption = question.options.find(opt => opt.value === Number(answerValue));
+        if (selectedOption) {
+          answerText = selectedOption.text;
+        }
+      }
+      
+      // Cevap değeri ve metni
+      this.setColor('accent');
+      this.setFont('body', 'normal');
+      const valueText = turkishToAscii(`${answerValue !== undefined ? answerValue : '-'}`);
+      this.pdf.text(valueText, columnPositions.answer, currentY + rowPadding + 5);
+      
+      this.setColor('text');
+      const formattedAnswer = turkishToAscii(answerText);
+      const splitAnswer = this.pdf.splitTextToSize(formattedAnswer, columnWidths.answer - 10);
+      this.pdf.text(splitAnswer, columnPositions.answer + 20, currentY + rowPadding + 5);
+      
+      // Bir sonraki satır için boşluk
+      currentY += lineHeight;
+    }
   }
 
   private drawFooter(): void {

@@ -11,9 +11,6 @@ import { ytt40Test } from './ytt40';
 import { algılananStresTest } from './algılananStres';
 import { arizonaCinselYasantilarTest } from './arizonaCinselYasantilar';
 import { bilisselDuyguDuzenlemeTest } from './bilisselDuyguDuzenleme';
-import { connersEbeveynTest } from './connersEbeveyn';
-import { yayginAnksiyeteTest } from './yayginAnksiyete';
-import { torontoAleksitimiTest } from './torontoAleksitimi';
 
 // Test objeleri için bir map
 export const TEST_MAP = {
@@ -29,10 +26,7 @@ export const TEST_MAP = {
   'ytt40': ytt40Test,
   'aso': algılananStresTest,
   'acyo': arizonaCinselYasantilarTest,
-  'bdo': bilisselDuyguDuzenlemeTest,
-  'conners-parent': connersEbeveynTest,
-  'yaygin-anksiyete': yayginAnksiyeteTest,
-  'toronto-aleksitimi': torontoAleksitimiTest
+  'bdo': bilisselDuyguDuzenlemeTest
 };
 
 // Test listesi (arayüzde gösterilecek)
@@ -49,10 +43,7 @@ export const AVAILABLE_TESTS = [
   ytt40Test,
   algılananStresTest,
   arizonaCinselYasantilarTest,
-  bilisselDuyguDuzenlemeTest,
-  connersEbeveynTest,
-  yayginAnksiyeteTest,
-  torontoAleksitimiTest
+  bilisselDuyguDuzenlemeTest
 ];
 
 // İçe aktarmaları yeniden dışa aktar
@@ -69,6 +60,3 @@ export { ytt40Test } from './ytt40';
 export { algılananStresTest } from './algılananStres';
 export { arizonaCinselYasantilarTest } from './arizonaCinselYasantilar';
 export { bilisselDuyguDuzenlemeTest } from './bilisselDuyguDuzenleme';
-export { connersEbeveynTest } from './connersEbeveyn';
-export { yayginAnksiyeteTest } from './yayginAnksiyete';
-export { torontoAleksitimiTest } from './torontoAleksitimi';

@@ -5,13 +5,18 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { useAuth } from '../../lib/auth';
+import { supabase } from '../../lib/supabase';
 
 // Test kategorileri
 const TEST_CATEGORIES = [
   { id: 'depression', name: 'Depresyon Testleri', tests: ['beck-depression', 'edinburgh'] },
-  { id: 'anxiety', name: 'Anksiyete Testleri', tests: ['beck-anxiety', 'child-social-anxiety'] },
+  { id: 'anxiety', name: 'Anksiyete Testleri', tests: ['beck-anxiety', 'yaygin-anksiyete'] },
   { id: 'personality', name: 'Kişilik ve Tanı Testleri', tests: ['scid-5-cv', 'scid-5-pd', 'scid-5-spq'] },
-  { id: 'other', name: 'Diğer Testler', tests: ['beck-hopelessness', 'beck-suicide', 'ytt40', 'scl90r'] }
+  { id: 'other', name: 'Diğer Testler', tests: ['beck-hopelessness', 'beck-suicide', 'ytt40', 'scl90r'] },
+  { id: 'stress', name: 'Stres Testleri', tests: ['aso'] },
+  { id: 'sexual', name: 'Cinsel İşlev Testleri', tests: ['acyo'] },
+  { id: 'emotion', name: 'Duygu Düzenleme Testleri', tests: ['bdo', 'toronto-aleksitimi'] },
+  { id: 'children', name: 'Çocuk ve Ergen Testleri', tests: ['conners-parent'] }
 ];
 
 interface TestsTabProps {
@@ -55,6 +60,11 @@ export const TestsTab: React.FC<TestsTabProps> = ({
     try {
       console.log("Test paylaşımı başlatılıyor...", { testId, clientId, professionalId: professional?.id });
       
+      // Professional null kontrolü
+      if (!professional) {
+        throw new Error('Profesyonel bilgileri bulunamadı. Lütfen tekrar giriş yapın.');
+      }
+      
       // Veritabanından çekmek yerine AVAILABLE_TESTS'ten test bilgilerini al
       const testInfo = AVAILABLE_TESTS.find(test => test.id === testId);
       if (testInfo) {
@@ -64,16 +74,16 @@ export const TestsTab: React.FC<TestsTabProps> = ({
       }
       
       // Ensure we have a valid session
-      const session = await professional?.supabase.auth.getSession();
-      if (!session.data.session) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
         console.error('Oturum bulunamadı');
         throw new Error('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
       }
       
-      console.log('Kullanıcı oturumu:', session.data.session.user.id);
+      console.log('Kullanıcı oturumu:', sessionData.session.user.id);
 
       // Danışan bilgilerini al
-      const { data: clientData, error: clientError } = await professional?.supabase
+      const { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('*')
         .eq('id', clientId)
@@ -95,7 +105,7 @@ export const TestsTab: React.FC<TestsTabProps> = ({
       const insertData = {
         p_test_id: testId,
         p_client_id: clientId,
-        p_professional_id: professional?.id,
+        p_professional_id: professional.id,
         p_token: randomToken,
         p_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 gün
       };
@@ -103,7 +113,7 @@ export const TestsTab: React.FC<TestsTabProps> = ({
       console.log('RPC fonksiyonu için parametreler:', insertData);
 
       // RPC fonksiyonunu çağır
-      const { data: rpcData, error: rpcError } = await professional?.supabase.rpc('create_test_token', insertData);
+      const { data: rpcData, error: rpcError } = await supabase.rpc('create_test_token', insertData);
       
       console.log('RPC sonucu:', rpcData);
       
@@ -250,6 +260,15 @@ ${professionalTitle} ${professionalName}`;
                           className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                         >
                           Paylaş
+                        </button>
+                      )}
+                      {test.reference && (
+                        <button
+                          onClick={() => window.open(test.reference, '_blank')}
+                          className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
+                          title="Sadece profesyoneller için kaynakça bilgisi"
+                        >
+                          Kaynakça
                         </button>
                       )}
                       <button

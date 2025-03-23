@@ -194,16 +194,17 @@ CREATE TABLE test_results (
   client_id uuid REFERENCES clients(id) ON DELETE CASCADE NOT NULL,
   professional_id uuid REFERENCES professionals(id) ON DELETE CASCADE NOT NULL,
   test_type text NOT NULL,
-  score numeric NOT NULL,
-  answers jsonb NOT NULL,
+  score integer,
+  answers jsonb,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  started_at timestamptz,
+  completed_at timestamptz,
   encrypted_answers text,
   encryption_key text,
   iv text,
   notes text,
   duration_seconds integer,
-  started_at timestamptz,
-  completed_at timestamptz,
-  created_at timestamptz DEFAULT now() NOT NULL
+  is_public_access boolean DEFAULT false
 );
 
 -- Test token tablosu

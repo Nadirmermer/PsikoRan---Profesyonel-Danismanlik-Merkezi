@@ -3,6 +3,7 @@ interface Test {
   name: string;
   description: string;
   category: string;
+  reference?: string;
 }
 
 export const AVAILABLE_TESTS: Test[] = [
@@ -25,8 +26,14 @@ export const AVAILABLE_TESTS: Test[] = [
     category: 'anxiety'
   },
   {
+    id: 'yaygin-anksiyete',
+    name: 'Yaygın Anksiyete Bozukluğu-7 Testi (GAD-7)',
+    description: 'Bireylerdeki yaygın anksiyete belirtilerini taramak amacıyla kullanılan 7 soruluk bir özbildirim aracı.',
+    category: 'anxiety'
+  },
+  {
     id: 'child-social-anxiety',
-    name: 'Çocuklar için Sosyal Anksiyete Ölçeği',
+    name: 'Çocuklar için Sosyal Anksiyete Ölçeği (Yenilenmiş Biçim)',
     description: 'Çocuklarda sosyal anksiyete belirtilerini değerlendiren bir ölçek.',
     category: 'anxiety'
   },
@@ -71,5 +78,35 @@ export const AVAILABLE_TESTS: Test[] = [
     name: 'SCL-90-R Belirti Tarama Listesi',
     description: 'Çeşitli psikolojik belirtileri değerlendiren 90 maddelik bir ölçek.',
     category: 'other'
+  },
+  {
+    id: 'toronto-aleksitimi',
+    name: 'Toronto Aleksitimi Ölçeği (TAÖ)',
+    description: 'Bireylerdeki aleksitimik özellikleri değerlendirmede kullanılan 26 maddelik bir özbildirim aracı.',
+    category: 'emotion'
+  },
+  {
+    id: 'aso',
+    name: 'Algılanan Stres Ölçeği (ASÖ-14)',
+    description: 'Kişilerin hayatlarındaki durumları ne derece stresli algıladığını ölçen 14 maddelik bir ölçek.',
+    category: 'stress'
+  },
+  {
+    id: 'acyo',
+    name: 'Arizona Cinsel Yaşantılar Ölçeği (ACYÖ)',
+    description: 'Cinsel işlevin beş temel bileşenini değerlendiren, kadın ve erkek formları bulunan bir ölçek.',
+    category: 'sexual'
+  },
+  {
+    id: 'bdo',
+    name: 'Bilişsel Duygu Düzenleme Ölçeği',
+    description: 'Stres veren yaşam olayları sonrasında kişilerin kullandığı bilişsel duygu düzenleme stratejilerini ölçmeyi amaçlayan bir değerlendirme aracı.',
+    category: 'emotion'
+  },
+  {
+    id: 'conners-parent',
+    name: 'Conners Ebeveyn Derecelendirme Ölçeği (CADÖ-48)(BİTMEDİ)',
+    description: 'Yıkıcı davranış bozukluklarının taranması amacıyla geliştirilmiş ebeveynler tarafından doldurulan bir ölçek.',
+    category: 'children'
   }
 ]; 

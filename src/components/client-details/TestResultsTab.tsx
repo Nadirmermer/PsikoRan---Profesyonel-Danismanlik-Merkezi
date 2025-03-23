@@ -23,6 +23,7 @@ interface TestResult {
   client_id: string;
   professional_id: string;
   duration_seconds?: number;
+  is_public_access?: boolean;
 }
 
 interface Client {
@@ -156,9 +157,84 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
       setIsLoading(true);
       setCurrentPdfId(result.id);
       
-      // Test bilgisini bul
-      const testInfo = AVAILABLE_TESTS.find(test => test.id === result.test_type);
-      if (!testInfo) {
+      // Test modülünü dinamik olarak yükle
+      let testModule;
+      let testInfo = AVAILABLE_TESTS.find(test => test.id === result.test_type);
+
+      try {
+        // Test modülünü direkt TEST_MAP'ten al (bu en güvenilir yöntem)
+        try {
+          // data/tests/index.ts içindeki TEST_MAP'i import et
+          const testMapModule = await import('../../data/tests') as any;
+          
+          if (testMapModule.TEST_MAP && testMapModule.TEST_MAP[result.test_type]) {
+            testModule = testMapModule.TEST_MAP[result.test_type];
+            console.log(`TEST_MAP'ten modül alındı: ${testModule.name}, Soru sayısı: ${testModule.questions?.length || 0}`);
+          } else {
+            // TEST_MAP'te yoksa, spesifik dosyayı import etmeyi dene
+            console.log(`TEST_MAP'te ${result.test_type} bulunamadı, dosya import edilecek`);
+          }
+        } catch (mapError) {
+          console.warn('TEST_MAP import hatası:', mapError);
+        }
+        
+        // Eğer TEST_MAP'ten alamadıysak, özel import denemeleri yap
+        if (!testModule) {
+          // Test adı formatını düzelt ve farklı varyasyonlar oluştur
+          const testIdVariations = [
+            result.test_type,                              // Orijinal: beck-depression
+            result.test_type.replace(/\-/g, ''),           // Trait çıkarılmış: beckdepression
+            result.test_type.replace(/\-/g, '_'),          // Trait _ ile değiştirilmiş: beck_depression
+            result.test_type.split('-').join('')           // Trait silinmiş: beckdepression
+          ];
+          
+          // Dosya adı varyasyonları oluştur
+          const fileNameVariations = [
+            ...testIdVariations,
+            result.test_type.split('-')[0],                // İlk parça: beck
+            result.test_type.split('-')[1]                 // İkinci parça: depression
+          ];
+          
+          // Tüm olası dosya adlarını dene
+          let imported = false;
+          
+          for (const fileName of fileNameVariations) {
+            if (imported || !fileName) continue;
+            
+            try {
+              console.log(`Dosya import ediliyor: ../../data/tests/${fileName}`);
+              const moduleImport = await import(`../../data/tests/${fileName}`);
+              
+              // Test objesi içeren değişkeni bul
+              const testKey = Object.keys(moduleImport).find(key => 
+                (key.toLowerCase().includes('test') || key.toLowerCase().includes(result.test_type.split('-')[0]))
+                && typeof moduleImport[key] === 'object'
+              );
+              
+              if (testKey) {
+                testModule = moduleImport[testKey];
+                console.log(`Import başarılı: ${testModule.name}, Soru sayısı: ${testModule.questions?.length || 0}`);
+                imported = true;
+                break;
+              } else {
+                console.warn(`${fileName} modülünde test objesi bulunamadı`);
+              }
+            } catch (variationError) {
+              console.warn(`${fileName} import edilemedi:`, variationError);
+            }
+          }
+        }
+      } catch (importError) {
+        console.warn(`Test modülü import edilemedi (${result.test_type}):`, importError);
+      }
+      
+      // Eğer dinamik import başarısız olduysa AVAILABLE_TESTS'ten al
+      if (!testModule && testInfo) {
+        console.log(`Yedek test bilgisi kullanılıyor: ${testInfo.name}`);
+        testModule = testInfo;
+      }
+      
+      if (!testModule) {
         throw new Error('Test bilgisi bulunamadı');
       }
       
@@ -175,14 +251,33 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
         title: professional?.title || ''
       };
       
-      // generateTestPDF fonksiyonunu kullanarak PDF oluştur
+      // Test nesnesini düzgün şekilde oluştur
       const testData = {
-        ...testInfo,
-        questions: [],
-        calculateScore: () => result.score || 0,
-        interpretScore: () => ''
-      } as unknown as Test;
+        ...testModule,
+        // Eğer test modülünde questions yoksa boş dizi olarak ayarla
+        questions: testModule.questions || [],
+        // Eğer fonksiyonlar yoksa varsayılan olarak ekle
+        calculateScore: testModule.calculateScore || (() => result.score || 0),
+        interpretScore: testModule.interpretScore || (() => ''),
+      };
       
+      // Test yorumlaması için güvenlik kontrolü
+      try {
+        if (typeof testData.interpretScore !== 'function') {
+          console.warn('interpretScore bir fonksiyon değil, varsayılan fonksiyon ekleniyor');
+          testData.interpretScore = () => '';
+        }
+        
+        // Test yorumlamasını kontrol et
+        const interpretation = testData.interpretScore(result.score || 0);
+        console.log('Test yorumlaması:', interpretation);
+      } catch (interpretError) {
+        console.error('Skor yorumlama hatası:', interpretError);
+        // Hata durumunda güvenli bir fonksiyon ata
+        testData.interpretScore = () => '';
+      }
+      
+      // generateTestPDF fonksiyonunu kullanarak PDF oluştur
       const pdf = generateTestPDF(
         testData,
         {
@@ -191,7 +286,8 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
           score: result.score || 0,
           answers: result.answers || {},
           created_at: result.created_at,
-          duration_seconds: result.duration_seconds
+          duration_seconds: result.duration_seconds,
+          is_public_access: result.is_public_access
         },
         client,
         professionalInfo
@@ -343,6 +439,14 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
                                     {result.duration_seconds 
                                       ? `${Math.floor(result.duration_seconds / 60)}:${(result.duration_seconds % 60).toString().padStart(2, '0')}`
                                       : '-'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">Tamamlama Yöntemi</p>
+                                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {result.is_public_access 
+                                      ? 'Danışan tarafından çevrimiçi link ile tamamlandı' 
+                                      : 'Seans sırasında tamamlandı'}
                                   </p>
                                 </div>
                               </div>

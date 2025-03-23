@@ -34,7 +34,9 @@ export function Test() {
   // ============================================================================
   
   // Route and navigation state
-  const { testId, clientId, token } = useParams<{ testId: string; clientId: string; token: string }>();
+  const { testId: urlTestId, clientId: urlClientId, token } = useParams<{ testId: string; clientId: string; token: string }>();
+  const [testId, setTestId] = useState<string | undefined>(urlTestId);
+  const [clientId, setClientId] = useState<string | undefined>(urlClientId);
   const navigate = useNavigate();
   const { professional, loading: authLoading } = useAuth();
 
@@ -301,6 +303,10 @@ export function Test() {
               setTokenVerified(true);
               setAuthorized(true);
               
+              // testId ve clientId'yi ayarla
+              setTestId(foundTestId);
+              setClientId(foundClientId);
+              
               // Client bilgilerini yükle
               await loadClientWithId(foundClientId);
               
@@ -331,6 +337,18 @@ export function Test() {
         }
         setSelectedTest(test);
 
+        // Token ile doğrulanmışsa, professional kontrolünü atlayarak doğrudan yetkili yap
+        if (tokenVerified && token) {
+          console.log("Token ile erişim doğrulandı, professional kontrolü atlanıyor");
+          setAuthorized(true);
+          
+          // Client bilgilerini yükle
+          await loadClient();
+          
+          setLoading(false);
+          return;
+        }
+        
         // Professional kontrolü
         if (!professional) {
           setError('Bu sayfaya erişim yetkiniz yok. Lütfen giriş yapın veya geçerli bir test linki kullanın.');
@@ -432,11 +450,24 @@ export function Test() {
   }
 
   async function handleSubmitTest() {
-    if (!selectedTest || !clientId) return;
-
     try {
+      console.log("handleSubmitTest başladı", {
+        selectedTest: selectedTest?.id,
+        clientId,
+        token,
+        tokenVerified,
+        professional: professional?.id
+      });
+      
+      if (!selectedTest || !clientId) {
+        console.log("Test seçilmedi veya client ID yok:", { selectedTest, clientId });
+        setError("Test veya danışan bilgisi eksik. Lütfen sayfayı yenileyin.");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
-      console.log("Test gönderiliyor...");
+      console.log("Test gönderiliyor... Token:", token ? "Var" : "Yok", "TokenVerified:", tokenVerified);
       
       // Timer'ı durdur
       stopTimer();
@@ -475,10 +506,14 @@ export function Test() {
       // Eğer token ile giriş yapıldıysa, client'ın bağlı olduğu professional'ı bul
       if (!professionalId && client?.professional_id) {
         professionalId = client.professional_id;
+        console.log("Token ile erişim: Professional ID client'dan alındı:", professionalId);
       }
       
       if (!professionalId) {
-        throw new Error('Ruh sağlığı uzmanı bilgisi bulunamadı');
+        console.error("Ruh sağlığı uzmanı bilgisi bulunamadı:", { professional, client });
+        setError('Ruh sağlığı uzmanı bilgisi bulunamadı. Lütfen sayfayı yenileyin veya yöneticinize bildirin.');
+        setLoading(false);
+        return;
       }
 
       console.log("Test kaydediliyor, professional_id:", professionalId, "client_id:", clientId);
@@ -497,6 +532,8 @@ export function Test() {
         duration_seconds: testDuration,
         started_at: startTime?.toISOString(),
         completed_at: endTime?.toISOString(),
+        // Token ile çözüldüyse is_public_access = true
+        is_public_access: !!token,
         // selected_modules alanı veritabanında olmadığı için kaldırıldı
         // Veritabanına bu sütun eklendiğinde aşağıdaki satır aktif edilebilir
         // selected_modules: selectedTest.isModular ? selectedModules : null
@@ -505,33 +542,40 @@ export function Test() {
       // Test verilerini state'e kaydet
       setTestData(testResultData);
       
-      // Her durumda test sonuçlarını kaydet
-      const { data, error } = await supabase
-        .from('test_results')
-        .insert(testResultData)
-        .select();
+      try {
+        // Her durumda test sonuçlarını kaydet
+        const { data, error } = await supabase
+          .from('test_results')
+          .insert(testResultData)
+          .select();
 
-      if (error) {
-        console.error("Test kaydetme hatası:", error);
-        throw error;
-      }
+        if (error) {
+          console.error("Test kaydetme hatası:", error);
+          setError(`Test sonuçları kaydedilirken bir hata oluştu: ${error.message}`);
+          setLoading(false);
+          return;
+        }
 
-      console.log("Test başarıyla kaydedildi:", data);
-      
-      // Token ile erişimde tamamlandı sayfasına yönlendir
-      if (token) {
-        console.log("Token ile erişimde test tamamlandı");
-        setTestCompleted(true);
+        console.log("Test başarıyla kaydedildi:", data);
+        
+        // Token ile erişimde tamamlandı ekranını göster
+        if (token) {
+          console.log("Token ile erişimde test tamamlandı, testCompleted=true olarak ayarlanıyor");
+          setTestCompleted(true);
+          setLoading(false);
+          return;
+        }
+        
+        // Ruh sağlığı uzmanı olarak erişimde, test sonuçları sayfasına yönlendir
+        navigate(`/clients/${clientId}?tab=test-results`);
+      } catch (dbError) {
+        console.error('Database error:', dbError);
+        setError('Veritabanı hatası. Lütfen tekrar deneyin veya yöneticinize bildirin.');
         setLoading(false);
-        return;
       }
-      
-      // Ruh sağlığı uzmanı olarak erişimde, test sonuçları sayfasına yönlendir
-      navigate(`/clients/${clientId}?tab=test-results`);
     } catch (error) {
       console.error('Error submitting test:', error);
-      setError('Test sonuçları kaydedilirken bir hata oluştu.');
-    } finally {
+      setError(`Test sonuçları kaydedilirken bir hata oluştu: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
       setLoading(false);
     }
   }
@@ -605,6 +649,12 @@ export function Test() {
       return;
     }
     
+    // Arizona testi için ek kontrol - bu test için tam olarak 1 modül seçili olmalı
+    if (selectedTest?.id === 'acyo' && selectedModules.length !== 1) {
+      alert('Arizona Cinsel Yaşantılar Ölçeği için lütfen sadece bir form seçiniz (Kadın veya Erkek).');
+      return;
+    }
+    
     // Modül seçimini tamamla ve teste başla
     setShowModuleSelection(false);
     setShowIntro(false);
@@ -614,6 +664,11 @@ export function Test() {
   // Tüm modülleri seç
   function selectAllModules() {
     if (selectedTest?.modules) {
+      // Arizona testi için tüm modülleri seçmeye izin verme
+      if (selectedTest.id === 'acyo') {
+        alert('Arizona Cinsel Yaşantılar Ölçeği için lütfen sadece bir form seçiniz (Kadın veya Erkek).');
+        return;
+      }
       setSelectedModules(selectedTest.modules.map(m => m.id));
     }
   }
@@ -664,6 +719,22 @@ export function Test() {
               </button>
             </div>
           )}
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 sm:p-4 text-red-600 dark:text-red-400 text-sm border border-red-100 dark:border-red-800/30 mb-4">
+              <p>{error}</p>
+              <p className="text-xs mt-2 text-red-500 dark:text-red-500">
+                Debug: {JSON.stringify({ 
+                  testId, 
+                  clientId, 
+                  token: token ? "Var" : "Yok", 
+                  tokenVerified,
+                  authorized,
+                  professional: professional?.id ? "Var" : "Yok",
+                  client: client?.id ? "Var" : "Yok"
+                })}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -687,7 +758,7 @@ export function Test() {
         <div className="text-center">
           <h2 className="text-xl font-bold text-red-600 dark:text-red-400 mb-2">Erişim Reddedildi</h2>
           <p className="text-gray-600 dark:text-gray-400">Bu teste erişim yetkiniz bulunmamaktadır.</p>
-          <p className="text-sm text-gray-500 dark:text-gray-500 mt-4">Debug: {JSON.stringify({ testId, clientId, token: token?.substring(0, 5) + '...', professional: professional?.id?.substring(0, 5) + '...' })}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">Debug: {JSON.stringify({ testId, clientId, token: token?.substring(0, 5) + '...', professional: professional?.id?.substring(0, 5) + '...' })}</p>
         </div>
       </div>
     );
@@ -903,10 +974,17 @@ export function Test() {
                         : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                     }`}
                     onClick={() => {
-                      if (selectedModules.includes(module.id)) {
-                        setSelectedModules(prev => prev.filter(id => id !== module.id));
+                      // Arizona Cinsel Yaşantılar testi için özel işlem
+                      if (selectedTest.id === 'acyo') {
+                        // Yalnızca bir modül seçilebilir - diğer seçimleri temizle
+                        setSelectedModules([module.id]);
                       } else {
-                        setSelectedModules(prev => [...prev, module.id]);
+                        // Diğer testler için mevcut davranışı koru
+                        if (selectedModules.includes(module.id)) {
+                          setSelectedModules(prev => prev.filter(id => id !== module.id));
+                        } else {
+                          setSelectedModules(prev => [...prev, module.id]);
+                        }
                       }
                     }}
                   >
@@ -1227,7 +1305,16 @@ export function Test() {
                 
                 {currentQuestionIndex === filteredQuestions.length - 1 && (
                   <button
-                    onClick={handleSubmitTest}
+                    onClick={() => {
+                      console.log("Testi Tamamla butonuna tıklandı", {
+                        token,
+                        tokenVerified,
+                        testAnswers: Object.keys(testAnswers).length,
+                        filteredQuestions: filteredQuestions.length,
+                        clientId
+                      });
+                      handleSubmitTest();
+                    }}
                     disabled={Object.keys(testAnswers).length < filteredQuestions.length}
                     className="px-4 sm:px-6 py-2.5 sm:py-3 text-xs sm:text-sm text-white bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 rounded-lg sm:rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center shadow-md"
                   >
@@ -1248,6 +1335,23 @@ export function Test() {
           )}
         </div>
       </div>
+      <footer className="mt-4 sm:mt-6">
+        <div className="text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            © {new Date().getFullYear()} Tüm hakları saklıdır
+          </p>
+          
+          {professional && selectedTest?.reference && (
+            <button
+              onClick={() => window.open(selectedTest.reference, '_blank')}
+              className="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 underline mt-3"
+              title="Test sorularının ve değerlendirme kriterlerinin kaynağı"
+            >
+              Kaynakça
+            </button>
+          )}
+        </div>
+      </footer>
     </div>
   );
 }

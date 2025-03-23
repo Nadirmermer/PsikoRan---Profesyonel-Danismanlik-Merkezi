@@ -46,6 +46,7 @@ export interface Test {
   description: string;
   instructions?: string;
   infoText?: string;
+  reference?: string;
   questions: Question[];
   modules?: Module[];
   isModular?: boolean;

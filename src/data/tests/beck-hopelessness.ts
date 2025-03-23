@@ -2,54 +2,31 @@ import { Test } from './types';
 
 // Test başlangıç açıklaması
 export const beckHopelessnessIntro = `
-Aşağıda geleceğe dair düşüncelerimizi anlatan 20 cümle vardır. Lütfen her cümleyi dikkatlice okuyunuz. Eğer cümle sizin düşüncelerinizi yansıtıyorsa "EVET", yansıtmıyorsa "HAYIR" sütununu işaretleyiniz.
-`;
+Aşağıda geleceğe ait düşünceleri ifade eden bazı cümleler verilmiştir. Lütfen her bir
+ifadeyi okuyarak, bunların size ne kadar uygun olduğuna karar veriniz ve ‟Evet” için (E) ya da
+“Hayır” için (H) seçeneğini işaretleyiniz.`;
 
-// Puanlama kriterleri ve açıklamalar
-export const beckHopelessnessCriteria = {
-  scoring: {
-    minimal: { min: 0, max: 3, description: 'Umutsuzluk yok' },
-    mild: { min: 4, max: 8, description: 'Hafif düzeyde umutsuzluk' },
-    moderate: { min: 9, max: 14, description: 'Orta düzeyde umutsuzluk' },
-    severe: { min: 15, max: 20, description: 'İleri düzeyde umutsuzluk' }
-  },
-  subscales: {
-    feelings: {
-      name: 'Gelecek ile İlgili Duygular',
-      questions: [1, 6, 13, 15, 19],
-      description: 'Geleceğe yönelik duygusal tutumlar'
-    },
-    motivation: {
-      name: 'Motivasyon Kaybı',
-      questions: [2, 3, 9, 11, 12, 16, 17, 20],
-      description: 'Motivasyonel değişimler ve kayıplar'
-    },
-    thoughts: {
-      name: 'Gelecek ile İlgili Düşünceler',
-      questions: [4, 7, 8, 14, 18],
-      description: 'Geleceğe yönelik düşünce ve beklentiler'
-    }
-  },
-  interpretation: [
-    '0-3 puan: Umutsuzluk yok',
-    '4-8 puan: Hafif düzeyde umutsuzluk',
-    '9-14 puan: Orta düzeyde umutsuzluk',
-    '15-20 puan: İleri düzeyde umutsuzluk'
-  ],
-  notes: [
-    'Beck Umutsuzluk Ölçeği, geleceğe yönelik karamsarlık düzeyini ölçer',
-    'Toplam 20 maddeden oluşur',
-    'Her madde Evet/Hayır şeklinde yanıtlanır',
-    'Bazı maddeler ters puanlanır',
-    'Toplam puan 0-20 arasında değişir',
-    'Üç alt faktör değerlendirilir: Gelecek ile ilgili duygular, Motivasyon kaybı, Gelecek ile ilgili düşünceler'
-  ]
+// Puan aralıklarına göre umutsuzluk seviyesini belirleyen yardımcı fonksiyon
+const getHopelessnessLevel = (score: number): string => {
+  if (score >= 0 && score <= 3) {
+    return 'Umutsuzluğun tamamen olmadığı durum';
+  } else if (score >= 4 && score <= 8) {
+    return 'Hafif umutsuzluk';
+  } else if (score >= 9 && score <= 14) {
+    return 'Orta seviyede umutsuzluk';
+  } else if (score >= 15 && score <= 20) {
+    return 'İleri derecede umutsuzluk';
+  }
+  return 'Değerlendirme tamamlandı';
 };
 
 export const beckHopelessnessTest: Test = {
   id: 'beck-hopelessness',
   name: 'Beck Umutsuzluk Ölçeği',
   description: beckHopelessnessIntro,
+  infoText: 'Bu ölçek, kişinin geleceğe yönelik beklentilerini ölçmek için kullanılır.',
+  reference: 'https://www.researchgate.net/profile/Elif-Gueneri-Yoeyen/publication/331407570_Psikolojide_Kullanilan_Olcekler/links/5c77e2c0458515831f76da91/Psikolojide-Kullanilan-Oelcekler.pdf',
+  
   questions: [
     {
       id: 'BH1',
@@ -61,7 +38,7 @@ export const beckHopelessnessTest: Test = {
     },
     {
       id: 'BH2',
-      text: 'Kendim ile ilgili şeyleri düzeltemediğime göre çabalamayı bıraksam iyi olur.',
+      text: 'Kendimle ilgili şeyleri düzeltemediğime göre çabalamayı bıraksam iyi olur.',
       options: [
         { value: 1, text: 'Evet' },
         { value: 0, text: 'Hayır' }
@@ -69,7 +46,7 @@ export const beckHopelessnessTest: Test = {
     },
     {
       id: 'BH3',
-      text: 'İşler kötüye giderken bile her şeyin hep böyle kalmayacağını bilmek beni rahatlatıyor.',
+      text: 'İşler kötü giderken bile, her şeyin hep böyle kalmayacağını bilmek beni rahatlatıyor.',
       options: [
         { value: 0, text: 'Evet' },
         { value: 1, text: 'Hayır' }
@@ -93,7 +70,7 @@ export const beckHopelessnessTest: Test = {
     },
     {
       id: 'BH6',
-      text: 'Benim için çok önemli konularda ileride başarılı olacağımı umuyorum.',
+      text: 'Benim için çok önemli olan konularda, ileride çok başarılı olacağımı umuyorum.',
       options: [
         { value: 0, text: 'Evet' },
         { value: 1, text: 'Hayır' }
@@ -109,7 +86,7 @@ export const beckHopelessnessTest: Test = {
     },
     {
       id: 'BH8',
-      text: 'Yaşamda, diğer insanlardan daha çok iyi şeyler elde edeceğimi umuyorum.',
+      text: 'Dünya nimetlerinden sıradan bir insandan daha çok yararlanacağımı düşünüyorum.',
       options: [
         { value: 0, text: 'Evet' },
         { value: 1, text: 'Hayır' }
@@ -133,7 +110,7 @@ export const beckHopelessnessTest: Test = {
     },
     {
       id: 'BH11',
-      text: 'Gelecek benim için hoş şeylerden çok tatsızlıklarla dolu görünüyor.',
+      text: 'Gelecek benim için hoş şeylerden çok, tatsızlıklarla dolu gözüküyor.',
       options: [
         { value: 1, text: 'Evet' },
         { value: 0, text: 'Hayır' }
@@ -141,7 +118,7 @@ export const beckHopelessnessTest: Test = {
     },
     {
       id: 'BH12',
-      text: 'Gerçekten özlediğim şeylere kavuşabileceğimi ummuyorum.',
+      text: 'Gelecekten, özlediğim şeylere kavurabileceğimi ummuyorum.',
       options: [
         { value: 1, text: 'Evet' },
         { value: 0, text: 'Hayır' }
@@ -149,7 +126,7 @@ export const beckHopelessnessTest: Test = {
     },
     {
       id: 'BH13',
-      text: 'Geleceğe baktığımda şimdikine oranla daha mutlu olacağımı umuyorum.',
+      text: 'Geleceğe baktığımda, Şimdikinden çok daha mutlu olacağıma inanıyorum.',
       options: [
         { value: 0, text: 'Evet' },
         { value: 1, text: 'Hayır' }
@@ -173,7 +150,7 @@ export const beckHopelessnessTest: Test = {
     },
     {
       id: 'BH16',
-      text: 'Arzu ettiğim şeyleri elde edemediğime göre bir şeyler istemek aptallık olur.',
+      text: 'Arzu ettiğim şeyleri elde edemediğime göre, bir şeyler istemek aptallık olur.',
       options: [
         { value: 1, text: 'Evet' },
         { value: 0, text: 'Hayır' }
@@ -181,7 +158,7 @@ export const beckHopelessnessTest: Test = {
     },
     {
       id: 'BH17',
-      text: 'Gelecekte gerçek doyuma ulaşmam olanaksız gibi.',
+      text: 'Gelecekte gerçek doyuma ulaşmam olanaksız gibi',
       options: [
         { value: 1, text: 'Evet' },
         { value: 0, text: 'Hayır' }
@@ -212,104 +189,40 @@ export const beckHopelessnessTest: Test = {
       ]
     }
   ],
+  
   calculateScore: (answers) => {
     return Object.values(answers).reduce((sum, value) => sum + (Number(value) || 0), 0);
   },
+  
   interpretScore: (score) => {
-    if (score <= beckHopelessnessCriteria.scoring.minimal.max) 
-      return beckHopelessnessCriteria.scoring.minimal.description;
-    if (score <= beckHopelessnessCriteria.scoring.mild.max) 
-      return beckHopelessnessCriteria.scoring.mild.description;
-    if (score <= beckHopelessnessCriteria.scoring.moderate.max) 
-      return beckHopelessnessCriteria.scoring.moderate.description;
-    return beckHopelessnessCriteria.scoring.severe.description;
+    return getHopelessnessLevel(score);
   },
+  
   generateReport: (answers) => {
     const totalScore = Object.values(answers).reduce((sum, value) => sum + (Number(value) || 0), 0);
+    const severityLevel = getHopelessnessLevel(totalScore);
     
-    // Faktör puanlarını hesapla
+    // Alt faktör puanlarını hesapla
     const factorScores = {
-      feelings: beckHopelessnessCriteria.subscales.feelings.questions.reduce((sum, q) => sum + (Number(answers[`BH${q}`]) || 0), 0),
-      motivation: beckHopelessnessCriteria.subscales.motivation.questions.reduce((sum, q) => sum + (Number(answers[`BH${q}`]) || 0), 0),
-      thoughts: beckHopelessnessCriteria.subscales.thoughts.questions.reduce((sum, q) => sum + (Number(answers[`BH${q}`]) || 0), 0)
+      gelecekIlgiliDuygular: ['BH1', 'BH6', 'BH13', 'BH15', 'BH19'].reduce((sum, id) => sum + (Number(answers[id]) || 0), 0),
+      motivasyonKaybi: ['BH2', 'BH3', 'BH9', 'BH11', 'BH12', 'BH16', 'BH17', 'BH20'].reduce((sum, id) => sum + (Number(answers[id]) || 0), 0),
+      gelecekIlgiliDusunceler: ['BH4', 'BH7', 'BH8', 'BH14', 'BH18'].reduce((sum, id) => sum + (Number(answers[id]) || 0), 0)
     };
-
-    // Faktör ortalamalarını hesapla
+    
+    // Alt faktör ortalamalarını hesapla
     const factorAverages = {
-      feelings: factorScores.feelings / beckHopelessnessCriteria.subscales.feelings.questions.length,
-      motivation: factorScores.motivation / beckHopelessnessCriteria.subscales.motivation.questions.length,
-      thoughts: factorScores.thoughts / beckHopelessnessCriteria.subscales.thoughts.questions.length
+      gelecekIlgiliDuygular: factorScores.gelecekIlgiliDuygular / 5,
+      motivasyonKaybi: factorScores.motivasyonKaybi / 8,
+      gelecekIlgiliDusunceler: factorScores.gelecekIlgiliDusunceler / 5
     };
-
-    // Umutsuzluk düzeyini belirle
-    let severityLevel = '';
-    if (totalScore <= beckHopelessnessCriteria.scoring.minimal.max) {
-      severityLevel = beckHopelessnessCriteria.scoring.minimal.description;
-    } else if (totalScore <= beckHopelessnessCriteria.scoring.mild.max) {
-      severityLevel = beckHopelessnessCriteria.scoring.mild.description;
-    } else if (totalScore <= beckHopelessnessCriteria.scoring.moderate.max) {
-      severityLevel = beckHopelessnessCriteria.scoring.moderate.description;
-    } else {
-      severityLevel = beckHopelessnessCriteria.scoring.severe.description;
-    }
-
-    // Risk faktörlerini belirle
-    const riskFactors = [];
-    if (factorAverages.feelings > 0.7) {
-      riskFactors.push('Yüksek düzeyde gelecek umutsuzluğu');
-    }
-    if (factorAverages.motivation > 0.7) {
-      riskFactors.push('Belirgin motivasyon kaybı');
-    }
-    if (factorAverages.thoughts > 0.7) {
-      riskFactors.push('Olumsuz gelecek beklentileri');
-    }
-    if (totalScore >= 15) {
-      riskFactors.push('Yüksek intihar riski - Acil müdahale gerekebilir');
-    }
-
-    // Öne çıkan belirtileri belirle
-    const prominentSymptoms = Object.entries(answers)
-      .filter(([_, value]) => Number(value) === 1)
-      .map(([key]) => {
-        const questionNumber = parseInt(key.replace('BH', ''));
-        return {
-          question: questionNumber,
-          severity: 1,
-          response: beckHopelessnessTest.questions[questionNumber - 1].text
-        };
-      });
-
+    
     return {
-      totalScore,
-      severityLevel,
-      factorScores,
-      factorAverages,
-      riskFactors,
-      prominentSymptoms,
-      requiresTreatment: totalScore >= 9,
-      interpretation: {
-        overall: `Danışanın Beck Umutsuzluk Ölçeği toplam puanı ${totalScore} olup, bu puan "${severityLevel}" düzeyine işaret etmektedir.`,
-        factors: `
-          Faktör analizi sonuçlarına göre:
-          - Gelecek ile İlgili Duygular: ${factorAverages.feelings.toFixed(2)} (${factorScores.feelings} puan)
-          - Motivasyon Kaybı: ${factorAverages.motivation.toFixed(2)} (${factorScores.motivation} puan)
-          - Gelecek ile İlgili Düşünceler: ${factorAverages.thoughts.toFixed(2)} (${factorScores.thoughts} puan)
-        `,
-        risks: riskFactors.length > 0 
-          ? `Önemli risk faktörleri: ${riskFactors.join(', ')}`
-          : 'Belirgin risk faktörü saptanmamıştır.',
-        symptoms: prominentSymptoms.length > 0
-          ? `Öne çıkan belirtiler:\n${prominentSymptoms.map(s => `- ${s.response}`).join('\n')}`
-          : 'Belirgin semptom saptanmamıştır.',
-        recommendations: [
-          totalScore >= 15 ? 'Acil psikiyatrik değerlendirme önerilir.' : '',
-          factorAverages.feelings > 0.7 ? 'Gelecek odaklı terapi yaklaşımı faydalı olabilir.' : '',
-          factorAverages.motivation > 0.7 ? 'Motivasyonel görüşme teknikleri önerilir.' : '',
-          factorAverages.thoughts > 0.7 ? 'Bilişsel yeniden yapılandırma çalışması yapılabilir.' : '',
-          totalScore >= 9 ? 'Düzenli takip önerilir.' : 'Periyodik kontrol önerilir.'
-        ].filter(r => r !== '')
-      }
+      score: totalScore,
+      severityLevel: severityLevel,
+      factorScores: factorScores,
+      factorAverages: factorAverages,
+      riskFactors: [],
+      requiresTreatment: false
     };
   }
 }; 

@@ -4,57 +4,36 @@ import { Test } from './types';
 export const beckSuicideIntro = `
 Aşağıda, kişilerin intiharla ilgili düşünce ve davranışlarını ifade eden bazı cümleler verilmiştir. 
 Lütfen her ifadeyi dikkatle okuyunuz ve size en uygun olan seçeneği işaretleyiniz.
+
+Her bir madde 0-2 arasında puanlanmaktadır. Ölçek beş bölümden oluşur:
+I. Yaşam ve Ölüme Dair Tutumun Özellikleri (1-5. maddeler)
+II. İntihar Düşüncesi ve Arzusunun Özellikleri (6-11. maddeler)
+III. Tasarlanan Girişimin Özellikleri (12-15. maddeler)
+IV. Tasarlanan Girişimin Gerçekleştirilmesi (16-19. maddeler)
+V. Arka Plan Faktörleri (20-21. maddeler)
+
+Arka plan faktörleri genel değerlendirmeye alınmamaktadır. En düşük puan 0, en yüksek puan 38 olup, puanın yüksek olması intihar düşüncesinin belirgin ve ciddi olması anlamına gelmektedir.
 `;
 
-// Puanlama kriterleri ve açıklamalar
-export const beckSuicideCriteria = {
-  sections: {
-    attitudeTowardsLifeAndDeath: {
-      questions: [1, 2, 3, 4, 5],
-      description: 'Yaşam ve Ölüme Dair Tutumun Özellikleri',
-    },
-    suicidalThoughtsAndDesires: {
-      questions: [6, 7, 8, 9, 10, 11],
-      description: 'İntihar Düşüncesi ve Arzusunun Özellikleri',
-    },
-    plannedAttemptCharacteristics: {
-      questions: [12, 13, 14, 15],
-      description: 'Tasarlanan Girişimin Özellikleri',
-    },
-    plannedAttemptExecution: {
-      questions: [16, 17, 18, 19],
-      description: 'Tasarlanan Girişimin Gerçekleştirilmesi',
-    },
-  },
-  scoring: {
-    min: 0,
-    max: 38,
-    levels: {
-      minimal: { min: 0, max: 5, description: 'Düşük risk' },
-      mild: { min: 6, max: 19, description: 'Orta risk' },
-      severe: { min: 20, max: 38, description: 'Yüksek risk - Acil müdahale gerekli' }
-    },
-    description: 'Puanın yüksek olması intihar düşüncesinin belirgin ve ciddi olması anlamına gelmektedir.'
-  },
-  interpretation: [
-    '0-5 puan: Düşük risk',
-    '6-19 puan: Orta risk',
-    '20-38 puan: Yüksek risk - Acil müdahale gerekli'
-  ],
-  notes: [
-    'Beck İntihar Düşüncesi Ölçeği, intihar riskini değerlendiren 19 maddelik bir ölçektir',
-    'Her madde 0-2 arası puanlanır',
-    'Toplam puan 0-38 arasında değişir',
-    'Ölçekten toplam alınan puan tüm maddelerden alınan puanların aritmetik toplamı ile elde edilir',
-    'Arka plan faktörleri genel değerlendirmeye alınmamaktadır',
-    'Puanın yüksek olması intihar düşüncesinin belirgin ve ciddi olması anlamına gelmektedir'
-  ]
+// Puan aralıklarına göre intihar riskini belirleyen yardımcı fonksiyon
+const getSuicideRiskLevel = (score: number): string => {
+  if (score >= 0 && score <= 8) {
+    return 'Düşük düzeyde intihar riski';
+  } else if (score >= 9 && score <= 19) {
+    return 'Orta düzeyde intihar riski';
+  } else if (score >= 20 && score <= 38) {
+    return 'Yüksek düzeyde intihar riski';
+  }
+  return 'Değerlendirme tamamlandı';
 };
 
 export const beckSuicideTest: Test = {
   id: 'beck-suicide',
   name: 'Beck İntihar Düşüncesi Ölçeği',
   description: beckSuicideIntro,
+  infoText: 'Bu ölçek, kişilerin intihar düşüncelerini beş farklı boyutta değerlendirmek için kullanılır. Arka plan faktörleri (20-21. maddeler) genel değerlendirmeye alınmamaktadır.',
+  reference: 'https://psikiyatri.org.tr/uploadFiles/BECK_INTHAR.doc',
+  
   questions: [
     {
       id: 'BS1',
@@ -78,7 +57,7 @@ export const beckSuicideTest: Test = {
       id: 'BS3',
       text: 'Yaşam / Ölüm için nedenler',
       options: [
-        { value: 0, text: 'Yaşam ölümden ağır basıyor' },
+        { value: 0, text: 'Yaşam ölümden ağır basmakta' },
         { value: 1, text: 'Yaşam ve ölüm için nedenler eşit' },
         { value: 2, text: 'Ölmek yaşamaktan ağır basıyor' }
       ]
@@ -94,11 +73,11 @@ export const beckSuicideTest: Test = {
     },
     {
       id: 'BS5',
-      text: 'Pasif intihar girişimi',
+      text: 'Pasif İntihar girişimi',
       options: [
-        { value: 0, text: 'Yaşamını kurtarmak için gerekli önlemleri alıyor' },
-        { value: 1, text: 'Yaşamayı ölmeyi şansa bırakıyor' },
-        { value: 2, text: 'Hayatını korumaktan ve sürdürmekten kaçıyor' }
+        { value: 0, text: 'Yaşamı korumak için intihar girişimi' },
+        { value: 1, text: 'Yaşamayı ölmeyi şansa bırakabilir' },
+        { value: 2, text: 'Hayatını korumak ve sürdürmek için önlemlerden kaçınma' }
       ]
     },
     {
@@ -107,7 +86,7 @@ export const beckSuicideTest: Test = {
       options: [
         { value: 0, text: 'Kısa ve geçici dönemler' },
         { value: 1, text: 'Uzun dönemler' },
-        { value: 2, text: 'Kesintisiz veya neredeyse sürekli' }
+        { value: 2, text: 'Kronik veya hemen daima sürekli' }
       ]
     },
     {
@@ -116,7 +95,7 @@ export const beckSuicideTest: Test = {
       options: [
         { value: 0, text: 'Nadiren' },
         { value: 1, text: 'Aralıklı' },
-        { value: 2, text: 'Kalıcı ya da sürekli' }
+        { value: 2, text: 'Sebat eden veya süregen' }
       ]
     },
     {
@@ -124,76 +103,76 @@ export const beckSuicideTest: Test = {
       text: 'Düşünce ve isteğe karşı tutum',
       options: [
         { value: 0, text: 'Kabul etmeyen' },
-        { value: 1, text: 'Kararsız, ilgisiz' },
+        { value: 1, text: 'Ambivalan, tepkisiz' },
         { value: 2, text: 'Kabul eden' }
       ]
     },
     {
       id: 'BS9',
-      text: 'İntihar eylemi ve eylem isteği üzerinde kontrol',
+      text: 'İntihar davranışını / Acting outu kontrol etme arzusu',
       options: [
-        { value: 0, text: 'Kontrol duygusu var' },
-        { value: 1, text: 'Kontrolden emin değil' },
-        { value: 2, text: 'Kontrol duygusu yok' }
+        { value: 0, text: 'Kontrol etme duygusu mevcut' },
+        { value: 1, text: 'Kontrol edeceğinden emin değil' },
+        { value: 2, text: 'Kontrol etme duygusu yok' }
       ]
     },
     {
       id: 'BS10',
-      text: 'Aktif girişimden caydırıcılar (örnek; aile, din, geri dönüşsüzlük)',
+      text: 'Aktif girişimden caydırıcı etmenler (din, aile, başarılı olmayan ciddi hasar, geri dönüş yok)',
       options: [
-        { value: 0, text: 'Caydırıcı nedeniyle girişimde bulunmama' },
-        { value: 1, text: 'Caydırıcılar hakkında biraz endişe' },
-        { value: 2, text: 'Caydırıcılar hakkında hiç ya da çok az endişe' }
+        { value: 0, text: 'Caydırıcılar sebebi ile intihar etmeme' },
+        { value: 1, text: 'Caydırıcılar hakkında biraz ilgi gösterme' },
+        { value: 2, text: 'Caydırıcılar hakkında hiç ya da minimal ilgi taşıma' }
       ]
     },
     {
       id: 'BS11',
-      text: 'Düşünülen girişim için neden',
+      text: 'Düşünülen girişim için sebep',
       options: [
-        { value: 0, text: 'Çevreyi etkilemek, dikkat çekmek ve ya intikam' },
-        { value: 1, text: 'Kaçma ve etkileme isteğinin birleşimi' },
-        { value: 2, text: 'Problem çözmeyi bitirmek için kaçma' }
+        { value: 0, text: 'Çevreyi etkilemek, dikkat çekmek, intikam' },
+        { value: 1, text: '0 ve 2 nin kombinasyonu' },
+        { value: 2, text: 'Problemden kaçma, çözmek, tamamen sona erdirmek' }
       ]
     },
     {
       id: 'BS12',
-      text: 'Yöntem: Düşünülen girişimin özgüllük ve planlaması',
+      text: 'Yöntem: Özgüllük ve Planlama',
       options: [
-        { value: 0, text: 'Üzerinde düşünülmemiş' },
-        { value: 1, text: 'Düşünülmüş ama detaylar çalışılmamış' },
+        { value: 0, text: 'Dikkate alınmama' },
+        { value: 1, text: 'Dikkate alınmış fakat detaylar çalışılmamış' },
         { value: 2, text: 'Detaylar çalışılmış ve çok iyi planlanmış' }
       ]
     },
     {
       id: 'BS13',
-      text: 'Yöntem: Düşünülen girişim için uygunluk ve fırsat',
+      text: 'Yöntem: Erişilebilirlik',
       options: [
-        { value: 0, text: 'Yönteme ulaşılamıyor ve ya fırsat yok' },
-        { value: 1, text: 'Yöntem zaman ve çaba istiyor, fırsat hazır değil' },
-        { value: 2, text: 'Yöntem ve fırsat erişilebilir' }
+        { value: 0, text: 'Yönteme ulaşamıyor, fırsat yok' },
+        { value: 1, text: 'Yöntem zaman ve çaba istiyor, fırsat gerçekten yok' },
+        { value: 2, text: 'Yöntem ve fırsata erişilebilir' }
       ]
     },
     {
       id: 'BS14',
-      text: 'Girişimi gerçekleştirmek için "kapasite" hissi',
+      text: 'Girişimi gerçekleştirme yeteneğine ilişkin duyumları olması',
       options: [
-        { value: 0, text: 'Cesaret yok, çok zayıf, yetersiz' },
-        { value: 1, text: 'Cesaret ve yeterlilikten emin değil' },
-        { value: 2, text: 'Cesaret ve yeterlilikten emin' }
+        { value: 0, text: 'Cesaret yok, korkmuş, çok zayıf, yeteneksiz' },
+        { value: 1, text: 'Cesaret konusunda emin değil, yeteneği var' },
+        { value: 2, text: 'Yeteneği ve cesareti var' }
       ]
     },
     {
       id: 'BS15',
-      text: 'Güncel girişim beklentisi/ öngörüsü',
+      text: 'Gerçek girişimin beklentisi / öngörüsü',
       options: [
         { value: 0, text: 'Yok' },
-        { value: 1, text: 'Emin değil, belirsiz' },
+        { value: 1, text: 'Belirsiz, emin değil' },
         { value: 2, text: 'Evet' }
       ]
     },
     {
       id: 'BS16',
-      text: 'Düşünülen girişim için güncel hazırlık',
+      text: 'Gerçek Hazırlık',
       options: [
         { value: 0, text: 'Yok' },
         { value: 1, text: 'Kısmen' },
@@ -205,138 +184,92 @@ export const beckSuicideTest: Test = {
       text: 'İntihar Notu',
       options: [
         { value: 0, text: 'Yok' },
-        { value: 1, text: 'Başlamış ama tamamlamamış, sadece düşünce' },
-        { value: 2, text: 'Tamamlamış' }
+        { value: 1, text: 'Başlamış fakat tamamlamamış yada bırakmamış, sadece düşünce' },
+        { value: 2, text: 'Tamamlamış, bırakmış' }
       ]
     },
     {
       id: 'BS18',
-      text: 'Ölüm beklentisi içinde yapılan son eylemler',
+      text: 'Ölüm beklentisi içinde yapılan son hareketler',
       options: [
         { value: 0, text: 'Yok' },
         { value: 1, text: 'Düşünmüş ve bazı düzenlemeler yapmış' },
-        { value: 2, text: 'Kesin planlar ya da düzenlemeler yapmış' }
+        { value: 2, text: 'Kesin planlar yapmış ya da düzenlemeleri tamamlamış' }
       ]
     },
     {
       id: 'BS19',
       text: 'Tasarlanan girişimin gizlenmesi ya da aldatıcı bir tavır sergilenmesi',
       options: [
-        { value: 0, text: 'Tasarıları açıkça belli' },
-        { value: 1, text: 'Açıklamayı erteliyor' },
-        { value: 2, text: 'Yalan söylemeye, aldatmaya, gizli tutmaya çalışma' }
+        { value: 0, text: 'Tasarıları açıkça belli etmek' },
+        { value: 1, text: 'Açıklamaktan çekinmek' },
+        { value: 2, text: 'Yalan söyleme, aldatma, gizli tutma girişimlerinde bulunur' }
+      ]
+    },
+    {
+      id: 'BS20',
+      text: 'Önceki intihar girişimi',
+      options: [
+        { value: 0, text: 'Yok' },
+        { value: 1, text: '1' },
+        { value: 2, text: 'Birden fazla' }
+      ]
+    },
+    {
+      id: 'BS21',
+      text: 'Son girişimle ilgili ölme eğilimi',
+      options: [
+        { value: 0, text: 'Düşük' },
+        { value: 1, text: 'Orta derecede, ikilemli, emin değil' },
+        { value: 2, text: 'Yüksek' }
       ]
     }
   ],
+  
   calculateScore: (answers) => {
-    return Object.values(answers).reduce((sum, value) => sum + (Number(value) || 0), 0);
+    // Arka plan faktörleri (BS20 ve BS21) hariç tüm soruların puanlarını topla
+    return Object.entries(answers)
+      .filter(([key]) => key !== 'BS20' && key !== 'BS21')
+      .reduce((sum, [_, value]) => sum + (Number(value) || 0), 0);
   },
+  
   interpretScore: (score) => {
-    if (score <= beckSuicideCriteria.scoring.levels.minimal.max) 
-      return beckSuicideCriteria.scoring.levels.minimal.description;
-    if (score <= beckSuicideCriteria.scoring.levels.mild.max) 
-      return beckSuicideCriteria.scoring.levels.mild.description;
-    return beckSuicideCriteria.scoring.levels.severe.description;
+    return getSuicideRiskLevel(score);
   },
+  
   generateReport: (answers) => {
-    const totalScore = Object.values(answers).reduce((sum, value) => sum + (Number(value) || 0), 0);
+    // Ana puanı hesapla (Arka plan faktörleri hariç)
+    const mainScore = Object.entries(answers)
+      .filter(([key]) => key !== 'BS20' && key !== 'BS21')
+      .reduce((sum, [_, value]) => sum + (Number(value) || 0), 0);
     
-    // Bölüm puanlarını hesapla
-    const sectionScores = {
-      attitudeTowardsLifeAndDeath: beckSuicideCriteria.sections.attitudeTowardsLifeAndDeath.questions
-        .reduce((sum, q) => sum + (Number(answers[`BS${q}`]) || 0), 0),
-      suicidalThoughtsAndDesires: beckSuicideCriteria.sections.suicidalThoughtsAndDesires.questions
-        .reduce((sum, q) => sum + (Number(answers[`BS${q}`]) || 0), 0),
-      plannedAttemptCharacteristics: beckSuicideCriteria.sections.plannedAttemptCharacteristics.questions
-        .reduce((sum, q) => sum + (Number(answers[`BS${q}`]) || 0), 0),
-      plannedAttemptExecution: beckSuicideCriteria.sections.plannedAttemptExecution.questions
-        .reduce((sum, q) => sum + (Number(answers[`BS${q}`]) || 0), 0)
+    // Alt bölüm puanlarını hesapla
+    const factorScores = {
+      yasam_olum_tutum: ['BS1', 'BS2', 'BS3', 'BS4', 'BS5'].reduce((sum, id) => sum + (Number(answers[id]) || 0), 0),
+      intihar_dusuncesi: ['BS6', 'BS7', 'BS8', 'BS9', 'BS10', 'BS11'].reduce((sum, id) => sum + (Number(answers[id]) || 0), 0),
+      tasarlanan_girisim: ['BS12', 'BS13', 'BS14', 'BS15'].reduce((sum, id) => sum + (Number(answers[id]) || 0), 0),
+      girisim_gerceklestirme: ['BS16', 'BS17', 'BS18', 'BS19'].reduce((sum, id) => sum + (Number(answers[id]) || 0), 0),
+      arka_plan_faktorleri: ['BS20', 'BS21'].reduce((sum, id) => sum + (Number(answers[id]) || 0), 0)
     };
-
-    // Bölüm ortalamalarını hesapla
-    const sectionAverages = {
-      attitudeTowardsLifeAndDeath: sectionScores.attitudeTowardsLifeAndDeath / 
-        beckSuicideCriteria.sections.attitudeTowardsLifeAndDeath.questions.length,
-      suicidalThoughtsAndDesires: sectionScores.suicidalThoughtsAndDesires / 
-        beckSuicideCriteria.sections.suicidalThoughtsAndDesires.questions.length,
-      plannedAttemptCharacteristics: sectionScores.plannedAttemptCharacteristics / 
-        beckSuicideCriteria.sections.plannedAttemptCharacteristics.questions.length,
-      plannedAttemptExecution: sectionScores.plannedAttemptExecution / 
-        beckSuicideCriteria.sections.plannedAttemptExecution.questions.length
+    
+    // Alt bölüm ortalamalarını hesapla
+    const factorAverages = {
+      yasam_olum_tutum: factorScores.yasam_olum_tutum / 5,
+      intihar_dusuncesi: factorScores.intihar_dusuncesi / 6,
+      tasarlanan_girisim: factorScores.tasarlanan_girisim / 4,
+      girisim_gerceklestirme: factorScores.girisim_gerceklestirme / 4,
+      arka_plan_faktorleri: factorScores.arka_plan_faktorleri / 2
     };
-
-    // Risk düzeyini belirle
-    let severityLevel = '';
-    if (totalScore <= beckSuicideCriteria.scoring.levels.minimal.max) {
-      severityLevel = beckSuicideCriteria.scoring.levels.minimal.description;
-    } else if (totalScore <= beckSuicideCriteria.scoring.levels.mild.max) {
-      severityLevel = beckSuicideCriteria.scoring.levels.mild.description;
-    } else {
-      severityLevel = beckSuicideCriteria.scoring.levels.severe.description;
-    }
-
-    // Risk faktörlerini belirle
-    const riskFactors = [];
-    if (sectionAverages.attitudeTowardsLifeAndDeath > 1) {
-      riskFactors.push('Yaşam ve ölüme dair olumsuz tutum');
-    }
-    if (sectionAverages.suicidalThoughtsAndDesires > 1) {
-      riskFactors.push('Yoğun intihar düşünceleri ve arzusu');
-    }
-    if (sectionAverages.plannedAttemptCharacteristics > 1) {
-      riskFactors.push('Detaylı intihar planı mevcut');
-    }
-    if (sectionAverages.plannedAttemptExecution > 1) {
-      riskFactors.push('İntihar girişimi hazırlığı var');
-    }
-    if (totalScore >= 20) {
-      riskFactors.push('Çok yüksek risk - Acil müdahale gerekli');
-    }
-
-    // Öne çıkan belirtileri belirle
-    const prominentSymptoms = Object.entries(answers)
-      .filter(([_, value]) => Number(value) === 2)
-      .map(([key]) => {
-        const questionNumber = parseInt(key.replace('BS', ''));
-        return {
-          question: questionNumber,
-          severity: 2,
-          response: beckSuicideTest.questions[questionNumber - 1].text
-        };
-      });
-
+    
+    const severityLevel = getSuicideRiskLevel(mainScore);
+    
     return {
-      totalScore,
-      severityLevel,
-      factorScores: sectionScores,
-      factorAverages: sectionAverages,
-      riskFactors,
-      prominentSymptoms,
-      requiresTreatment: totalScore >= 6,
-      interpretation: {
-        overall: `Danışanın Beck İntihar Düşüncesi Ölçeği toplam puanı ${totalScore} olup, bu puan "${severityLevel}" düzeyine işaret etmektedir.`,
-        factors: `
-          Bölüm analizi sonuçlarına göre:
-          - Yaşam ve Ölüme Dair Tutum: ${sectionAverages.attitudeTowardsLifeAndDeath.toFixed(2)} (${sectionScores.attitudeTowardsLifeAndDeath} puan)
-          - İntihar Düşüncesi ve Arzusu: ${sectionAverages.suicidalThoughtsAndDesires.toFixed(2)} (${sectionScores.suicidalThoughtsAndDesires} puan)
-          - Tasarlanan Girişimin Özellikleri: ${sectionAverages.plannedAttemptCharacteristics.toFixed(2)} (${sectionScores.plannedAttemptCharacteristics} puan)
-          - Tasarlanan Girişimin Gerçekleştirilmesi: ${sectionAverages.plannedAttemptExecution.toFixed(2)} (${sectionScores.plannedAttemptExecution} puan)
-        `,
-        risks: riskFactors.length > 0 
-          ? `Önemli risk faktörleri: ${riskFactors.join(', ')}`
-          : 'Belirgin risk faktörü saptanmamıştır.',
-        symptoms: prominentSymptoms.length > 0
-          ? `Öne çıkan belirtiler:\n${prominentSymptoms.map(s => `- ${s.response}`).join('\n')}`
-          : 'Belirgin semptom saptanmamıştır.',
-        recommendations: [
-          totalScore >= 20 ? 'ACİL PSİKİYATRİK DEĞERLENDİRME GEREKLİDİR!' : '',
-          sectionAverages.attitudeTowardsLifeAndDeath > 1 ? 'Yaşam ve ölüme dair tutum için acil müdahale gerekli.' : '',
-          sectionAverages.suicidalThoughtsAndDesires > 1 ? 'İntihar düşünceleri için yakın takip gerekli.' : '',
-          sectionAverages.plannedAttemptCharacteristics > 1 ? 'İntihar planı için güvenlik önlemleri alınmalı.' : '',
-          sectionAverages.plannedAttemptExecution > 1 ? 'İntihar girişimi hazırlığı için acil önlem alınmalı.' : '',
-          totalScore >= 6 ? 'Düzenli psikiyatrik takip gerekli.' : 'Periyodik kontrol önerilir.'
-        ].filter(r => r !== '')
-      }
+      score: mainScore,
+      severityLevel: severityLevel,
+      factorScores: factorScores,
+      factorAverages: factorAverages,
+      riskFactors: [],
+      requiresTreatment: false
     };
   }
 }; 

@@ -92,3 +92,21 @@ export interface Payment {
   };
   notes: string | null;
 }
+
+export interface TestResult {
+  id: string;
+  client_id: string;
+  professional_id: string;
+  test_type: string;
+  score: number;
+  answers: Record<string, any>;
+  created_at: string;
+  encrypted_answers?: string;
+  encryption_key?: string;
+  iv?: string;
+  notes?: string;
+  duration_seconds?: number;
+  started_at?: string;
+  completed_at?: string;
+  is_public_access?: boolean;
+}

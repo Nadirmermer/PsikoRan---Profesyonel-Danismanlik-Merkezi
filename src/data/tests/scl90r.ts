@@ -2,103 +2,19 @@ import { Test } from './types';
 
 // Test başlangıç açıklaması
 export const scl90rIntro = `
-Aşağıda zaman zaman herkeste olabilecek yakınma ve sorunların bir listesi vardır.
+SCL-90-R (Symptom Checklist-90-Revised) kişinin kendisinin doldurduğu, ruhsal belirtileri taramaya, hangi düzeyde olduğunu belirlemeye ve alınacak tedaviye yön göstermeye yarayan 90 maddelik bir ölçektir.
 
-Lütfen her birini dikkatlice okuyunuz. Sonra bu durumun bugün de dahil olmak üzere son 15
-gün içinde sizi ne ölçüde huzursuz ve tedirgin ettiğini göz önüne alarak, cevap kağıdında
-belirtilen tanımlamalardan (Hiç / Çok az / Orta derecede / Oldukça fazla / İleri derecede)
-uygun olanının (yalnızca bir seçeneği) işaretleyin.
-
-Düşüncenizi değiştirirseniz işaretlemeyi değiştirmeyi unutmayınız. 
-Lütfen anlamadığınız bir cümle ile karşılaştığınızda uygulayan kişiye danışınız.
+Aşağıda zaman zaman herkeste olabilecek yakınma ve sorunların bir listesi vardır. Lütfen her birini dikkatlice okuyunuz. Sonra bu durumun bugün de dahil olmak üzere SON 15 GÜN içinde sizi ne ölçüde huzursuz ve tedirgin ettiğini göz önüne alarak, uygun seçeneği işaretleyiniz. Düşüncenizi değiştirirseniz ilk yaptığınız işaretlemeyi tamamen siliniz. Lütfen anlamadığınız bir cümle ile karşılaştığınızda uygulayan kişiye danışınız.
 `;
 
-// Puanlama kriterleri ve açıklamalar
-export const scl90rCriteria = {
-  scoring: {
-    normal: { min: 0, max: 1.50, description: 'Normal düzey' },
-    high: { min: 1.51, max: 2.50, description: 'Araz düzeyi yüksek' },
-    veryHigh: { min: 2.51, max: 4.00, description: 'Araz düzeyi çok yüksek' }
-  },
-  subscales: {
-    somatization: {
-      name: 'Somatizasyon',
-      questions: [1, 4, 12, 27, 40, 42, 48, 49, 52, 53, 56, 58],
-      description: 'Bedensel işlevlerle ilgili öznel sıkıntılar'
-    },
-    obsessiveCompulsive: {
-      name: 'Obsesif-Kompulsif',
-      questions: [3, 9, 10, 28, 38, 45, 46, 51, 55, 65],
-      description: 'İstem dışı düşünce, dürtü ve eylemler'
-    },
-    interpersonalSensitivity: {
-      name: 'Kişilerarası Duyarlılık',
-      questions: [6, 21, 34, 36, 37, 41, 61, 69, 73],
-      description: 'Kişisel yetersizlik ve aşağılık duyguları'
-    },
-    depression: {
-      name: 'Depresyon',
-      questions: [5, 14, 15, 20, 22, 26, 29, 30, 31, 32, 54, 71, 79],
-      description: 'Depresif belirti ve semptomlar'
-    },
-    anxiety: {
-      name: 'Anksiyete',
-      questions: [2, 17, 23, 33, 39, 57, 72, 78, 80, 86],
-      description: 'Kaygı ve endişe belirtileri'
-    },
-    hostility: {
-      name: 'Öfke ve Düşmanlık',
-      questions: [11, 24, 63, 67, 74, 81],
-      description: 'Öfke, agresyon ve irritabilite'
-    },
-    phobicAnxiety: {
-      name: 'Fobik Anksiyete',
-      questions: [13, 25, 47, 50, 70, 75, 82],
-      description: 'Fobik kaygı ve kaçınma davranışı'
-    },
-    paranoid: {
-      name: 'Paranoid Düşünce',
-      questions: [8, 18, 43, 68, 76, 83],
-      description: 'Şüphecilik ve paranoid düşünceler'
-    },
-    psychoticism: {
-      name: 'Psikotizm',
-      questions: [7, 16, 35, 62, 77, 84, 85, 87, 88, 90],
-      description: 'İzolasyon ve şizoid yaşam tarzı'
-    },
-    additional: {
-      name: 'Ek Maddeler',
-      questions: [19, 44, 55, 59, 60, 64, 89],
-      description: 'Uyku ve yeme bozuklukları ile ilgili ek belirtiler'
-    }
-  },
-  interpretation: [
-    'GSI (Genel Semptom Ortalaması) = Tüm maddelerin toplam puanı / 90',
-    'Alt ölçek puanı = Alt ölçek maddelerinin toplam puanı / Alt ölçek madde sayısı',
-    '0.00 - 1.50: Normal düzey',
-    '1.51 - 2.50: Araz düzeyi yüksek',
-    '2.51 - 4.00: Araz düzeyi çok yüksek'
-  ],
-  notes: [
-    'Her bir madde 0-4 arası puanlanır',
-    'Geçerli bir değerlendirme için en fazla 18 madde boş bırakılabilir',
-    'GSI, genel psikolojik sıkıntı düzeyini gösterir'
-  ]
-};
-
-// Tip tanımlamaları
-interface SubscaleScores {
-  [key: string]: number;
-}
-
-interface SubscaleAverages {
-  [key: string]: number;
-}
-
+// Test soruları
 export const scl90rTest: Test = {
   id: 'scl90r',
-  name: 'SCL-90-R Belirti Tarama Listesi',
+  name: 'SCL-90-R (Belirti Tarama Listesi)',
   description: scl90rIntro,
+  infoText: 'SCL-90-R (Symptom Check List-90), L.R. Derogatis tarafından 1977 yılında geliştirilmiş ve Türkçe geçerlik-güvenirlik çalışması Dağ tarafından 1991 yılında yapılmıştır. Ölçeğin iç tutarlılığı 0.97, test-tekrar test güvenirlik katsayıları alt ölçeklere göre 0.65 ile 0.87 arasında ve tüm ölçek için 0.90 olarak bulunmuştur. Ölçek, bireyin yaşadığı olumsuz stres tepkisinin (distress) düzeyini ölçmeyi amaçlar ve 17 yaş üstü, en az orta öğretimden geçmiş kişilere uygulanabilir. Somatizasyon, obsesif-kompulsif, kişilerarası duyarlık, depresyon, kaygı, düşmanlık, fobik kaygı, paranoid düşünce ve psikotizm olmak üzere toplam dokuz alt boyutu bulunmaktadır.',
+  reference: 'https://www.researchgate.net/profile/Elif-Gueneri-Yoeyen/publication/331407570_Psikolojide_Kullanilan_Olcekler/links/5c77e2c0458515831f76da91/Psikolojide-Kullanilan-Oelcekler.pdf',
+  
   questions: [
     {
       id: 'SCL1',
@@ -267,7 +183,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL16',
-      text: 'Başka kişilerin duyamadığı sesler duyma',
+      text: 'Başka kişilerin duymadıkları sesleri duyma',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -333,7 +249,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL22',
-      text: 'Tuzağa düşürülmüş veya yakalanmış hissi',
+      text: 'Tuzağa düşürülmüş veya yakalanmış olma hissi',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -388,7 +304,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL27',
-      text: 'Bel ağrısı',
+      text: 'Belin alt kısmında ağrılar',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -432,7 +348,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL31',
-      text: 'Her şey için endişelenme',
+      text: 'Her şey için çok fazla endişe duyma',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -476,7 +392,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL35',
-      text: 'Başka kişilerin sizin özel düşüncelerinizi bilmesi',
+      text: 'Diğer insanların sizin özel düşüncelerinizi bilmesi',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -509,7 +425,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL38',
-      text: 'İşlerin doğru yapıldığından emin olabilmek için çok yavaş yapmak',
+      text: 'İşlerin doğru yapıldığından emin olmak için çok yavaş yapmak',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -520,7 +436,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL39',
-      text: 'Kalbin çarpması',
+      text: 'Kalbin çok hızlı çarpması',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -553,7 +469,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL42',
-      text: 'Kas ağrıları',
+      text: 'Adale (kas) ağrıları',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -597,7 +513,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL46',
-      text: 'Karar vermede güçlükler',
+      text: 'Karar vermede güçlük',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -641,7 +557,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL50',
-      text: 'Sizi korkutan belirli uğraş, yer veya nesnelerden kaçınma durumu',
+      text: 'Sizi korkutan belirli uğraş, yer ve nesnelerden kaçınma durumu',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -652,7 +568,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL51',
-      text: 'Hiçbir şey düşünememe hali',
+      text: 'Hiçbir şey düşünmeme hali',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -685,7 +601,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL54',
-      text: 'Gelecek konusunda umutsuzluk',
+      text: 'Gelecek konusunda ümitsizlik',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -707,7 +623,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL56',
-      text: 'Bedeninizin çeşitli kısımlarında zayıflık hissi',
+      text: 'Bedeninizin çeşitli kısımlarında zayıflılık hissi',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -740,7 +656,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL59',
-      text: 'Ölüm ve ölme düşünceleri',
+      text: 'Ölüm ya da ölme düşünceleri',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -762,7 +678,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL61',
-      text: 'İnsanlar size baktığı veya hakkınızda konuştuğu zaman tedirginlik duyma',
+      text: 'İnsanlar size baktığı veya hakkınızda konuştuğu zaman rahatsızlık duyma',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -784,7 +700,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL63',
-      text: 'Bir başkasına vurmak, zarar vermek, yaralamak dürtülerini hissetme',
+      text: 'Bir başkasına vurmak, zarar vermek, yaralamak dürtülerinin olması',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -806,7 +722,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL65',
-      text: 'Yıkanma, sayma, dokunma gibi bazı hareketleri yineleme',
+      text: 'Yıkanma, sayma, dokunma gibi bazı hareketleri yenileme hali',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -828,7 +744,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL67',
-      text: 'Bazı şeyleri kırıp dökme isteği',
+      text: 'Bazı şeyleri kırıp dökme hissi',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -839,7 +755,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL68',
-      text: 'Başkalarının paylaşıp kabul etmediği inanç ve düşüncelere sahip olma',
+      text: 'Başkalarının paylaşıp kabul etmediği inanç ve düşüncelerin olması',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -894,7 +810,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL73',
-      text: 'Toplum içinde yiyip içerken huzursuzluk hissi',
+      text: 'Toplum içinde yiyip-içerken huzursuzluk hissi',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -916,7 +832,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL75',
-      text: 'Yalnız bırakıldığında sinirlilik hissi',
+      text: 'Yalnız bırakıldığınızda sinirlilik hali',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -927,7 +843,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL76',
-      text: 'Başkalarının sizi takdir etmemesi',
+      text: 'Başkalarının sizi başarılarınız için yeterince takdir etmediği duygusu',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -938,7 +854,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL77',
-      text: 'Başkalarıyla birlikte olmadığınızda yalnızlık hissi',
+      text: 'Başkalarıyla birlikte olunan durumlarda bile yalnızlık hissetme',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -949,7 +865,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL78',
-      text: 'Yerinizde duramayacak kadar tedirgin hissetme',
+      text: 'Yerinizde duramayacak ölçüde rahatsızlık hissetme',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -971,7 +887,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL80',
-      text: 'Size kötü bir şey olacakmış duygusu',
+      text: 'Size kötü bir şey olacakmış hissi',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -1015,7 +931,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL84',
-      text: 'Cinsellik konusunda sizi çok rahatsız eden düşünceler',
+      text: 'Cinsiyet konusunda sizi çok rahatsız eden düşüncelerin olması',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -1059,7 +975,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL88',
-      text: 'Başka bir kişiye karşı asla yakınlık duyamama',
+      text: 'Başka bir kişiye asla yakınlık duymama',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -1070,7 +986,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL89',
-      text: 'Suçluluk duyguları',
+      text: 'Suçluluk duygusu',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -1081,7 +997,7 @@ export const scl90rTest: Test = {
     },
     {
       id: 'SCL90',
-      text: 'Aklınızda bir bozukluk olduğu düşüncesi',
+      text: 'Aklınızda bir bozukluğun olduğu düşüncesi',
       options: [
         { value: 0, text: 'Hiç' },
         { value: 1, text: 'Çok Az' },
@@ -1091,123 +1007,145 @@ export const scl90rTest: Test = {
       ]
     }
   ],
+  
   calculateScore: (answers) => {
-    // Toplam puan hesaplama
-    const totalScore = Object.values(answers).reduce((sum, value) => sum + (Number(value) || 0), 0);
-    // GSI hesaplama (Genel Semptom Ortalaması)
-    return totalScore / 90;
+    const validAnswers = Object.values(answers).filter(value => value !== undefined);
+    const sum = validAnswers.reduce((total, value) => total + (Number(value) || 0), 0);
+    return validAnswers.length > 0 ? sum / validAnswers.length : 0;
   },
+  
   interpretScore: (score) => {
-    if (score <= scl90rCriteria.scoring.normal.max) 
-      return scl90rCriteria.scoring.normal.description;
-    if (score <= scl90rCriteria.scoring.high.max) 
-      return scl90rCriteria.scoring.high.description;
-    return scl90rCriteria.scoring.veryHigh.description;
+    if (score < 0.5) {
+      return 'Normal düzeyde psikolojik belirti';
+    } else if (score < 1.0) {
+      return 'Hafif düzeyde psikolojik belirti';
+    } else if (score < 1.5) {
+      return 'Orta düzeyde psikolojik belirti';
+    } else if (score < 2.5) {
+      return 'Araz düzeyi yüksek';
+    } else {
+      return 'Araz düzeyi çok yüksek';
+    }
   },
+  
   generateReport: (answers) => {
-    // GSI hesaplama
-    const totalScore = Object.values(answers).reduce((sum, value) => sum + (Number(value) || 0), 0);
-    const gsi = totalScore / 90;
-
-    // Alt ölçek puanlarını hesapla
-    const subscaleScores: SubscaleScores = {};
-    const subscaleAverages: SubscaleAverages = {};
-    Object.entries(scl90rCriteria.subscales).forEach(([key, subscale]) => {
-      const score = subscale.questions.reduce((sum, q) => sum + (Number(answers[`SCL${q}`]) || 0), 0);
-      subscaleScores[key] = score;
-      subscaleAverages[key] = score / subscale.questions.length;
-    });
-
-    // Çizgi grafiği için veri hazırla
-    const chartData = {
-      labels: Object.entries(scl90rCriteria.subscales).map(([_, subscale]) => subscale.name),
-      datasets: [
-        {
-          data: Object.values(subscaleAverages),
-          normalRange: {
-            min: 0,
-            max: 1.5,
-            label: 'Normal Düzey'
-          },
-          highRange: {
-            min: 1.51,
-            max: 2.5,
-            label: 'Yüksek Düzey'
-          },
-          veryHighRange: {
-            min: 2.51,
-            max: 4,
-            label: 'Çok Yüksek Düzey'
-          }
-        }
-      ]
+    // Alt ölçekler için soru gruplandırmaları
+    const subScales = {
+      somatizasyon: ['SCL1', 'SCL4', 'SCL12', 'SCL27', 'SCL40', 'SCL42', 'SCL48', 'SCL49', 'SCL52', 'SCL53', 'SCL56', 'SCL58'],
+      obsesifKompulsif: ['SCL3', 'SCL9', 'SCL10', 'SCL28', 'SCL38', 'SCL45', 'SCL46', 'SCL51', 'SCL55', 'SCL65'],
+      kisiselDuyarlik: ['SCL6', 'SCL21', 'SCL34', 'SCL36', 'SCL37', 'SCL41', 'SCL61', 'SCL69', 'SCL73'],
+      depresyon: ['SCL5', 'SCL14', 'SCL15', 'SCL20', 'SCL22', 'SCL26', 'SCL29', 'SCL30', 'SCL31', 'SCL32', 'SCL54', 'SCL71', 'SCL79'],
+      anksiyete: ['SCL2', 'SCL17', 'SCL23', 'SCL33', 'SCL39', 'SCL57', 'SCL72', 'SCL78', 'SCL80', 'SCL86'],
+      hostilite: ['SCL11', 'SCL24', 'SCL63', 'SCL67', 'SCL74', 'SCL81'],
+      fobikAnksiyete: ['SCL13', 'SCL25', 'SCL47', 'SCL50', 'SCL70', 'SCL75', 'SCL82'],
+      paranoidDusunce: ['SCL8', 'SCL18', 'SCL43', 'SCL68', 'SCL76', 'SCL83'],
+      psikotizm: ['SCL7', 'SCL16', 'SCL35', 'SCL62', 'SCL77', 'SCL84', 'SCL85', 'SCL87', 'SCL88', 'SCL90'],
+      ekMaddeler: ['SCL19', 'SCL44', 'SCL55', 'SCL59', 'SCL60', 'SCL64', 'SCL89']
     };
 
-    // Şiddet düzeyini belirle
+    // Alt ölçek puanlarını hesaplama
+    const factorScores = {};
+    const factorAverages = {};
+    
+    Object.keys(subScales).forEach(scale => {
+      const scaleQuestions = subScales[scale];
+      let sum = 0;
+      let count = 0;
+      
+      scaleQuestions.forEach(q => {
+        if (answers[q] !== undefined) {
+          sum += Number(answers[q]) || 0;
+          count++;
+        }
+      });
+      
+      factorScores[scale] = sum;
+      factorAverages[scale] = count > 0 ? sum / count : 0;
+    });
+    
+    // Genel Semptom İndeksi (GSI) hesaplama
+    const validAnswers = Object.values(answers).filter(value => value !== undefined);
+    
+    // 18 maddeden fazla boş bırakılmışsa hesaplama yapma (72 ya da daha fazla yanıtlanmış olmalı)
+    const isValidTest = validAnswers.length >= 72;
+    
+    const sum = validAnswers.reduce((total, value) => total + (Number(value) || 0), 0);
+    const gsi = isValidTest && validAnswers.length > 0 ? sum / validAnswers.length : 0;
+
+    // Rahatsızlık Ciddiyeti İndeksi (PSDI) hesaplama
+    const nonZeroAnswers = Object.values(answers).filter(value => value !== undefined && Number(value) > 0);
+    const psdi = nonZeroAnswers.length > 0 ? sum / nonZeroAnswers.length : 0;
+
+    // Belirti Toplamı (PST) hesaplama
+    const pst = nonZeroAnswers.length;
+
+    // Şiddet seviyesi ve tedavi gerekliliği belirleme
     let severityLevel = '';
-    if (gsi <= scl90rCriteria.scoring.normal.max) {
-      severityLevel = scl90rCriteria.scoring.normal.description;
-    } else if (gsi <= scl90rCriteria.scoring.high.max) {
-      severityLevel = scl90rCriteria.scoring.high.description;
+    let requiresTreatment = false;
+    
+    if (gsi < 0.5) {
+      severityLevel = 'Normal düzeyde psikolojik belirti';
+      requiresTreatment = false;
+    } else if (gsi < 1.0) {
+      severityLevel = 'Hafif düzeyde psikolojik belirti';
+      requiresTreatment = false;
+    } else if (gsi < 1.5) {
+      severityLevel = 'Normal';
+      requiresTreatment = false;
+    } else if (gsi < 2.5) {
+      severityLevel = 'Araz düzeyi yüksek';
+      requiresTreatment = true;
     } else {
-      severityLevel = scl90rCriteria.scoring.veryHigh.description;
+      severityLevel = 'Araz düzeyi çok yüksek';
+      requiresTreatment = true;
     }
 
-    // Risk faktörlerini belirle
-    const riskFactors: string[] = [];
-    Object.entries(subscaleAverages).forEach(([key, average]) => {
-      const subscale = scl90rCriteria.subscales[key as keyof typeof scl90rCriteria.subscales];
-      if (average > 2.5) {
-        riskFactors.push(`${subscale.name}: Çok Yüksek Düzey`);
-      } else if (average > 1.5) {
-        riskFactors.push(`${subscale.name}: Yüksek Düzey`);
+    // Risk faktörleri belirleme
+    const riskFactors = [];
+    
+    // İntihar düşüncesi riski
+    if (answers['SCL15'] >= 2 || answers['SCL59'] >= 2) {
+      riskFactors.push('İntihar düşüncesi riski');
+    }
+    
+    // Psikotik belirti riski
+    if (factorAverages['psikotizm'] >= 1.5) {
+      riskFactors.push('Psikotik belirti riski');
+    }
+    
+    // Depresyon riski
+    if (factorAverages['depresyon'] >= 1.5) {
+      riskFactors.push('Depresyon riski');
+    }
+    
+    // Alt ölçek değerlendirmeleri
+    const subScaleAssessments = {};
+    Object.keys(factorAverages).forEach(scale => {
+      const score = factorAverages[scale];
+      let assessment = '';
+      
+      if (score <= 1.5) {
+        assessment = 'Normal';
+      } else if (score <= 2.5) {
+        assessment = 'Araz düzeyi yüksek';
+      } else {
+        assessment = 'Araz düzeyi çok yüksek';
       }
+      
+      subScaleAssessments[scale] = assessment;
     });
 
-    // Öne çıkan belirtileri belirle
-    const prominentSymptoms = Object.entries(answers)
-      .filter(([_, value]) => Number(value) >= 3)
-      .map(([key]) => {
-        const questionNumber = parseInt(key.replace('SCL', ''));
-        return {
-          question: questionNumber,
-          severity: Number(answers[key]),
-          response: scl90rTest.questions[questionNumber - 1].text
-        };
-      });
-
     return {
-      totalScore,
-      severityLevel,
-      factorScores: subscaleScores,
-      factorAverages: subscaleAverages,
-      riskFactors,
-      prominentSymptoms,
-      requiresTreatment: gsi > 1.5,
-      chartData, // Çizgi grafiği için veri
-      interpretation: {
-        overall: `Danışanın SCL-90-R Genel Semptom Ortalaması (GSI) ${gsi.toFixed(2)} olup, bu puan "${severityLevel}" düzeyine işaret etmektedir.`,
-        factors: `
-          Alt ölçek ortalamaları:
-          ${Object.entries(subscaleAverages).map(([key, avg]) => {
-            const subscale = scl90rCriteria.subscales[key as keyof typeof scl90rCriteria.subscales];
-            return `- ${subscale.name}: ${avg.toFixed(2)}`;
-          }).join('\n')}
-        `,
-        risks: riskFactors.length > 0 
-          ? `Yüksek düzeyde belirti gösteren alanlar: ${riskFactors.join(', ')}`
-          : 'Belirgin risk alanı saptanmamıştır.',
-        symptoms: prominentSymptoms.length > 0
-          ? `Öne çıkan belirtiler:\n${prominentSymptoms.map(s => `- ${s.response}`).join('\n')}`
-          : 'Belirgin semptom saptanmamıştır.',
-        recommendations: [
-          gsi > 2.5 ? 'Acil psikiyatrik değerlendirme önerilir.' : '',
-          gsi > 1.5 ? 'Klinik değerlendirme önerilir.' : 'Periyodik kontrol önerilir.',
-          ...Object.entries(subscaleAverages)
-            .filter(([_, avg]) => avg > 2.5)
-            .map(([key, _]) => `${scl90rCriteria.subscales[key as keyof typeof scl90rCriteria.subscales].name} alanı için özel değerlendirme gereklidir.`)
-        ].filter(r => r !== '')
-      }
+      score: gsi,
+      psdi: psdi,
+      pst: pst,
+      factorScores: factorScores,
+      factorAverages: factorAverages,
+      subScaleAssessments: subScaleAssessments,
+      severityLevel: severityLevel,
+      requiresTreatment: requiresTreatment,
+      riskFactors: riskFactors,
+      isValidTest: isValidTest
     };
   }
 }; 
