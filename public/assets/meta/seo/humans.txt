@@ -1,6 +1,6 @@
 /* TAKIM */
   Geliştirici: PsikoRan Ekibi
-  İletişim: info@psikoran.com
+  İletişim: destek@psikoran.com
   Web: https://psikoran.com
   Twitter: @PsikoRan
   Konum: Türkiye
