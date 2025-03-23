@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Lock, Eye, EyeOff } from 'lucide-react';
-import logo1 from '../assets/logo/logo_1.png';
+import { MainLayout } from '../components/layout/MainLayout';
 
 export function ResetPassword() {
   const navigate = useNavigate();
@@ -57,22 +57,8 @@ export function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-      <div className="w-full max-w-md mx-auto p-6 flex flex-col justify-center">
-        {/* Logo */}
-        <div className="flex items-center justify-center space-x-3 mb-12">
-          <div className="h-12 w-12 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
-            <img 
-              src={logo1} 
-              alt="PsikoRan Logo" 
-              className="h-7 w-7 object-contain"
-            />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-            PsikoRan
-          </h2>
-        </div>
-
+    <MainLayout>
+      <div className="w-full max-w-md mx-auto p-6 flex flex-col justify-center py-16">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-slate-800 dark:text-white">
             Yeni Şifre Oluşturun
@@ -168,13 +154,7 @@ export function ResetPassword() {
             </button>
           </form>
         </div>
-
-        <div className="mt-8 text-center">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            &copy; {new Date().getFullYear()} PsikoRan. Tüm hakları saklıdır.
-          </p>
-        </div>
       </div>
-    </div>
+    </MainLayout>
   );
 } 

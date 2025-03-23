@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../lib/theme';
-import logo2 from '../assets/logo/logo_2.png';
+import logo2 from '../assets/logos/logo_2.png';
 
 export const AppLoader: React.FC = () => {
   const { isDarkMode, initializeTheme } = useTheme();

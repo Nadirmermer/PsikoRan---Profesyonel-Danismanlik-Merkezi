@@ -19,7 +19,7 @@ import { tr } from 'date-fns/locale';
 import { useAuth } from '../lib/auth';
 import { CreateAppointmentModal } from '../components/CreateAppointmentModal';
 import { requestNotificationPermission } from '../utils/notificationUtils';
-import logo2 from '../assets/logo/logo_2.png';
+import logo2 from '../assets/logos/logo_2.png';
 import AppointmentShareModal from '../components/AppointmentShareModal';
 
 type ViewType = 'daily' | 'weekly' | 'monthly' | 'all';

@@ -1,5 +1,5 @@
 import React from 'react';
-import logo2 from '../assets/logo/logo_2.png';
+import logo2 from '../assets/logos/logo_2.png';
 
 interface LogoProps {
   size?: 'small' | 'medium' | 'large';

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ArrowLeft, Mail } from 'lucide-react';
-import logo1 from '../assets/logo/logo_1.png';
+import { MainLayout } from '../components/layout/MainLayout';
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -32,22 +32,8 @@ export function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-      <div className="w-full max-w-md mx-auto p-6 flex flex-col justify-center">
-        {/* Logo */}
-        <div className="flex items-center justify-center space-x-3 mb-12">
-          <div className="h-12 w-12 flex items-center justify-center rounded-lg bg-primary-600 dark:bg-primary-500">
-            <img 
-              src={logo1} 
-              alt="PsikoRan Logo" 
-              className="h-7 w-7 object-contain"
-            />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-            PsikoRan
-          </h2>
-        </div>
-
+    <MainLayout>
+      <div className="w-full max-w-md mx-auto p-6 flex flex-col justify-center py-16">
         <Link
           to="/login"
           className="group mb-8 flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors duration-200"
@@ -134,21 +120,7 @@ export function ForgotPassword() {
             </div>
           )}
         </div>
-
-        <div className="mt-8 text-center space-y-4">
-          <div className="flex justify-center space-x-4 text-sm">
-            <Link to="/contact" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
-              İletişim
-            </Link>
-            <Link to="/help" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
-              Yardım Merkezi
-            </Link>
-          </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            &copy; {new Date().getFullYear()} PsikoRan. Tüm hakları saklıdır.
-          </p>
-        </div>
       </div>
-    </div>
+    </MainLayout>
   );
 } 

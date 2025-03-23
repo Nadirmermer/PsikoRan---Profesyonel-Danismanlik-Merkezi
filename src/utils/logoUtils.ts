@@ -1,4 +1,4 @@
-import logo2 from '../assets/logo/logo_2.png';
+import logo2 from '../assets/logos/logo_2.png';
 
 /**
  * Logo görselini PDF ve diğer uygulamalar için hazırlar
