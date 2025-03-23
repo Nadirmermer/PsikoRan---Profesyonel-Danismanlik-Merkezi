@@ -37,15 +37,15 @@ const slugifyName = (name: string): string => {
 export function Home() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
-
+    
   useEffect(() => {
     document.title = "PsikoRan - Psikolog Randevu ve Danışan Yönetim Sistemi";
     loadBlogPosts();
   }, []);
-
-  async function loadBlogPosts() {
-    try {
-      const posts = await fetchBlogPosts();
+    
+    async function loadBlogPosts() {
+      try {
+        const posts = await fetchBlogPosts();
       setBlogPosts(posts.slice(0, 3)); // Sadece ilk 3 yazıyı al
       setLoading(false);
     } catch (error) {

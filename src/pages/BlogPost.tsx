@@ -139,8 +139,8 @@ export function BlogPost() {
     return (
       <MainLayout>
         <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+      </div>
       </MainLayout>
     );
   }
@@ -189,192 +189,192 @@ export function BlogPost() {
         <meta name="twitter:image" content={post.cover_image} />
         <div dangerouslySetInnerHTML={structuredData} />
       </Helmet>
-      
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-12 pb-20">
         {/* Geri butonu */}
         <Link to="/blog" className="inline-flex items-center text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />
           <span>Bloga dön</span>
-        </Link>
-
+                </Link>
+                  
         <article>
           {/* Blog yazısı başlığı ve meta bilgiler */}
-          <motion.header 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-10"
-          >
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white leading-tight mb-4">
-              {post.title}
-            </h1>
-            
-            <div className="flex flex-wrap items-center gap-2 mb-6 text-sm text-slate-600 dark:text-slate-400">
-              <Link 
-                to={`/blog?category=${post.category}`}
-                className="inline-flex items-center px-3 py-1 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 rounded-full font-medium transition-colors hover:bg-primary-100 dark:hover:bg-primary-900/50"
-              >
-                <Tag className="h-3.5 w-3.5 mr-1.5" />
-                {post.category}
-              </Link>
-              <span className="inline-flex items-center">
-                <Calendar className="h-4 w-4 mr-1.5 text-slate-400 dark:text-slate-500" />
-                {formatBlogDate(post.published_at)}
-              </span>
-              <span className="inline-flex items-center">
-                <User className="h-4 w-4 mr-1.5 text-slate-400 dark:text-slate-500" />
-                {post.author}
-              </span>
-              <ReadTime 
-                minutes={post.reading_time} 
-                className="inline-flex items-center px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-xs"
-                iconClassName="h-3.5 w-3.5 mr-1.5 text-slate-400 dark:text-slate-500"
-              />
-            </div>
-            
-            <p className="text-lg sm:text-xl text-slate-700 dark:text-slate-300 leading-relaxed">
-              {post.excerpt}
-            </p>
-          </motion.header>
-
-          {/* Blog görseli */}
-          <motion.figure 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="mb-10 rounded-2xl overflow-hidden shadow-xl dark:shadow-primary-900/10"
-          >
-            <img 
-              src={post.cover_image}
-              alt={post.title}
-              className="w-full object-cover h-64 sm:h-80 lg:h-96"
-              loading="lazy"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = '/assets/images/blog-placeholder.jpg';
-                target.onerror = () => {
-                  target.src = '/assets/images/logo_2.png';
-                  target.onerror = null;
-                };
-              }}
-            />
-          </motion.figure>
-
-          {/* Blog içeriği */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="prose prose-lg dark:prose-invert prose-slate max-w-none mb-12
-              prose-headings:font-bold prose-headings:text-slate-900 dark:prose-headings:text-white
-              prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
-              prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-p:leading-relaxed
-              prose-a:text-primary-600 dark:prose-a:text-primary-400 prose-a:font-medium prose-a:no-underline hover:prose-a:underline
-              prose-img:rounded-xl prose-img:shadow-lg
-              prose-ul:text-slate-700 dark:prose-ul:text-slate-300
-              prose-ol:text-slate-700 dark:prose-ol:text-slate-300
-              prose-li:mb-1
-              prose-blockquote:border-l-primary-500 dark:prose-blockquote:border-l-primary-500
-              prose-blockquote:text-slate-700 dark:prose-blockquote:text-slate-300
-              prose-blockquote:bg-primary-50 dark:prose-blockquote:bg-primary-900/20 prose-blockquote:rounded-r-lg prose-blockquote:py-1 prose-blockquote:px-4
-              prose-strong:text-slate-900 dark:prose-strong:text-white
-              prose-code:text-slate-900 dark:prose-code:text-slate-200
-              prose-code:bg-slate-100 dark:prose-code:bg-slate-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded
-              prose-pre:bg-slate-800 dark:prose-pre:bg-slate-900 prose-pre:text-slate-200 dark:prose-pre:text-slate-200 prose-pre:shadow-lg"
-          >
-            <div dangerouslySetInnerHTML={renderContent(post.content)} />
-          </motion.div>
-
-          {/* Mobil paylaşım */}
-          <div className="md:hidden flex justify-center mb-10 space-x-2">
-            <button
-              onClick={copyToClipboard}
-              className="flex items-center px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-200 text-sm"
+            <motion.header 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="mb-10"
             >
-              <ExternalLink className="h-4 w-4 mr-1.5" />
-              {copied ? 'Kopyalandı!' : 'Paylaş'}
-            </button>
-            <button
-              onClick={shareOnTwitter}
-              className="p-2 bg-[#1DA1F2] text-white rounded-lg hover:bg-[#1a94df] transition-colors duration-200"
-            >
-              <Twitter className="h-4 w-4" />
-            </button>
-            <button
-              onClick={shareOnFacebook}
-              className="p-2 bg-[#4267B2] text-white rounded-lg hover:bg-[#3b5c9f] transition-colors duration-200"
-            >
-              <Facebook className="h-4 w-4" />
-            </button>
-            <button
-              onClick={shareOnLinkedIn}
-              className="p-2 bg-[#0077B5] text-white rounded-lg hover:bg-[#006ba3] transition-colors duration-200"
-            >
-              <Linkedin className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Etiketler */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="mb-10">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">Etiketler</h3>
-              <div className="flex flex-wrap gap-2">
-                {post.tags.map(tag => (
-                  <Link
-                    key={tag}
-                    to={`/blog?tag=${tag}`}
-                    className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 rounded-full text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-200"
-                  >
-                    {tag}
-                  </Link>
-                ))}
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white leading-tight mb-4">
+                {post.title}
+              </h1>
+              
+              <div className="flex flex-wrap items-center gap-2 mb-6 text-sm text-slate-600 dark:text-slate-400">
+                <Link 
+                  to={`/blog?category=${post.category}`}
+                  className="inline-flex items-center px-3 py-1 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 rounded-full font-medium transition-colors hover:bg-primary-100 dark:hover:bg-primary-900/50"
+                >
+                  <Tag className="h-3.5 w-3.5 mr-1.5" />
+                  {post.category}
+                </Link>
+                <span className="inline-flex items-center">
+                  <Calendar className="h-4 w-4 mr-1.5 text-slate-400 dark:text-slate-500" />
+                  {formatBlogDate(post.published_at)}
+                </span>
+                <span className="inline-flex items-center">
+                  <User className="h-4 w-4 mr-1.5 text-slate-400 dark:text-slate-500" />
+                  {post.author}
+                </span>
+                <ReadTime 
+                  minutes={post.reading_time} 
+                  className="inline-flex items-center px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-xs"
+                  iconClassName="h-3.5 w-3.5 mr-1.5 text-slate-400 dark:text-slate-500"
+                />
               </div>
+              
+              <p className="text-lg sm:text-xl text-slate-700 dark:text-slate-300 leading-relaxed">
+                {post.excerpt}
+              </p>
+            </motion.header>
+
+            {/* Blog görseli */}
+            <motion.figure 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mb-10 rounded-2xl overflow-hidden shadow-xl dark:shadow-primary-900/10"
+            >
+              <img 
+                src={post.cover_image}
+                alt={post.title}
+                className="w-full object-cover h-64 sm:h-80 lg:h-96"
+                loading="lazy"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/assets/images/blog-placeholder.jpg';
+                  target.onerror = () => {
+                    target.src = '/assets/images/logo_2.png';
+                    target.onerror = null;
+                  };
+                }}
+              />
+            </motion.figure>
+
+            {/* Blog içeriği */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="prose prose-lg dark:prose-invert prose-slate max-w-none mb-12
+                prose-headings:font-bold prose-headings:text-slate-900 dark:prose-headings:text-white
+                prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
+                prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-p:leading-relaxed
+                prose-a:text-primary-600 dark:prose-a:text-primary-400 prose-a:font-medium prose-a:no-underline hover:prose-a:underline
+                prose-img:rounded-xl prose-img:shadow-lg
+                prose-ul:text-slate-700 dark:prose-ul:text-slate-300
+                prose-ol:text-slate-700 dark:prose-ol:text-slate-300
+                prose-li:mb-1
+                prose-blockquote:border-l-primary-500 dark:prose-blockquote:border-l-primary-500
+                prose-blockquote:text-slate-700 dark:prose-blockquote:text-slate-300
+                prose-blockquote:bg-primary-50 dark:prose-blockquote:bg-primary-900/20 prose-blockquote:rounded-r-lg prose-blockquote:py-1 prose-blockquote:px-4
+                prose-strong:text-slate-900 dark:prose-strong:text-white
+                prose-code:text-slate-900 dark:prose-code:text-slate-200
+                prose-code:bg-slate-100 dark:prose-code:bg-slate-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded
+                prose-pre:bg-slate-800 dark:prose-pre:bg-slate-900 prose-pre:text-slate-200 dark:prose-pre:text-slate-200 prose-pre:shadow-lg"
+            >
+              <div dangerouslySetInnerHTML={renderContent(post.content)} />
+            </motion.div>
+
+            {/* Mobil paylaşım */}
+            <div className="md:hidden flex justify-center mb-10 space-x-2">
+              <button
+                onClick={copyToClipboard}
+                className="flex items-center px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-200 text-sm"
+              >
+                <ExternalLink className="h-4 w-4 mr-1.5" />
+                {copied ? 'Kopyalandı!' : 'Paylaş'}
+              </button>
+              <button
+                onClick={shareOnTwitter}
+                className="p-2 bg-[#1DA1F2] text-white rounded-lg hover:bg-[#1a94df] transition-colors duration-200"
+              >
+                <Twitter className="h-4 w-4" />
+              </button>
+              <button
+                onClick={shareOnFacebook}
+                className="p-2 bg-[#4267B2] text-white rounded-lg hover:bg-[#3b5c9f] transition-colors duration-200"
+              >
+                <Facebook className="h-4 w-4" />
+              </button>
+              <button
+                onClick={shareOnLinkedIn}
+                className="p-2 bg-[#0077B5] text-white rounded-lg hover:bg-[#006ba3] transition-colors duration-200"
+              >
+                <Linkedin className="h-4 w-4" />
+              </button>
             </div>
-          )}
-          
-          {/* Yazarla ilgili bilgi */}
-          <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-800/80 rounded-xl p-6 mb-10 shadow-md border border-slate-200/70 dark:border-slate-700/30">
-            <div className="flex items-start">
-              <div className="flex-shrink-0 mr-4">
-                <div className="h-12 w-12 rounded-full bg-primary-600 dark:bg-primary-500 flex items-center justify-center text-white text-xl font-bold">
-                  {post.author.charAt(0)}
+
+            {/* Etiketler */}
+            {post.tags && post.tags.length > 0 && (
+              <div className="mb-10">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">Etiketler</h3>
+                <div className="flex flex-wrap gap-2">
+                  {post.tags.map(tag => (
+                    <Link
+                      key={tag}
+                      to={`/blog?tag=${tag}`}
+                      className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 rounded-full text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors duration-200"
+                    >
+                      {tag}
+                    </Link>
+                  ))}
                 </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{post.author}</h3>
-                <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">
-                  PsikoRan platformunda profesyonel danışmanlık ve klinik yönetimi konularında uzman yazar.
-                </p>
+            )}
+            
+            {/* Yazarla ilgili bilgi */}
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-800/80 rounded-xl p-6 mb-10 shadow-md border border-slate-200/70 dark:border-slate-700/30">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 mr-4">
+                  <div className="h-12 w-12 rounded-full bg-primary-600 dark:bg-primary-500 flex items-center justify-center text-white text-xl font-bold">
+                    {post.author.charAt(0)}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{post.author}</h3>
+                  <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">
+                    PsikoRan platformunda profesyonel danışmanlık ve klinik yönetimi konularında uzman yazar.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-          
-          {/* İlgili bağlantılar ve CTA */}
-          <div className="rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 dark:from-primary-600 dark:to-primary-500 p-6 sm:p-8 text-white shadow-lg mb-10">
-            <h3 className="text-xl sm:text-2xl font-bold mb-3">PsikoRan ile Tanışın</h3>
-            <p className="mb-6 text-sm sm:text-base text-white/90">
-              Profesyonel danışmanlık süreçlerinizi dijitalleştiren PsikoRan ile randevularınızı yönetin, 
-              danışan takibini kolaylaştırın ve işinizi büyütün.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                to="/register"
-                className="inline-flex items-center px-4 py-2 bg-white text-primary-600 font-medium rounded-lg hover:bg-slate-100 transition-colors duration-200 text-sm"
-              >
-                Ücretsiz Başlayın
-                <ArrowRight className="ml-1.5 h-4 w-4" />
-              </Link>
-              <Link
-                to="/blog"
-                className="inline-flex items-center px-4 py-2 bg-primary-700/40 text-white font-medium rounded-lg hover:bg-primary-700/60 transition-colors duration-200 text-sm"
-              >
-                <ArrowLeft className="mr-1.5 h-4 w-4" />
-                Diğer Yazılar
-              </Link>
+            
+            {/* İlgili bağlantılar ve CTA */}
+            <div className="rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 dark:from-primary-600 dark:to-primary-500 p-6 sm:p-8 text-white shadow-lg mb-10">
+              <h3 className="text-xl sm:text-2xl font-bold mb-3">PsikoRan ile Tanışın</h3>
+              <p className="mb-6 text-sm sm:text-base text-white/90">
+                Profesyonel danışmanlık süreçlerinizi dijitalleştiren PsikoRan ile randevularınızı yönetin, 
+                danışan takibini kolaylaştırın ve işinizi büyütün.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  to="/register"
+                  className="inline-flex items-center px-4 py-2 bg-white text-primary-600 font-medium rounded-lg hover:bg-slate-100 transition-colors duration-200 text-sm"
+                >
+                  Ücretsiz Başlayın
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+                <Link
+                  to="/blog"
+                  className="inline-flex items-center px-4 py-2 bg-primary-700/40 text-white font-medium rounded-lg hover:bg-primary-700/60 transition-colors duration-200 text-sm"
+                >
+                  <ArrowLeft className="mr-1.5 h-4 w-4" />
+                  Diğer Yazılar
+                </Link>
+              </div>
             </div>
-          </div>
-        </article>
-      </div>
+          </article>
+        </div>
     </MainLayout>
   );
 } 

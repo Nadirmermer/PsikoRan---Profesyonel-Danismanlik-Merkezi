@@ -109,7 +109,7 @@ export function Contact() {
             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">İletişim Bilgileri</h2>
               
-              <div className="space-y-6">
+            <div className="space-y-6">
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
                     <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary-50 dark:bg-primary-900/20">
@@ -121,13 +121,13 @@ export function Contact() {
                     <a href="mailto:info@psikoran.com" className="text-base text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors">
                       info@psikoran.com
                     </a>
-                  </div>
                 </div>
+              </div>
 
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
                     <div className="flex items-center justify-center h-12 w-12 rounded-full bg-primary-50 dark:bg-primary-900/20">
-                      <Phone className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+                    <Phone className="h-6 w-6 text-primary-600 dark:text-primary-400" />
                     </div>
                   </div>
                   <div className="ml-4">
@@ -135,8 +135,8 @@ export function Contact() {
                     <a href="tel:+902121234567" className="text-base text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors">
                       +90 (212) 123 45 67
                     </a>
-                  </div>
                 </div>
+              </div>
 
                 <div className="flex items-start">
                   <div className="flex-shrink-0">
@@ -210,47 +210,47 @@ export function Contact() {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
+                <div>
                       <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                         Adınız Soyadınız
-                      </label>
-                      <input
-                        type="text"
+                  </label>
+                  <input
+                    type="text"
                         id="name"
                         name="name"
-                        required
-                        value={formData.name}
+                    required
+                    value={formData.name}
                         onChange={(e) => setFormData({...formData, name: e.target.value})}
                         className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                        placeholder="Adınız Soyadınız"
-                      />
-                    </div>
-                    <div>
+                    placeholder="Adınız Soyadınız"
+                  />
+                </div>
+                <div>
                       <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                         E-posta Adresiniz
-                      </label>
-                      <input
-                        type="email"
+                  </label>
+                  <input
+                    type="email"
                         id="email"
                         name="email"
-                        required
-                        value={formData.email}
+                    required
+                    value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
                         className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                        placeholder="ornek@email.com"
-                      />
+                    placeholder="ornek@email.com"
+                  />
                     </div>
-                  </div>
+                </div>
 
-                  <div>
+                <div>
                     <label htmlFor="topic" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Konu
-                    </label>
-                    <select
+                    Konu
+                  </label>
+                  <select
                       id="topic"
                       name="topic"
-                      required
-                      value={formData.topic}
+                    required
+                    value={formData.topic}
                       onChange={(e) => setFormData({...formData, topic: e.target.value})}
                       className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                     >
@@ -259,33 +259,33 @@ export function Contact() {
                         <option key={topic.id} value={topic.id}>
                           {topic.label}
                         </option>
-                      ))}
-                    </select>
-                  </div>
+                    ))}
+                  </select>
+                </div>
 
-                  <div>
+                <div>
                     <label htmlFor="message" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Mesajınız
-                    </label>
-                    <textarea
+                    Mesajınız
+                  </label>
+                  <textarea
                       id="message"
                       name="message"
                       rows={6}
-                      required
-                      value={formData.message}
+                    required
+                    value={formData.message}
                       onChange={(e) => setFormData({...formData, message: e.target.value})}
                       className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                       placeholder="Mesajınızı buraya yazın..."
-                    />
-                  </div>
+                  />
+                </div>
 
-                  <div className="flex items-start">
+                <div className="flex items-start">
                     <div className="flex items-center h-5">
-                      <input
+                  <input
                         id="acceptTerms"
                         name="acceptTerms"
-                        type="checkbox"
-                        checked={formData.acceptTerms}
+                    type="checkbox"
+                    checked={formData.acceptTerms}
                         onChange={(e) => setFormData({...formData, acceptTerms: e.target.checked})}
                         className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-slate-300 rounded"
                       />
@@ -293,16 +293,16 @@ export function Contact() {
                     <div className="ml-3 text-sm">
                       <label htmlFor="acceptTerms" className="font-medium text-slate-700 dark:text-slate-300">
                         Kişisel verilerimin işlenmesine izin veriyorum
-                      </label>
+                  </label>
                       <p className="text-slate-500 dark:text-slate-400">
                         <Link to="/privacy" className="text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">
                           Gizlilik Politikasını
                         </Link> okudum ve kabul ediyorum.
                       </p>
                     </div>
-                  </div>
+                </div>
 
-                  {error && (
+                {error && (
                     <div className="p-4 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-800/30 flex items-center space-x-2">
                       <div className="shrink-0">
                         <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -314,21 +314,21 @@ export function Contact() {
                   )}
 
                   <div>
-                    <button
-                      type="submit"
-                      disabled={loading}
+                <button
+                  type="submit"
+                  disabled={loading}
                       className="w-full py-3 px-6 rounded-lg text-base font-semibold text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-all duration-300 flex items-center justify-center"
-                    >
-                      {loading ? (
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                      ) : (
-                        <>
+                >
+                  {loading ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                  ) : (
+                    <>
                           <Send className="h-5 w-5 mr-2" />
                           <span>Mesaj Gönder</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                    </>
+                  )}
+                </button>
+                </div>
                 </form>
               )}
             </div>

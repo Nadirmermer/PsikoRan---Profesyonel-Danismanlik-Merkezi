@@ -172,7 +172,7 @@ export function Pricing() {
       <div className="bg-white dark:bg-slate-900 transition-colors duration-300">
         {/* Hero Bölümü */}
         <section className="pt-16 pb-12 md:pt-20 md:pb-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <motion.h1
                 initial={{ opacity: 0, y: -20 }}
@@ -196,7 +196,7 @@ export function Pricing() {
               {/* Fatura Değiştirici */}
               <div className="mt-10 flex justify-center">
                 <div className="relative bg-white dark:bg-slate-800 p-1 rounded-full flex">
-                  <button
+              <button
                     onClick={() => setAnnualBilling(false)}
                     className={`${
                       !annualBilling
@@ -205,9 +205,9 @@ export function Pricing() {
                     } relative w-32 rounded-full py-2 transition-all duration-300 focus:outline-none`}
                   >
                     Aylık
-                  </button>
-                  
-                  <button
+              </button>
+              
+              <button
                     onClick={() => setAnnualBilling(true)}
                     className={`${
                       annualBilling
@@ -219,191 +219,191 @@ export function Pricing() {
                     <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                       %20 İndirim
                     </span>
-                  </button>
-                </div>
-              </div>
+              </button>
             </div>
+              </div>
+        </div>
           </div>
-        </section>
+      </section>
 
         {/* Fiyatlandırma Planları */}
-        <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {plans.map((plan, index) => (
-              <motion.div 
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className={`flex-1 rounded-3xl overflow-hidden border ${plan.popular ? 'border-primary-400 dark:border-primary-500 shadow-xl shadow-primary-100 dark:shadow-primary-900/20' : 'border-slate-200 dark:border-slate-700 shadow-lg'}`}
-              >
-                {/* Plan Header */}
-                <div className={`${plan.color} px-6 py-8 text-center ${plan.popular ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
-                  {plan.popular && (
-                    <span className="inline-block px-4 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-medium mb-3">
-                      En Popüler
-                    </span>
-                  )}
-                  <h3 className={`text-2xl font-bold ${plan.popular ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{plan.name}</h3>
-                  <p className={`mt-2 text-sm ${plan.popular ? 'text-white/90' : 'text-slate-600 dark:text-slate-300'}`}>{plan.description}</p>
-                  <div className="mt-4">
+      <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {plans.map((plan, index) => (
+            <motion.div 
+              key={index}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              viewport={{ once: true }}
+              className={`flex-1 rounded-3xl overflow-hidden border ${plan.popular ? 'border-primary-400 dark:border-primary-500 shadow-xl shadow-primary-100 dark:shadow-primary-900/20' : 'border-slate-200 dark:border-slate-700 shadow-lg'}`}
+            >
+              {/* Plan Header */}
+              <div className={`${plan.color} px-6 py-8 text-center ${plan.popular ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
+                {plan.popular && (
+                  <span className="inline-block px-4 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-xs font-medium mb-3">
+                    En Popüler
+                  </span>
+                )}
+                <h3 className={`text-2xl font-bold ${plan.popular ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{plan.name}</h3>
+                <p className={`mt-2 text-sm ${plan.popular ? 'text-white/90' : 'text-slate-600 dark:text-slate-300'}`}>{plan.description}</p>
+                <div className="mt-4">
                     <span className="text-4xl font-bold">₺{annualBilling ? plan.annualPrice : plan.monthlyPrice}</span>
-                    <span className={`text-sm ${plan.popular ? 'text-white/90' : 'text-slate-600 dark:text-slate-300'}`}>/ay</span>
-                  </div>
+                  <span className={`text-sm ${plan.popular ? 'text-white/90' : 'text-slate-600 dark:text-slate-300'}`}>/ay</span>
+                </div>
                   {annualBilling && (
-                    <p className={`mt-1 text-xs ${plan.popular ? 'text-white/80' : 'text-slate-500 dark:text-slate-400'}`}>
-                      Yıllık faturalandırmada
-                    </p>
-                  )}
-                </div>
-                
-                {/* Plan Features */}
-                <div className="bg-white dark:bg-slate-800 px-6 py-8">
-                  <ul className="space-y-4 mb-8">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start">
-                        {feature.included ? (
-                          <Check className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                        ) : (
-                          <X className="h-5 w-5 text-slate-300 dark:text-slate-600 flex-shrink-0 mt-0.5" />
-                        )}
-                        <span className={`ml-3 text-sm ${feature.included ? 'text-slate-700 dark:text-slate-300' : 'text-slate-500 dark:text-slate-500'}`}>
-                          {feature.title}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link
-                    to={index === 2 ? "/contact" : "/register"}
-                    className={`w-full py-3 px-4 rounded-lg flex items-center justify-center text-sm font-medium transition-colors duration-200 ${plan.popular ? 'text-primary-700 hover:text-primary-800' : 'text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700'} ${plan.ctaStyle}`}
-                  >
-                    <span>{plan.cta}</span>
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-
-        {/* Features Comparison Table (only on larger screens) */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto hidden lg:block">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
-              Planları Karşılaştırın
-            </h2>
-            <p className="text-slate-600 dark:text-slate-400">
-              İhtiyaçlarınıza en uygun planı seçmek için özellik karşılaştırması yapın
-            </p>
-          </motion.div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <th className="py-4 px-6 text-left font-medium text-slate-500 dark:text-slate-400">Özellik</th>
-                  {plans.map((plan, i) => (
-                    <th key={i} className="py-4 px-6 text-center font-medium">
-                      <span className={`${plan.popular ? 'text-primary-600 dark:text-primary-400' : 'text-slate-900 dark:text-white'}`}>
-                        {plan.name}
+                  <p className={`mt-1 text-xs ${plan.popular ? 'text-white/80' : 'text-slate-500 dark:text-slate-400'}`}>
+                    Yıllık faturalandırmada
+                  </p>
+                )}
+              </div>
+              
+              {/* Plan Features */}
+              <div className="bg-white dark:bg-slate-800 px-6 py-8">
+                <ul className="space-y-4 mb-8">
+                  {plan.features.map((feature, i) => (
+                    <li key={i} className="flex items-start">
+                      {feature.included ? (
+                        <Check className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <X className="h-5 w-5 text-slate-300 dark:text-slate-600 flex-shrink-0 mt-0.5" />
+                      )}
+                      <span className={`ml-3 text-sm ${feature.included ? 'text-slate-700 dark:text-slate-300' : 'text-slate-500 dark:text-slate-500'}`}>
+                        {feature.title}
                       </span>
-                    </th>
+                    </li>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <td className="py-4 px-6 text-sm text-slate-700 dark:text-slate-300">Danışan Sayısı</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">5 aktif</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">25 aktif</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">Sınırsız</td>
-                </tr>
-                <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <td className="py-4 px-6 text-sm text-slate-700 dark:text-slate-300">Kullanıcı Sayısı</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">1</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">5</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">Özelleştirilebilir</td>
-                </tr>
-                <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <td className="py-4 px-6 text-sm text-slate-700 dark:text-slate-300">Yapay Zeka Süre</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">-</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">10 saat/ay</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">30 saat/ay</td>
-                </tr>
-                <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <td className="py-4 px-6 text-sm text-slate-700 dark:text-slate-300">API Erişimi</td>
-                  <td className="py-4 px-6 text-center">
-                    <X className="h-5 w-5 text-slate-300 dark:text-slate-600 mx-auto" />
-                  </td>
-                  <td className="py-4 px-6 text-center">
-                    <X className="h-5 w-5 text-slate-300 dark:text-slate-600 mx-auto" />
-                  </td>
-                  <td className="py-4 px-6 text-center">
-                    <Check className="h-5 w-5 text-green-500 mx-auto" />
-                  </td>
-                </tr>
-                <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <td className="py-4 px-6 text-sm text-slate-700 dark:text-slate-300">Depolama</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">5 GB</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">20 GB</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">100 GB</td>
-                </tr>
-                <tr>
-                  <td className="py-4 px-6 text-sm text-slate-700 dark:text-slate-300">Teknik Destek</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">E-posta</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">Öncelikli E-posta</td>
-                  <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">Telefon + E-posta</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
+                </ul>
+                <Link
+                  to={index === 2 ? "/contact" : "/register"}
+                  className={`w-full py-3 px-4 rounded-lg flex items-center justify-center text-sm font-medium transition-colors duration-200 ${plan.popular ? 'text-primary-700 hover:text-primary-800' : 'text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700'} ${plan.ctaStyle}`}
+                >
+                  <span>{plan.cta}</span>
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
 
-        {/* FAQ Section */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
-              Sıkça Sorulan Sorular
-            </h2>
-            <p className="text-slate-600 dark:text-slate-400">
-              Fiyatlandırma ve aboneliklerle ilgili en çok sorulan sorular
-            </p>
-          </motion.div>
+      {/* Features Comparison Table (only on larger screens) */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto hidden lg:block">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+            Planları Karşılaştırın
+          </h2>
+          <p className="text-slate-600 dark:text-slate-400">
+            İhtiyaçlarınıza en uygun planı seçmek için özellik karşılaştırması yapın
+          </p>
+        </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {faqs.map((faq, index) => (
-              <motion.div 
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-lg border border-slate-200 dark:border-slate-700 p-6 transition-all duration-300"
-              >
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3 flex items-start">
-                  <HelpCircle className="h-5 w-5 text-primary-500 mr-2 flex-shrink-0 mt-0.5" />
-                  {faq.question}
-                </h3>
-                <p className="text-slate-600 dark:text-slate-400 text-sm pl-7">
-                  {faq.answer}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </section>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-700">
+                <th className="py-4 px-6 text-left font-medium text-slate-500 dark:text-slate-400">Özellik</th>
+                {plans.map((plan, i) => (
+                  <th key={i} className="py-4 px-6 text-center font-medium">
+                    <span className={`${plan.popular ? 'text-primary-600 dark:text-primary-400' : 'text-slate-900 dark:text-white'}`}>
+                      {plan.name}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-slate-200 dark:border-slate-700">
+                <td className="py-4 px-6 text-sm text-slate-700 dark:text-slate-300">Danışan Sayısı</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">5 aktif</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">25 aktif</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">Sınırsız</td>
+              </tr>
+              <tr className="border-b border-slate-200 dark:border-slate-700">
+                <td className="py-4 px-6 text-sm text-slate-700 dark:text-slate-300">Kullanıcı Sayısı</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">1</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">5</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">Özelleştirilebilir</td>
+              </tr>
+              <tr className="border-b border-slate-200 dark:border-slate-700">
+                <td className="py-4 px-6 text-sm text-slate-700 dark:text-slate-300">Yapay Zeka Süre</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">-</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">10 saat/ay</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">30 saat/ay</td>
+              </tr>
+              <tr className="border-b border-slate-200 dark:border-slate-700">
+                <td className="py-4 px-6 text-sm text-slate-700 dark:text-slate-300">API Erişimi</td>
+                <td className="py-4 px-6 text-center">
+                  <X className="h-5 w-5 text-slate-300 dark:text-slate-600 mx-auto" />
+                </td>
+                <td className="py-4 px-6 text-center">
+                  <X className="h-5 w-5 text-slate-300 dark:text-slate-600 mx-auto" />
+                </td>
+                <td className="py-4 px-6 text-center">
+                  <Check className="h-5 w-5 text-green-500 mx-auto" />
+                </td>
+              </tr>
+              <tr className="border-b border-slate-200 dark:border-slate-700">
+                <td className="py-4 px-6 text-sm text-slate-700 dark:text-slate-300">Depolama</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">5 GB</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">20 GB</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">100 GB</td>
+              </tr>
+              <tr>
+                <td className="py-4 px-6 text-sm text-slate-700 dark:text-slate-300">Teknik Destek</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">E-posta</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">Öncelikli E-posta</td>
+                <td className="py-4 px-6 text-center text-sm text-slate-700 dark:text-slate-300">Telefon + E-posta</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-        {/* CTA Section */}
+      {/* FAQ Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+            Sıkça Sorulan Sorular
+          </h2>
+          <p className="text-slate-600 dark:text-slate-400">
+            Fiyatlandırma ve aboneliklerle ilgili en çok sorulan sorular
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {faqs.map((faq, index) => (
+            <motion.div 
+              key={index}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              viewport={{ once: true }}
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-md hover:shadow-lg border border-slate-200 dark:border-slate-700 p-6 transition-all duration-300"
+            >
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3 flex items-start">
+                <HelpCircle className="h-5 w-5 text-primary-500 mr-2 flex-shrink-0 mt-0.5" />
+                {faq.question}
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 text-sm pl-7">
+                {faq.answer}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA Section */}
         <section className="py-20 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div className="bg-white dark:bg-slate-800 rounded-full h-16 w-16 flex items-center justify-center mb-6 shadow-lg">
@@ -427,9 +427,9 @@ export function Pricing() {
                 <ArrowRight className="h-5 w-5 ml-2" />
               </motion.div>
             </Link>
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
+                  </div>
     </MainLayout>
   );
 }
