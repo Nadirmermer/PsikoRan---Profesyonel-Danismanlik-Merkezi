@@ -5,7 +5,7 @@ import {
   Login, Register, Dashboard, CreateAssistant, Professionals, Clients,
   ClientDetails, Appointments, Payments, Settings, ForgotPassword,
   ResetPassword, Privacy, Terms, KVKK, Contact, Help, Test, TestCompleted, Home,
-  Blog, BlogAdmin
+  Blog, BlogAdmin, Features, Pricing, Demo
 } from './pages';
 import { BlogPost } from './pages/BlogPost';
 import AppointmentDetails from './components/AppointmentDetails';
@@ -101,6 +101,9 @@ function AnimatedRoutes() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/" element={<Home />} />
+        <Route path="/features" element={<Features />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/demo" element={<Demo />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route
