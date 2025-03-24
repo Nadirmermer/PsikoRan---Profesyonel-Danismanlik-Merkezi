@@ -3,11 +3,21 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Check, HelpCircle, Info, X, ArrowRight, Sun, Moon, LogIn, Menu } from 'lucide-react';
 import { MainLayout } from '../components/layout/MainLayout';
+import PaymentModal from '../components/payment/PaymentModal';
+import { processPayment, recordBankTransfer, PlanType, BillingPeriod } from '../components/payment/PaymentService';
+import { useSubscription } from '../components/payment/SubscriptionContext';
 
 import logo2 from '../assets/logos/logo_2.png';
 
 export function Pricing() {
   const [annualBilling, setAnnualBilling] = useState(true);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<{
+    name: string;
+    price: string;
+    type: PlanType;
+  } | null>(null);
+  const { isActive, planType, refreshSubscription } = useSubscription();
   
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -70,6 +80,20 @@ export function Pricing() {
     }
   };
   
+  const handlePlanSelect = (planName: string, planPrice: string, planType: PlanType) => {
+    setSelectedPlan({
+      name: planName,
+      price: planPrice,
+      type: planType
+    });
+    setIsPaymentModalOpen(true);
+  };
+
+  const handlePaymentComplete = () => {
+    refreshSubscription();
+    // Burada ek başarılı ödeme işlemleri yapılabilir
+  };
+
   const plans = [
     {
       name: 'Başlangıç',
@@ -91,7 +115,8 @@ export function Pricing() {
       cta: 'Ücretsiz Başlayın',
       popular: false,
       color: 'bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900',
-      ctaStyle: 'bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700'
+      ctaStyle: 'bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700',
+      planType: 'starter' as PlanType
     },
     {
       name: 'Profesyonel',
@@ -113,7 +138,8 @@ export function Pricing() {
       cta: 'Şimdi Başlayın',
       popular: true,
       color: 'bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-600 dark:to-primary-700',
-      ctaStyle: 'bg-white text-primary-600 hover:bg-slate-100'
+      ctaStyle: 'bg-white text-primary-600 hover:bg-slate-100',
+      planType: 'professional' as PlanType
     },
     {
       name: 'Kurumsal',
@@ -135,7 +161,8 @@ export function Pricing() {
       cta: 'İletişime Geçin',
       popular: false,
       color: 'bg-gradient-to-br from-indigo-500 to-indigo-600 dark:from-indigo-600 dark:to-indigo-700',
-      ctaStyle: 'bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700'
+      ctaStyle: 'bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700',
+      planType: 'enterprise' as PlanType
     }
   ];
 
@@ -274,13 +301,23 @@ export function Pricing() {
                     </li>
                   ))}
                 </ul>
-                <Link
-                  to={index === 2 ? "/contact" : "/register"}
-                  className={`w-full py-3 px-4 rounded-lg flex items-center justify-center text-sm font-medium transition-colors duration-200 ${plan.popular ? 'text-primary-700 hover:text-primary-800' : 'text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700'} ${plan.ctaStyle}`}
-                >
-                  <span>{plan.cta}</span>
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                {index === 2 ? (
+                  <Link
+                    to="/contact"
+                    className={`w-full py-3 px-4 rounded-lg flex items-center justify-center text-sm font-medium transition-colors duration-200 ${plan.popular ? 'text-primary-700 hover:text-primary-800' : 'text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700'} ${plan.ctaStyle}`}
+                  >
+                    <span>{plan.cta}</span>
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => handlePlanSelect(plan.name, annualBilling ? plan.annualPrice : plan.monthlyPrice, plan.planType)}
+                    className={`w-full py-3 px-4 rounded-lg flex items-center justify-center text-sm font-medium transition-colors duration-200 ${plan.popular ? 'text-primary-700 hover:text-primary-800' : 'text-slate-800 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700'} ${plan.ctaStyle}`}
+                  >
+                    <span>{isActive && planType === plan.planType ? 'Mevcut Planınız' : plan.cta}</span>
+                    {!(isActive && planType === plan.planType) && <ArrowRight className="ml-2 h-4 w-4" />}
+                  </button>
+                )}
               </div>
             </motion.div>
           ))}
@@ -429,7 +466,19 @@ export function Pricing() {
             </Link>
         </div>
       </section>
-                  </div>
+
+      {/* Ödeme Modalı */}
+      {selectedPlan && (
+        <PaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          onPaymentComplete={handlePaymentComplete}
+          planName={selectedPlan.name}
+          planPrice={selectedPlan.price}
+          isAnnual={annualBilling}
+        />
+      )}
+    </div>
     </MainLayout>
   );
 }

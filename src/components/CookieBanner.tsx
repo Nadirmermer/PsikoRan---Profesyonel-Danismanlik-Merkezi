@@ -3,6 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Cookie, ChevronDown, ChevronUp, Check, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+// Google Analytics için TypeScript tanımları
+declare global {
+  interface Window {
+    dataLayer: any[];
+    gtag: (...args: any[]) => void;
+  }
+}
+
 type CookieType = 'essential' | 'preferences' | 'analytics';
 
 type CookieConsent = {
@@ -74,15 +82,33 @@ export function CookieBanner() {
   };
 
   const applyConsent = (currentConsent: CookieConsent) => {
-    // Burada çerez tercihlerini gerçekten uygulayacak kodlar yazılabilir
-    // Örneğin, analytics izni verilmemişse Google Analytics'i devre dışı bırakma
-    
-    if (!currentConsent.analytics) {
-      // Analytics çerezlerini devre dışı bırak
-      window['ga-disable-UA-XXXXXXXX-X'] = true;
+    // Google Tag Manager ile çerez tercihlerini yönetme
+    if (window.dataLayer && typeof window.gtag === 'function') {
+      // GTM üzerinden çerez tercihlerini ayarla
+      window.dataLayer.push({
+        'event': 'consent_update',
+        'consent': {
+          'analytics': currentConsent.analytics ? 'granted' : 'denied',
+          'preferences': currentConsent.preferences ? 'granted' : 'denied',
+          'marketing': false // Pazarlama çerezleri default olarak kapalı
+        }
+      });
+      
+      // GA4 için doğrudan consent modu
+      window.gtag('consent', 'update', {
+        'analytics_storage': currentConsent.analytics ? 'granted' : 'denied',
+        'functionality_storage': currentConsent.preferences ? 'granted' : 'denied', 
+        'ad_storage': 'denied' // Pazarlama çerezleri default olarak kapalı
+      });
+      
+      // Eski GA4 devre dışı bırakma yöntemi (yedek olarak tutuyoruz)
+      if (!currentConsent.analytics) {
+        window['ga-disable-G-5M6V976WY8'] = true;
+      } else {
+        window['ga-disable-G-5M6V976WY8'] = false;
+      }
     }
     
-    // Tercihlere göre diğer çerez gruplarını yönetme
     console.log('Cookie preferences applied:', currentConsent);
   };
 

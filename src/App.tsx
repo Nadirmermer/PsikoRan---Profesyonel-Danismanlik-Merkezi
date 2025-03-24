@@ -21,6 +21,7 @@ import { checkUpcomingAppointments } from './utils/notificationUtils';
 import { useAuth } from './lib/auth';
 import { useTheme } from './lib/theme';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
+import { SubscriptionProvider } from './components/payment/SubscriptionContext';
 
 // React Router v7 için future flag'leri
 const v7_startTransition = true;
@@ -256,23 +257,25 @@ export function App() {
   }, [initializeTheme]);
 
   return (
-    <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
-      <Router future={{ v7_startTransition, v7_relativeSplatPath }}>
-        {isInitialLoading ? (
-          <AppLoader />
-        ) : (
-          <>
-            {isLoading && <AppLoader />}
-            <OfflineIndicator />
-            <PWAPrompts />
-            <CookieBanner />
-            <Suspense>
-              <AnimatedRoutes />
-            </Suspense>
-            {pwaInstallReady && <PWAInstallPrompt />}
-          </>
-        )}
-      </Router>
-    </LoadingContext.Provider>
+    <SubscriptionProvider>
+      <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
+        <Router future={{ v7_startTransition, v7_relativeSplatPath }}>
+          {isInitialLoading ? (
+            <AppLoader />
+          ) : (
+            <>
+              {isLoading && <AppLoader />}
+              <OfflineIndicator />
+              <PWAPrompts />
+              <CookieBanner />
+              <Suspense>
+                <AnimatedRoutes />
+              </Suspense>
+              {pwaInstallReady && <PWAInstallPrompt />}
+            </>
+          )}
+        </Router>
+      </LoadingContext.Provider>
+    </SubscriptionProvider>
   );
 }
