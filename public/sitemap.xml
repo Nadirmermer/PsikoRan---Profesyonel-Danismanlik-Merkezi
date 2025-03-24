@@ -4,145 +4,235 @@
   <!-- Ana Sayfa -->
   <url>
     <loc>https://psikoran.com/</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
       <image:loc>https://psikoran.com/assets/meta/og-image.jpg</image:loc>
-      <image:title>PsikoRan - Profesyonel Danışmanlık Merkezi</image:title>
+      <image:title>PsikoRan - Profesyonel Psikoloji Danışmanlık Merkezi</image:title>
+    </image:image>
+  </url>
+  
+  <!-- Bilgi Sayfaları -->
+  <url>
+    <loc>https://psikoran.com/features</loc>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/meta/features-banner.jpg</image:loc>
+      <image:title>PsikoRan - Özellikler ve Hizmetler</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://psikoran.com/pricing</loc>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/meta/pricing-banner.jpg</image:loc>
+      <image:title>PsikoRan - Fiyatlandırma Planları</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://psikoran.com/demo</loc>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/meta/demo-banner.jpg</image:loc>
+      <image:title>PsikoRan - Ücretsiz Demo</image:title>
     </image:image>
   </url>
   
   <!-- Blog Sayfaları -->
   <url>
     <loc>https://psikoran.com/blog</loc>
-    <lastmod>2024-11-15</lastmod>
-    <changefreq>weekly</changefreq>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/meta/blog-banner.jpg</image:loc>
+      <image:title>PsikoRan Blog - Psikoloji Makaleleri ve Rehberler</image:title>
+    </image:image>
   </url>
   <url>
     <loc>https://psikoran.com/blog/psikolojik-danismanlik-surecinde-dikkat-edilmesi-gerekenler</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
     <image:image>
-      <image:loc>https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e</image:loc>
+      <image:loc>https://psikoran.com/assets/blog/psikolojik-danismanlik-rehberi.jpg</image:loc>
       <image:title>Psikolojik Danışmanlık Sürecinde Dikkat Edilmesi Gerekenler</image:title>
     </image:image>
   </url>
   <url>
     <loc>https://psikoran.com/blog/anksiyete-ile-basa-cikma-yontemleri</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
     <image:image>
-      <image:loc>https://images.unsplash.com/photo-1569437061241-0d92f2f9152f</image:loc>
+      <image:loc>https://psikoran.com/assets/blog/anksiyete-cozumleri.jpg</image:loc>
       <image:title>Anksiyete ile Başa Çıkma Yöntemleri</image:title>
     </image:image>
   </url>
   <url>
     <loc>https://psikoran.com/blog/cocuklarda-duygusal-gelisim</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
     <image:image>
-      <image:loc>https://images.unsplash.com/photo-1503919545889-aef636e10ad4</image:loc>
+      <image:loc>https://psikoran.com/assets/blog/cocuk-psikoloji.jpg</image:loc>
       <image:title>Çocuklarda Duygusal Gelişim</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://psikoran.com/blog/ust-yakin-iliskiler-ve-baglama-stilleri</loc>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/blog/baglama-stilleri.jpg</image:loc>
+      <image:title>Yetişkin İlişkilerinde Bağlanma Stilleri</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://psikoran.com/blog/travma-sonrasi-buyume</loc>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/blog/travma-sonrasi-gelisim.jpg</image:loc>
+      <image:title>Travma Sonrası Büyüme ve İyileşme Süreci</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://psikoran.com/blog/is-yerinde-psikolojik-saglik</loc>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/blog/is-yeri-psikolojisi.jpg</image:loc>
+      <image:title>İş Yerinde Psikolojik Sağlığı Korumak</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://psikoran.com/blog/online-terapi-avantajlari</loc>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/blog/online-terapi.jpg</image:loc>
+      <image:title>Online Terapinin Avantajları ve Etkili Kullanımı</image:title>
     </image:image>
   </url>
   
   <!-- Kimlik Doğrulama Sayfaları -->
   <url>
     <loc>https://psikoran.com/login</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://psikoran.com/register</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://psikoran.com/create-assistant</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.5</priority>
   </url>
   <url>
     <loc>https://psikoran.com/forgot-password</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.4</priority>
   </url>
   <url>
     <loc>https://psikoran.com/reset-password</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.4</priority>
   </url>
   
   <!-- Uygulama Sayfaları (Oturum Gerektiren) -->
   <url>
     <loc>https://psikoran.com/dashboard</loc>
-    <lastmod>2024-11-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
   </url>
   <url>
     <loc>https://psikoran.com/professionals</loc>
-    <lastmod>2024-11-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
   </url>
   <url>
     <loc>https://psikoran.com/clients</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <priority>0.5</priority>
   </url>
   <url>
     <loc>https://psikoran.com/appointments</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <priority>0.5</priority>
   </url>
   <url>
     <loc>https://psikoran.com/payments</loc>
-    <lastmod>2024-11-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
   </url>
   <url>
     <loc>https://psikoran.com/settings</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://psikoran.com/blog-admin</loc>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <!-- Test Sayfaları -->
+  <url>
+    <loc>https://psikoran.com/test-completed</loc>
+    <lastmod>2024-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
   </url>
   
   <!-- Bilgilendirme Sayfaları -->
   <url>
     <loc>https://psikoran.com/privacy</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://psikoran.com/terms</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://psikoran.com/kvkk</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://psikoran.com/contact</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
     <image:image>
@@ -152,16 +242,12 @@
   </url>
   <url>
     <loc>https://psikoran.com/help</loc>
-    <lastmod>2024-11-15</lastmod>
+    <lastmod>2024-06-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
-  </url>
-  
-  <!-- Test Tamamlama Sayfası -->
-  <url>
-    <loc>https://psikoran.com/test-completed</loc>
-    <lastmod>2024-11-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/meta/help-image.jpg</image:loc>
+      <image:title>Yardım ve Destek - PsikoRan</image:title>
+    </image:image>
   </url>
 </urlset> 

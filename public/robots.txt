@@ -1,0 +1,42 @@
+# PsikoRan robots.txt dosyası
+User-agent: *
+Allow: /
+
+# Giriş sayfaları ve yönetim paneli kısıtlamaları
+Disallow: /dashboard
+Disallow: /professionals
+Disallow: /clients
+Disallow: /appointments
+Disallow: /payments
+Disallow: /settings
+Disallow: /blog-admin
+Disallow: /admin/
+Disallow: /api/
+Disallow: /*.json$
+Disallow: /assets/pwa/sw.js
+
+# Gizlilik gerektiren sayfalar
+Disallow: /test/
+Disallow: /public-test/
+
+# Sitemap URL
+Sitemap: https://psikoran.com/sitemap.xml
+
+# Özel crawl oranı
+Crawl-delay: 5
+
+# Bot özel yapılandırması
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 2
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 5
+
+User-agent: Yandexbot
+Allow: /
+Crawl-delay: 5
+
+User-agent: Baiduspider
+Disallow: / 
