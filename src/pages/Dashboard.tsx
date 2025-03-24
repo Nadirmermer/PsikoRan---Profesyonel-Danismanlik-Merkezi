@@ -725,6 +725,7 @@ export function Dashboard() {
           await loadProfessionalBreaks();
           await loadProfessionalVacations();
           await loadProfessionalData();
+          await loadClients();
         } else if (assistant) {
           await loadAssistantData();
         }
@@ -1166,9 +1167,12 @@ export function Dashboard() {
     if (!assistant?.id) return;
 
     try {
+      const today = new Date();
       const startToday = startOfDay(selectedDate);
       const endToday = endOfDay(selectedDate);
       const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const startOfThisMonth = startOfMonth(today);
+      const endOfThisMonth = endOfMonth(today);
 
       const { data: managedProfessionals, error: profError } = await supabase
         .from('professionals')
@@ -1195,6 +1199,23 @@ export function Dashboard() {
 
       if (apptsError) throw apptsError;
 
+      // Aylık randevuları da yükle
+      const { data: monthlyAppts, error: monthlyApptsError } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          client:clients(full_name),
+          professional:professionals(full_name),
+          room:rooms(name)
+        `)
+        .in('professional_id', professionalIds)
+        .eq('status', 'scheduled')
+        .gte('start_time', startOfThisMonth.toISOString())
+        .lte('start_time', endOfThisMonth.toISOString())
+        .order('start_time');
+
+      if (monthlyApptsError) throw monthlyApptsError;
+
       const { data: todayPays, error: paysError } = await supabase
         .from('payments')
         .select(`
@@ -1211,6 +1232,24 @@ export function Dashboard() {
         .order('payment_date');
 
       if (paysError) throw paysError;
+
+      // Aylık ödemeleri yükle
+      const { data: monthlyPays, error: monthlyPaysError } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          appointment:appointments(
+            *,
+            professional:professionals(full_name),
+            client:clients(full_name)
+          )
+        `)
+        .in('professional_id', professionalIds)
+        .gte('payment_date', startOfThisMonth.toISOString())
+        .lte('payment_date', endOfThisMonth.toISOString())
+        .order('payment_date');
+
+      if (monthlyPaysError) throw monthlyPaysError;
 
       const { data: cashData, error: cashError } = await supabase
         .from('cash_status')
@@ -1233,25 +1272,33 @@ export function Dashboard() {
         throw cashError;
       }
 
+      // Yüklenen verileri state'e set et
       setTodayAppointments(todayAppts || []);
+      setMonthlyAppointments(monthlyAppts || []);
       setTodayPayments(todayPays || []);
+      setMonthlyPayments(monthlyPays || []);
+      
+      // Kasa durumunu hesapla
       setCashStatus({
         opening_balance: cashData?.opening_balance || 0,
         from_professionals:
           todayPays?.reduce((sum, payment) => {
             if (payment.payment_status === 'paid_to_professional') {
-              return sum + Number(payment.office_amount);
+              return sum + Number(payment.office_amount || 0);
             }
             return sum;
           }, 0) || 0,
         to_professionals:
           todayPays?.reduce((sum, payment) => {
             if (payment.payment_status === 'paid_to_office') {
-              return sum + Number(payment.professional_amount);
+              return sum + Number(payment.professional_amount || 0);
             }
             return sum;
           }, 0) || 0,
       });
+      
+      // Danışanları yükle
+      await loadClients();
     } catch (error) {
       console.error('Error loading assistant dashboard data:', error);
     }
@@ -2290,14 +2337,15 @@ export function Dashboard() {
             <CreateAppointmentModal
               isOpen={showCreateModal}
               onClose={() => setShowCreateModal(false)}
-              onAppointmentCreated={() => {
+              onSuccess={() => {
                 if (professional) {
                   loadProfessionalData();
                 } else if (assistant) {
                   loadAssistantData();
                 }
               }}
-              clinicHours={clinicHours}
+              professionalId={professional?.id}
+              assistantId={assistant?.id}
             />
           )}
         </div>
@@ -2757,14 +2805,15 @@ export function Dashboard() {
           <CreateAppointmentModal
             isOpen={showCreateModal}
             onClose={() => setShowCreateModal(false)}
-            onAppointmentCreated={() => {
+            onSuccess={() => {
               if (professional) {
                 loadProfessionalData();
               } else if (assistant) {
                 loadAssistantData();
               }
             }}
-            clinicHours={clinicHours}
+            professionalId={professional?.id}
+            assistantId={assistant?.id}
           />
         )}
       </div>

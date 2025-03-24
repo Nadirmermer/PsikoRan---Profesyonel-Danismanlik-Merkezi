@@ -203,7 +203,7 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
             
             try {
               console.log(`Dosya import ediliyor: ../../data/tests/${fileName}`);
-              const moduleImport = await import(`../../data/tests/${fileName}`);
+              const moduleImport = await import(/* @vite-ignore */ `../../data/tests/${fileName}.js`);
               
               // Test objesi içeren değişkeni bul
               const testKey = Object.keys(moduleImport).find(key => 
