@@ -20,6 +20,24 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/pwa/logo_2-70x70.png",
+      "sizes": "70x70",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/pwa/logo_2-150x150.png",
+      "sizes": "150x150",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/pwa/logo_2-310x310.png",
+      "sizes": "310x310",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -30,7 +48,7 @@
       "url": "/appointments",
       "icons": [
         {
-          "src": "/assets/pwa/appointment-icon-96x96.png",
+          "src": "/assets/pwa/appointments-96x96.png",
           "sizes": "96x96",
           "type": "image/png"
         }
@@ -43,7 +61,33 @@
       "url": "/clients",
       "icons": [
         {
-          "src": "/assets/pwa/client-icon-96x96.png",
+          "src": "/assets/pwa/clients-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Profil",
+      "short_name": "Profil",
+      "description": "Profilinizi görüntüleyin ve düzenleyin",
+      "url": "/profile",
+      "icons": [
+        {
+          "src": "/assets/pwa/logo_2-96x96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Yeni Randevu",
+      "short_name": "Yeni Randevu",
+      "description": "Yeni bir randevu oluşturun",
+      "url": "/appointments/new",
+      "icons": [
+        {
+          "src": "/assets/pwa/appointments-96x96.png",
           "sizes": "96x96",
           "type": "image/png"
         }
@@ -54,12 +98,16 @@
     {
       "src": "/assets/meta/app-screenshot-1.jpg",
       "sizes": "1080x1920",
-      "type": "image/jpeg"
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Ana Ekran"
     },
     {
       "src": "/assets/meta/app-screenshot-2.jpg",
       "sizes": "1080x1920",
-      "type": "image/jpeg"
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Randevular"
     }
   ],
   "related_applications": [],
@@ -74,6 +122,19 @@
   "launch_handler": {
     "client_mode": ["navigate-existing", "auto"]
   },
+  "file_handlers": [
+    {
+      "action": "/open-file",
+      "accept": {
+        "application/pdf": [".pdf"],
+        "application/msword": [".doc"],
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+        "text/plain": [".txt"]
+      }
+    }
+  ],
+  "handle_links": "preferred",
+  "scope": "/",
   "share_target": {
     "action": "/share-target",
     "method": "POST",
@@ -81,15 +142,24 @@
     "params": {
       "title": "title",
       "text": "text",
-      "url": "url"
+      "url": "url",
+      "files": [
+        {
+          "name": "files",
+          "accept": ["image/*", "application/pdf"]
+        }
+      ]
     }
   },
-  "file_handlers": [
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "protocol_handlers": [
     {
-      "action": "/open-pdf",
-      "accept": {
-        "application/pdf": [".pdf"]
-      }
+      "protocol": "web+psikoranapp",
+      "url": "/protocol?url=%s"
     }
+  ],
+  "permissions": [
+    "notifications",
+    "background-sync"
   ]
 } 

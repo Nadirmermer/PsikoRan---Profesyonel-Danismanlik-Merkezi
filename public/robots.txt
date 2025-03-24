@@ -1,8 +1,16 @@
-# PsikoRan robots.txt dosyası
+# PsikoRan Robots.txt - Son güncelleme: 24.03.2025
 User-agent: *
 Allow: /
 
-# Giriş sayfaları ve yönetim paneli kısıtlamaları
+# SEO için önemli sayfalar
+Allow: /blog/
+Allow: /features
+Allow: /pricing
+Allow: /demo
+Allow: /contact
+Allow: /help
+
+# Giriş/Yönetim sayfaları (arama motorları tarafından indekslenmemeli)
 Disallow: /dashboard
 Disallow: /professionals
 Disallow: /clients
@@ -12,20 +20,21 @@ Disallow: /settings
 Disallow: /blog-admin
 Disallow: /admin/
 Disallow: /api/
+
+# Özel dosya ve dizinler
 Disallow: /*.json$
 Disallow: /assets/pwa/sw.js
+Disallow: /*.js.map$
+Disallow: /*.css.map$
 
 # Gizlilik gerektiren sayfalar
 Disallow: /test/
 Disallow: /public-test/
 
-# Sitemap URL
+# Site haritası URL
 Sitemap: https://psikoran.com/sitemap.xml
 
-# Özel crawl oranı
-Crawl-delay: 5
-
-# Bot özel yapılandırması
+# Özel Arama Motorları için yapılandırmalar
 User-agent: Googlebot
 Allow: /
 Crawl-delay: 2
@@ -38,5 +47,12 @@ User-agent: Yandexbot
 Allow: /
 Crawl-delay: 5
 
+# Bazı özel botları engelle
 User-agent: Baiduspider
-Disallow: / 
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Crawl-delay: 10 

@@ -49,6 +49,7 @@ import {
 } from 'lucide-react';
 import slugify from 'slugify';
 import { BlogPost as BlogPostType, formatBlogDate } from '../lib/blog';
+import { updateSitemap } from '../utils/sitemapClient';
 
 interface FormData {
   title: string;
@@ -962,6 +963,19 @@ export function BlogAdmin() {
       resetForm();
       setShowForm(false);
       fetchPosts(); // Listeyi güncelle
+      
+      // Site haritasını güncelle
+      try {
+        const sitemapUpdated = await updateSitemap();
+        if (sitemapUpdated) {
+          console.log('Site haritası başarıyla güncellendi');
+        } else {
+          console.warn('Site haritası güncellenemedi');
+        }
+      } catch (sitemapError) {
+        console.error('Site haritası güncellenirken hata:', sitemapError);
+      }
+      
     } catch (error: any) {
       console.error('Blog yazısı kaydedilirken hata:', error);
       setErrorMessage(error.message || 'Blog yazısı kaydedilirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
@@ -987,6 +1001,19 @@ export function BlogAdmin() {
       
       setSuccessMessage('Blog yazısı başarıyla silindi.');
       fetchPosts();
+      
+      // Site haritasını güncelle
+      try {
+        const sitemapUpdated = await updateSitemap();
+        if (sitemapUpdated) {
+          console.log('Site haritası başarıyla güncellendi');
+        } else {
+          console.warn('Site haritası güncellenemedi');
+        }
+      } catch (sitemapError) {
+        console.error('Site haritası güncellenirken hata:', sitemapError);
+      }
+      
     } catch (err: any) {
       console.error('Blog yazısı silinirken hata oluştu:', err);
       setError('Blog yazısı silinirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');

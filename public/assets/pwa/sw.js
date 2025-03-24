@@ -5,12 +5,14 @@
 // Bu kısım VitePWA tarafından derleme sırasında doldurulacak
 self.__WB_MANIFEST;
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAMES = {
   static: `psikoRan-static-${CACHE_VERSION}`,
   dynamic: `psikoRan-dynamic-${CACHE_VERSION}`,
   api: `psikoRan-api-${CACHE_VERSION}`,
-  pages: `psikoRan-pages-${CACHE_VERSION}`
+  pages: `psikoRan-pages-${CACHE_VERSION}`,
+  fonts: `psikoRan-fonts-${CACHE_VERSION}`,
+  images: `psikoRan-images-${CACHE_VERSION}`
 };
 
 // Çevrimdışında her zaman erişilebilir olması gereken temel varlıklar
@@ -19,7 +21,29 @@ const CORE_ASSETS = [
   '/index.html',
   '/favicon.ico',
   '/assets/meta/config/manifest.json',
-  '/assets/meta/config/site.webmanifest'
+  '/assets/meta/config/site.webmanifest',
+  '/assets/pwa/pages/offline.html',
+  '/assets/pwa/pages/pwa-install.html',
+  '/assets/pwa/logo_2-192x192.png',
+  '/assets/pwa/logo_2-512x512.png',
+  '/assets/pwa/logo_2-70x70.png',
+  '/assets/pwa/appointments-96x96.png',
+  '/assets/pwa/clients-96x96.png'
+];
+
+// Öncelikli olarak önbelleğe alınması gereken sayfalar
+const IMPORTANT_PAGES = [
+  '/appointments',
+  '/clients',
+  '/profile',
+  '/dashboard'
+];
+
+// Öncelikli olarak önbelleğe alınması gereken API yolları
+const IMPORTANT_API_ROUTES = [
+  '/api/appointments', 
+  '/api/clients',
+  '/api/user/profile'
 ];
 
 // Service Worker yüklendiğinde
@@ -33,6 +57,51 @@ self.addEventListener('install', (event) => {
       caches.open(CACHE_NAMES.static).then((cache) => {
         console.log('[Service Worker] Statik önbellek oluşturuluyor');
         return cache.addAll(CORE_ASSETS);
+      }),
+      // Önemli sayfaları önbelleğe al
+      caches.open(CACHE_NAMES.pages).then((cache) => {
+        console.log('[Service Worker] Önemli sayfaların önbelleği oluşturuluyor');
+        return Promise.allSettled(
+          IMPORTANT_PAGES.map(url => {
+            return fetch(url)
+              .then(response => {
+                if (response.ok) {
+                  return cache.put(url, response);
+                }
+              })
+              .catch(err => console.warn(`Sayfa önbelleğe alınamadı: ${url}`, err));
+          })
+        );
+      }),
+      // Önemli API rotalarını önbelleğe al (varsa)
+      caches.open(CACHE_NAMES.api).then((cache) => {
+        console.log('[Service Worker] API önbelleği oluşturuluyor');
+        if (self.indexedDB) {
+          // IndexedDB'den yetkilendirme bilgilerini alarak API isteklerini önbelleğe al
+          return getUserInfoFromIndexedDB()
+            .then(userInfo => {
+              if (userInfo && userInfo.token) {
+                return Promise.allSettled(
+                  IMPORTANT_API_ROUTES.map(url => {
+                    return fetch(url, {
+                      headers: {
+                        'Authorization': `Bearer ${userInfo.token}`
+                      }
+                    })
+                    .then(response => {
+                      if (response.ok) {
+                        return cache.put(url, response);
+                      }
+                    })
+                    .catch(err => console.warn(`API önbelleğe alınamadı: ${url}`, err));
+                  })
+                );
+              }
+              return Promise.resolve();
+            })
+            .catch(err => console.warn('Kullanıcı bilgileri alınamadı:', err));
+        }
+        return Promise.resolve();
       })
     ])
     .then(() => {
@@ -164,9 +233,10 @@ function handleStaticAssetRequest(event) {
   );
 }
 
-// HTML sayfaları için ağ öncelikli, önbellek yedekli strateji
+// HTML sayfaları için önbellek-ağ stratejisi
 function handleHtmlPageRequest(event) {
   event.respondWith(
+    // Önce ağdan yanıt almayı dene
     fetch(event.request)
       .then((response) => {
         // Başarılı yanıtı önbelleğe al
@@ -180,52 +250,68 @@ function handleHtmlPageRequest(event) {
       })
       .catch(() => {
         // Ağ hatası durumunda önbellekteki yanıtı dene
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // Çevrimdışı sayfası veya ana sayfa
-          return caches.match('/assets/pages/offline.html') || caches.match('/');
-        });
+        return caches.match(event.request)
+          .then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            
+            // Özel path için özel offline sayfaları kontrol et
+            const requestUrl = new URL(event.request.url);
+            const path = requestUrl.pathname;
+            
+            // Özel offline sayfa eşleştirmeleri
+            const offlinePageMappings = {
+              '/appointments': '/assets/pwa/pages/offline-appointments.html',
+              '/clients': '/assets/pwa/pages/offline-clients.html',
+              '/profile': '/assets/pwa/pages/offline-profile.html'
+            };
+            
+            // Özel offline sayfası var mı kontrol et
+            if (offlinePageMappings[path]) {
+              return caches.match(offlinePageMappings[path])
+                .then(specialOfflinePage => {
+                  if (specialOfflinePage) return specialOfflinePage;
+                  // Özel sayfa bulunamadıysa genel offline sayfasına yönlendir
+                  return caches.match('/assets/pwa/pages/offline.html');
+                });
+            }
+            
+            // Varsayılan offline sayfasını göster
+            return caches.match('/assets/pwa/pages/offline.html');
+          });
       })
   );
 }
 
-// Diğer varlıklar için dinamik önbellek stratejisi
+// Dinamik istekler için ağ-önbellek stratejisi
 function handleDynamicRequest(event) {
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      // Önbellekte varsa ve geçerli ise kullan
-      if (cachedResponse) {
-        // Arka planda yenile
-        fetch(event.request).then((response) => {
-          if (response.status === 200) {
-            caches.open(CACHE_NAMES.dynamic).then((cache) => {
-              cache.put(event.request, response);
-            });
-          }
-        }).catch(() => {
-          console.log('[Service Worker] Dinamik varlık yenilenemiyor');
-        });
-        
-        return cachedResponse;
-      }
-      
-      // Önbellekte yoksa ağdan al ve önbelleğe ekle
-      return fetch(event.request).then((response) => {
-        if (!response || response.status !== 200) {
-          return response;
-        }
-        
-        // Yanıtı önbelleğe al
-        const clonedResponse = response.clone();
-        caches.open(CACHE_NAMES.dynamic).then((cache) => {
-          cache.put(event.request, clonedResponse);
-        });
-        
-        return response;
-      }).catch(() => {
-        return null;
+    // Stale-While-Revalidate stratejisi
+    // Önce önbellekteki yanıtı kontrol et ve hemen döndür
+    // Ardından arka planda ağdan güncel yanıtı al ve önbelleği güncelle
+    caches.open(CACHE_NAMES.dynamic).then((cache) => {
+      return cache.match(event.request).then((cachedResponse) => {
+        const fetchPromise = fetch(event.request)
+          .then((networkResponse) => {
+            // Sadece başarılı yanıtları önbelleğe al
+            if (networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          })
+          .catch((error) => {
+            console.warn('[Service Worker] Dinamik veri getirilemedi:', error);
+            // Eğer önbellekte bir yanıt varsa hata durumunda bile onu dön
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // Aksi takdirde hata fırlat
+            throw error;
+          });
+
+        // Önbellekte yanıt varsa hemen dön, yoksa ağ yanıtını bekle
+        return cachedResponse || fetchPromise;
       });
     })
   );

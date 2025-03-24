@@ -1,12 +1,20 @@
 [build]
   command = "npm install && npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200 
 
+# Site haritası güncelleme API fonksiyonu için kural
+[[redirects]]
+  from = "/.netlify/functions/update-sitemap"
+  to = "/.netlify/functions/update-sitemap"
+  status = 200
+  force = true
+  
 [[headers]]
   for = "/*"
   [headers.values]

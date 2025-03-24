@@ -53,37 +53,57 @@ ServerSignature Off
   <FilesMatch "\.(ttf|ttc|otf|eot|woff|woff2|font\.css|css|js)$">
     Header set Access-Control-Allow-Origin "*"
   </FilesMatch>
+  
+  # Güvenlik Başlıkları
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-XSS-Protection "1; mode=block"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+  
+  # Ana CSP politikası - index.html'deki meta etiketiyle çakışmayacak
+  Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.jitsi.net https://*.jitsi.org; img-src 'self' data: blob: https://www.facebook.com https://images.unsplash.com https://via.placeholder.com https://*.jitsi.net https://*.jitsi.org https://meet.jit.si https://*.supabase.co; font-src 'self' https://fonts.gstatic.com https://*.jitsi.net https://*.jitsi.org; connect-src 'self' https://*.psikoran.com https://*.supabase.co https://meet.jit.si https://*.jitsi.net https://*.jitsi.org wss://*.meet.jit.si; manifest-src 'self'; worker-src 'self' blob:; frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; media-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org"
+  
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set Permissions-Policy "camera=(), microphone=(), geolocation=(self), interest-cohort=()"
+  
+  # Önbellek kontrolüne yardımcı olacak başlıklar
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "max-age=0, no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "Wed, 11 Jan 1984 05:00:00 GMT"
+  </FilesMatch>
+  
+  <FilesMatch "\.(json|txt)$">
+    Header set Cache-Control "max-age=86400"
+  </FilesMatch>
+</IfModule>
+
+# HTTP -> HTTPS yönlendirme
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  
+  # HTTPS yönlendirmesi
+  RewriteCond %{HTTPS} off
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+  
+  # WWW to non-WWW yönlendirme
+  RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
+  RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
+  
+  # SPA uygulaması için tüm istekleri index.html'e yönlendir (API hariç)
+  RewriteBase /
+  RewriteRule ^index\.html$ - [L]
+  # Gerçek dosya ve dizinlere izin ver
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  # API endpoint'leri hariç tüm istekleri index.html'e yönlendir
+  RewriteRule . /index.html [L]
 </IfModule>
 
 # 404 hata sayfasına yönlendirme
 ErrorDocument 404 /index.html
 
-# HTTP -> HTTPS yönlendirme
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteCond %{HTTPS} off
-  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-  
-  # SPA uygulaması için tüm istekleri index.html'e yönlendir
-  RewriteBase /
-  RewriteRule ^index\.html$ - [L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule . /index.html [L]
-</IfModule>
-
-# Güvenlik Başlıkları
-<IfModule mod_headers.c>
-  Header set X-Content-Type-Options "nosniff"
-  Header set X-XSS-Protection "1; mode=block"
-  Header set X-Frame-Options "SAMEORIGIN"
-  Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-  Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://www.facebook.com https://images.unsplash.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.psikoran.com https://*.supabase.co; manifest-src 'self'; worker-src 'self'; frame-src 'self';"
-  Header set Referrer-Policy "strict-origin-when-cross-origin"
-  Header set Permissions-Policy "camera=(), microphone=(), geolocation=(self), interest-cohort=()"
-</IfModule>
-
-# PHP Güvenlik Ayarları
+# PHP Güvenlik Ayarları (eğer PHP kullanılıyorsa)
 <IfModule mod_php7.c>
   php_flag display_errors Off
   php_flag log_errors On
@@ -91,11 +111,4 @@ ErrorDocument 404 /index.html
   php_flag magic_quotes_gpc Off
   php_flag allow_url_fopen Off
   php_flag allow_url_include Off
-</IfModule>
-
-# WWW to non-WWW yönlendirme
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
-  RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
 </IfModule> 

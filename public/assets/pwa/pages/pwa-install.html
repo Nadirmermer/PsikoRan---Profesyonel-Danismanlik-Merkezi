@@ -5,18 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>PsikoRan Uygulamasını Yükle</title>
-  <link rel="icon" href="icons/logo_2-192x192.png" type="image/png" />
-  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="icon" href="/assets/pwa/logo_2-192x192.png" type="image/png" />
+  <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4f46e5">
   <style>
     :root {
       --primary-color: #4f46e5;
-      --primary-hover: #4338ca;
+      --primary-dark: #4338ca;
+      --primary-light: #eef2ff;
       --dark-color: #1e293b;
       --light-color: #f8fafc;
+      --danger-color: #ef4444;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --gray-color: #94a3b8;
       --white: #ffffff;
       --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
     
     * {
@@ -30,60 +36,62 @@
       line-height: 1.6;
       color: var(--dark-color);
       background-color: var(--light-color);
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
     }
     
-    header {
-      background-color: var(--white);
-      box-shadow: var(--shadow);
-      padding: 1rem;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    .logo-container {
-      display: flex;
-      align-items: center;
-    }
-    
-    .logo {
-      max-width: 50px;
-      margin-right: 0.5rem;
-    }
-    
-    .app-name {
-      font-size: 1.5rem;
-      font-weight: 700;
+    a {
       color: var(--primary-color);
+      text-decoration: none;
+      transition: color 0.3s ease;
     }
     
-    .main-container {
-      max-width: 900px;
+    a:hover {
+      color: var(--primary-dark);
+      text-decoration: underline;
+    }
+    
+    .container {
+      max-width: 1200px;
       margin: 0 auto;
       padding: 2rem 1rem;
       flex: 1;
     }
     
-    .installation-card {
-      background-color: var(--white);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-      padding: 2rem;
-      margin-bottom: 2rem;
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
     }
     
-    h1 {
-      font-size: 2rem;
+    .logo {
+      height: 80px;
+      width: auto;
       margin-bottom: 1rem;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+      transition: transform 0.3s ease;
+    }
+    
+    .logo:hover {
+      transform: scale(1.05);
+    }
+    
+    h1, h2, h3 {
       color: var(--primary-color);
     }
     
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    h2 {
+      font-size: 1.8rem;
+      margin: 1.5rem 0 1rem;
+    }
+    
     p {
-      font-size: 1.1rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
     }
     
     .btn {
@@ -92,23 +100,42 @@
       color: var(--white);
       padding: 0.75rem 1.5rem;
       border: none;
-      border-radius: 5px;
+      border-radius: 8px;
       cursor: pointer;
       text-decoration: none;
       font-size: 1rem;
       font-weight: 600;
-      transition: background-color 0.3s ease;
-      margin-right: 0.5rem;
-      margin-bottom: 0.5rem;
+      transition: all 0.3s ease;
+      margin: 0.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: -100%;
+      background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+      transition: left 0.6s ease;
     }
     
     .btn:hover {
-      background-color: var(--primary-hover);
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+      text-decoration: none;
+    }
+    
+    .btn:hover::after {
+      left: 100%;
     }
     
     .btn-outline {
       background-color: transparent;
-      border: 1px solid var(--primary-color);
+      border: 2px solid var(--primary-color);
       color: var(--primary-color);
     }
     
@@ -117,105 +144,187 @@
       color: var(--white);
     }
     
-    .instructions {
-      margin-top: 2rem;
+    .btn-success {
+      background-color: var(--success-color);
     }
     
-    .instructions-title {
-      font-size: 1.5rem;
-      margin-bottom: 1rem;
-      color: var(--primary-color);
-      border-bottom: 2px solid var(--primary-color);
-      padding-bottom: 0.5rem;
+    .btn-success:hover {
+      background-color: #0da271;
     }
     
-    .instructions-list {
-      list-style-type: none;
-      margin-bottom: 2rem;
+    .message {
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin: 1.5rem 0;
+      position: relative;
+      display: none; /* Varsayılan olarak gizli */
     }
     
-    .instructions-list li {
-      display: flex;
-      align-items: flex-start;
-      margin-bottom: 1.5rem;
+    .message-success {
+      background-color: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: var(--success-color);
     }
     
-    .step-number {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-width: 30px;
-      height: 30px;
-      background-color: var(--primary-color);
-      color: var(--white);
-      border-radius: 50%;
-      margin-right: 1rem;
-      font-weight: bold;
+    .message-warning {
+      background-color: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      color: var(--warning-color);
     }
     
-    .step-content {
-      flex: 1;
+    .pulse-animation {
+      animation: pulse 2s infinite;
     }
     
-    .step-content h3 {
-      font-size: 1.2rem;
-      margin-bottom: 0.5rem;
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(79, 70, 229, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+      }
     }
     
-    .screenshot {
-      max-width: 100%;
-      height: auto;
-      border-radius: 5px;
-      border: 1px solid #e2e8f0;
-      margin-top: 0.5rem;
+    .section {
+      margin-bottom: 3rem;
     }
     
-    .browser-list {
+    .install-guide {
       display: flex;
       flex-wrap: wrap;
-      gap: 1rem;
-      margin-top: 1rem;
+      gap: 2rem;
     }
     
-    .browser-item {
+    .install-card {
+      flex: 1;
+      min-width: 300px;
       background-color: var(--white);
-      border-radius: 8px;
+      border-radius: 12px;
       box-shadow: var(--shadow);
-      padding: 1rem;
-      width: calc(33.33% - 1rem);
-      min-width: 200px;
+      padding: 1.5rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border-top: 4px solid var(--primary-color);
     }
     
-    .browser-icon {
-      width: 50px;
-      height: 50px;
+    .install-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .install-card h3 {
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+    }
+    
+    .install-card h3::before {
+      content: "";
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      background-color: var(--primary-color);
+      border-radius: 50%;
+      margin-right: 0.75rem;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: 14px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7' /%3E%3C/svg%3E");
+    }
+    
+    .install-card ol, .install-card ul {
+      margin-left: 2rem;
+      margin-bottom: 1rem;
+    }
+    
+    .install-card li {
       margin-bottom: 0.5rem;
     }
     
-    .features-grid {
+    .features {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 1.5rem;
-      margin-top: 1.5rem;
+      margin-bottom: 3rem;
     }
     
     .feature-card {
       background-color: var(--white);
-      border-radius: 8px;
+      border-radius: 12px;
       box-shadow: var(--shadow);
       padding: 1.5rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg);
     }
     
     .feature-icon {
-      font-size: 2rem;
+      width: 48px;
+      height: 48px;
+      background-color: var(--primary-light);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+    
+    .feature-icon svg {
+      width: 28px;
+      height: 28px;
       color: var(--primary-color);
-      margin-bottom: 0.5rem;
     }
     
     .feature-title {
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       font-weight: 600;
       margin-bottom: 0.5rem;
+      color: var(--primary-color);
+    }
+    
+    .screenshots {
+      display: flex;
+      gap: 1.5rem;
+      margin: 2rem 0;
+      overflow-x: auto;
+      padding: 1rem 0;
+    }
+    
+    .screenshot {
+      min-width: 280px;
+      height: 500px;
+      background-color: var(--white);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+    
+    .screenshot:hover {
+      transform: translateY(-10px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .screenshot img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .cta {
+      text-align: center;
+      margin: 3rem 0;
+      padding: 3rem;
+      background-color: var(--primary-light);
+      border-radius: 12px;
     }
     
     .hidden {
@@ -223,127 +332,189 @@
     }
     
     .footer {
-      padding: 1rem;
       text-align: center;
-      font-size: 0.9rem;
-      color: #64748b;
+      padding: 2rem 1rem;
       background-color: var(--white);
-      margin-top: auto;
+      border-top: 1px solid rgba(100, 116, 139, 0.1);
     }
     
     @media (max-width: 768px) {
-      .browser-item {
-        width: 100%;
+      .container {
+        padding: 1.5rem 1rem;
       }
       
-      .features-grid {
-        grid-template-columns: 1fr;
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .install-guide {
+        flex-direction: column;
+      }
+      
+      .screenshots {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .screenshot {
+        width: 280px;
       }
     }
   </style>
 </head>
 <body>
-  <header>
-    <div class="logo-container">
-      <img src="icons/logo_2-192x192.png" alt="PsikoRan Logo" class="logo">
-      <span class="app-name">PsikoRan</span>
-    </div>
-  </header>
-  
-  <div class="main-container">
-    <div class="installation-card">
-      <h1>PsikoRan Uygulaması Kurulumu</h1>
-      <p>PsikoRan'ı bir mobil uygulama veya masaüstü uygulaması olarak yükleyerek daha iyi bir deneyim yaşayabilirsiniz. Yükleme sonrası internet bağlantınız olmadığında bile uygulamayı kullanmaya devam edebilirsiniz.</p>
-      
-      <button id="installButton" class="btn">Uygulamayı Yükle</button>
-      <a href="/" class="btn btn-outline">Uygulamaya Dön</a>
-      
-      <div id="installSuccess" class="hidden" style="margin-top: 1rem; padding: 1rem; background-color: #d1fae5; border-radius: 5px; color: #047857;">
-        <strong>Başarılı!</strong> Uygulama cihazınıza kuruldu. Ana ekranınızdan veya uygulama listenizden PsikoRan'a erişebilirsiniz.
-      </div>
-      
-      <div id="installNotAvailable" class="hidden" style="margin-top: 1rem; padding: 1rem; background-color: #fee2e2; border-radius: 5px; color: #b91c1c;">
-        <strong>Otomatik yükleme mevcut değil!</strong> Lütfen aşağıdaki manuel kurulum talimatlarını takip edin.
-      </div>
+  <div class="container">
+    <header class="header">
+      <img src="/assets/pwa/logo_2-192x192.png" alt="PsikoRan Logo" class="logo">
+      <h1>PsikoRan Uygulamasını Yükle</h1>
+      <p>PsikoRan'ı cihazınıza uygulama olarak ekleyerek daha hızlı erişin ve çevrimdışı özelliklerden yararlanın.</p>
+    </header>
+    
+    <div id="installSuccess" class="message message-success hidden">
+      <h3>Tebrikler! Uygulama Başarıyla Yüklendi</h3>
+      <p>PsikoRan uygulaması cihazınıza başarıyla yüklendi. Artık ana ekranınızdan uygulamaya erişebilirsiniz.</p>
+      <p><a href="/" class="btn btn-success">Uygulamayı Kullanmaya Başla</a></p>
     </div>
     
-    <div class="instructions">
-      <h2 class="instructions-title">Manuel Kurulum Talimatları</h2>
-      
-      <h3>Mobil Cihazlar İçin</h3>
-      <ul class="instructions-list">
-        <li>
-          <div class="step-number">1</div>
-          <div class="step-content">
-            <h3>Tarayıcınızın paylaş/seçenekler menüsünü açın</h3>
-            <p>Safari (iOS) veya Chrome (Android) tarayıcınızda bulunan paylaş düğmesine dokunun.</p>
-          </div>
-        </li>
-        <li>
-          <div class="step-number">2</div>
-          <div class="step-content">
-            <h3>"Ana Ekrana Ekle" veya "Uygulamayı Yükle" seçeneğini seçin</h3>
-            <p>iOS'ta "Ana Ekrana Ekle", Android'de "Yükle" veya "Ana Ekrana Ekle" seçeneğine dokunun.</p>
-          </div>
-        </li>
-        <li>
-          <div class="step-number">3</div>
-          <div class="step-content">
-            <h3>Uygulamayı yükleyin</h3>
-            <p>Açılan pencerede "Ekle" veya "Yükle" düğmesine dokunun.</p>
-          </div>
-        </li>
-      </ul>
-      
-      <h3>Masaüstü İçin</h3>
-      <ul class="instructions-list">
-        <li>
-          <div class="step-number">1</div>
-          <div class="step-content">
-            <h3>Tarayıcı adres çubuğunun sağındaki "Yükle" simgesine tıklayın</h3>
-            <p>Chrome, Edge veya diğer modern tarayıcılarda adres çubuğunun yanında bir yükleme simgesi göreceksiniz.</p>
-          </div>
-        </li>
-        <li>
-          <div class="step-number">2</div>
-          <div class="step-content">
-            <h3>"Yükle" düğmesine tıklayın</h3>
-            <p>Açılan pencerede "Yükle" düğmesine tıklayarak uygulamayı masaüstünüze yükleyin.</p>
-          </div>
-        </li>
-      </ul>
+    <div id="installNotAvailable" class="message message-warning hidden">
+      <h3>Uygulama Kurulumu Şu Anda Mevcut Değil</h3>
+      <p>Tarayıcınızda PWA desteği bulunmadığından veya uygulama zaten yüklenmiş olduğundan kurulum yapılamıyor. Aşağıdaki manuel kurulum talimatlarını takip edebilirsiniz.</p>
     </div>
     
-    <div class="installation-card">
-      <h2>PsikoRan Uygulaması Avantajları</h2>
-      <p>PsikoRan PWA (Progressive Web App) olarak yüklendikten sonra aşağıdaki avantajlara sahip olursunuz:</p>
+    <section class="section">
+      <h2>Kolay Kurulum</h2>
+      <p>PsikoRan'ı cihazınıza yüklemek için aşağıdaki butona tıklayın:</p>
       
-      <div class="features-grid">
+      <div style="text-align: center; margin: 2rem 0;">
+        <button id="installButton" class="btn pulse-animation">Uygulamayı Yükle</button>
+      </div>
+    </section>
+    
+    <section class="section">
+      <h2>Manuel Kurulum Talimatları</h2>
+      <p>Eğer yukarıdaki buton çalışmazsa, cihazınıza bağlı olarak aşağıdaki adımları takip edebilirsiniz:</p>
+      
+      <div class="install-guide">
+        <div class="install-card">
+          <h3>Android (Chrome)</h3>
+          <ol>
+            <li>Chrome tarayıcısında PsikoRan web sitesini açın</li>
+            <li>Sağ üst köşedeki üç nokta menüsüne tıklayın</li>
+            <li>"Ana ekrana ekle" seçeneğini seçin</li>
+            <li>Açılan pencerede "Ekle" butonuna tıklayın</li>
+            <li>Uygulama artık ana ekranınızda kullanıma hazır</li>
+          </ol>
+        </div>
+        
+        <div class="install-card">
+          <h3>iPhone / iPad (Safari)</h3>
+          <ol>
+            <li>Safari tarayıcısında PsikoRan web sitesini açın</li>
+            <li>Alt kısımdaki "Paylaş" butonuna tıklayın</li>
+            <li>"Ana Ekrana Ekle" seçeneğini seçin</li>
+            <li>Açılan pencerede sağ üst köşedeki "Ekle" butonuna tıklayın</li>
+            <li>Uygulama artık ana ekranınızda kullanıma hazır</li>
+          </ol>
+        </div>
+        
+        <div class="install-card">
+          <h3>Windows / Mac (Chrome, Edge)</h3>
+          <ol>
+            <li>Chrome veya Edge tarayıcısında PsikoRan web sitesini açın</li>
+            <li>Adres çubuğunun sağındaki "Yükle" simgesine tıklayın</li>
+            <li>Açılan pencerede "Yükle" butonuna tıklayın</li>
+            <li>Uygulama artık masaüstünüzde ve başlat menüsünde kullanıma hazır</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+    
+    <section class="section">
+      <h2>Uygulama Özellikleri</h2>
+      
+      <div class="features">
         <div class="feature-card">
-          <div class="feature-icon">📱</div>
-          <div class="feature-title">Kolay Erişim</div>
-          <p>Ana ekrandan tek dokunuşla uygulamaya erişin.</p>
+          <div class="feature-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8z"/>
+              <path d="M13 7h-2v5.414l3.293 3.293 1.414-1.414L13 11.586z"/>
+            </svg>
+          </div>
+          <div class="feature-title">Çevrimdışı Erişim</div>
+          <p>İnternet bağlantınız olmadığında bile randevularınıza ve danışan bilgilerine erişebilirsiniz.</p>
         </div>
         
         <div class="feature-card">
-          <div class="feature-icon">🔄</div>
-          <div class="feature-title">Çevrimdışı Çalışma</div>
-          <p>İnternet bağlantınız olmadığında bile uygulamayı kullanabilirsiniz.</p>
+          <div class="feature-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 22c5.514 0 10-4.486 10-10S17.514 2 12 2 2 6.486 2 12s4.486 10 10 10zm0-15 5 5-5 5-5-5 5-5z"/>
+            </svg>
+          </div>
+          <div class="feature-title">Hızlı Erişim</div>
+          <p>Ana ekranınızdan tek tıkla uygulamaya erişerek zamandan tasarruf edin.</p>
         </div>
         
         <div class="feature-card">
-          <div class="feature-icon">⚡</div>
-          <div class="feature-title">Hızlı Performans</div>
-          <p>Yerel uygulama hızında çalışır ve daha hızlı yüklenir.</p>
+          <div class="feature-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19.875 3H4.125C2.953 3 2 3.897 2 5v14c0 1.103.953 2 2.125 2h15.75C21.047 21 22 20.103 22 19V5c0-1.103-.953-2-2.125-2zm0 16H4.125c-.057 0-.096-.016-.113-.016-.007 0-.011.002-.012.008L3.988 5.046c.007-.01.052-.046.137-.046h15.75c.079.001.122.028.125.008l.012 13.946c-.007.01-.052.046-.137.046z"/>
+              <path d="M6 7h6v6H6zm7 8H6v2h12v-2h-4zm1-4h4v2h-4zm0-4h4v2h-4z"/>
+            </svg>
+          </div>
+          <div class="feature-title">Daha İyi Performans</div>
+          <p>Uygulama modunda daha hızlı ve akıcı bir kullanıcı deneyimi yaşarsınız.</p>
         </div>
         
         <div class="feature-card">
-          <div class="feature-icon">🔔</div>
+          <div class="feature-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 22c1.311 0 2.54-.343 3.608-.946l1.997 1.997c.391.391 1.024.391 1.414 0s.391-1.024 0-1.414l-1.997-1.997C17.657 18.54 18 17.311 18 16c0-3.314-2.686-6-6-6s-6 2.686-6 6 2.686 6 6 6zm0-10c2.206 0 4 1.794 4 4s-1.794 4-4 4-4-1.794-4-4 1.794-4 4-4z"/>
+              <path d="M12 4c-1.104 0-2 .896-2 2v4c0 1.104.896 2 2 2s2-.896 2-2V6c0-1.104-.896-2-2-2z"/>
+            </svg>
+          </div>
           <div class="feature-title">Bildirimler</div>
-          <p>Önemli randevular ve bildirimler için sistem bildirimleri alın.</p>
+          <p>Randevu hatırlatmaları ve önemli güncellemeler için bildirimler alın.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="m21.447 6.105-6-3a1 1 0 0 0-.895 0L9 5.882 3.447 3.105A1 1 0 0 0 2 4v13c0 .379.214.725.553.895l6 3a1 1 0 0 0 .895 0L15 18.118l5.553 2.776a.992.992 0 0 0 .972-.043c.295-.183.475-.504.475-.851V7c0-.379-.214-.725-.553-.895zM9 17.382l-5-2.5V5.618l5 2.5v9.264zm7-2.5-5 2.5V8.118l5-2.5v9.264zm5 2.5-3-1.5v-9.264l3 1.5v9.264z"/>
+            </svg>
+          </div>
+          <div class="feature-title">Veri Senkronizasyonu</div>
+          <p>Çevrimdışı yapılan değişiklikler, internet bağlantısı geldiğinde otomatik olarak senkronize edilir.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm-1.999 14.413-3.713-3.705L7.7 11.292l2.299 2.295 5.294-5.294 1.414 1.414-6.706 6.706z"/>
+            </svg>
+          </div>
+          <div class="feature-title">Güvenli Erişim</div>
+          <p>Oturum açma bilgileriniz güvenli bir şekilde saklanır ve korunur.</p>
         </div>
       </div>
-    </div>
+    </section>
+    
+    <section class="section">
+      <h2>Uygulama Görünümü</h2>
+      <div class="screenshots">
+        <div class="screenshot">
+          <img src="/assets/meta/app-screenshot-1.jpg" alt="PsikoRan Uygulaması Ekran Görüntüsü 1">
+        </div>
+        <div class="screenshot">
+          <img src="/assets/meta/app-screenshot-2.jpg" alt="PsikoRan Uygulaması Ekran Görüntüsü 2">
+        </div>
+      </div>
+    </section>
+    
+    <section class="cta">
+      <h2>Hemen Başlayın!</h2>
+      <p>PsikoRan uygulamasını cihazınıza yükleyerek tüm özelliklerden faydalanmaya başlayın.</p>
+      <button id="installButtonCta" class="btn pulse-animation">Uygulamayı Yükle</button>
+    </section>
   </div>
   
   <footer class="footer">
@@ -354,13 +525,14 @@
     // Install PWA
     let deferredPrompt;
     const installButton = document.getElementById('installButton');
+    const installButtonCta = document.getElementById('installButtonCta');
     const installSuccess = document.getElementById('installSuccess');
     const installNotAvailable = document.getElementById('installNotAvailable');
     
     // Hide install button if PWA is already installed
     if (window.matchMedia('(display-mode: standalone)').matches || 
         window.navigator.standalone === true) {
-      installButton.style.display = 'none';
+      hideInstallButtons();
       installSuccess.classList.remove('hidden');
     }
     
@@ -370,31 +542,48 @@
       // Stash the event so it can be triggered later
       deferredPrompt = e;
       // Show the install button
-      installButton.classList.remove('hidden');
+      showInstallButtons();
       
-      installButton.addEventListener('click', async () => {
-        if (deferredPrompt) {
-          // Show the install prompt
-          deferredPrompt.prompt();
-          // Wait for the user to respond to the prompt
-          const { outcome } = await deferredPrompt.userChoice;
-          
-          if (outcome === 'accepted') {
-            console.log('User accepted the install prompt');
-            installSuccess.classList.remove('hidden');
-            installButton.classList.add('hidden');
-          } else {
-            console.log('User dismissed the install prompt');
-          }
-          
-          // We no longer need the prompt. Clear it up
-          deferredPrompt = null;
-        } else {
-          // The app is already installed or install not available
-          installNotAvailable.classList.remove('hidden');
-        }
-      });
+      // Attach event listeners to install buttons
+      installButton.addEventListener('click', installApp);
+      installButtonCta.addEventListener('click', installApp);
     });
+    
+    // Yükleme butonlarını göster
+    function showInstallButtons() {
+      installButton.classList.remove('hidden');
+      installButtonCta.classList.remove('hidden');
+    }
+    
+    // Yükleme butonlarını gizle
+    function hideInstallButtons() {
+      installButton.classList.add('hidden');
+      installButtonCta.classList.add('hidden');
+    }
+    
+    // Uygulamayı yükle
+    async function installApp() {
+      if (deferredPrompt) {
+        // Show the install prompt
+        deferredPrompt.prompt();
+        // Wait for the user to respond to the prompt
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+          console.log('Kullanıcı uygulamayı yüklemeyi kabul etti');
+          hideInstallButtons();
+          installSuccess.classList.remove('hidden');
+        } else {
+          console.log('Kullanıcı uygulamayı yüklemeyi reddetti');
+        }
+        
+        // We no longer need the prompt. Clear it up
+        deferredPrompt = null;
+      } else {
+        // The app is already installed or install not available
+        installNotAvailable.classList.remove('hidden');
+      }
+    }
     
     // If PWA install feature not available (iOS Safari, older browsers)
     if (
@@ -402,16 +591,20 @@
       window.navigator.standalone !== true &&
       typeof window.BeforeInstallPromptEvent === 'undefined'
     ) {
-      installButton.addEventListener('click', () => {
-        installNotAvailable.classList.remove('hidden');
-      });
+      hideInstallButtons();
+      installNotAvailable.classList.remove('hidden');
     }
     
     // Check if app was successfully installed
     window.addEventListener('appinstalled', (evt) => {
+      hideInstallButtons();
       installSuccess.classList.remove('hidden');
-      installButton.classList.add('hidden');
       console.log('PsikoRan was successfully installed');
+      
+      // Kullanıcıyı yönlendir (isteğe bağlı)
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 3000);
     });
   </script>
 </body>

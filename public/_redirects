@@ -1,2 +1,15 @@
-/sitemap /assets/pages/sitemap.html 200
+# PsikoRan Yönlendirme Kuralları
 /* /index.html 200
+
+# SPA yenileme için ve tüm rotaları yönlendirmek için
+/login /index.html 200
+/register /index.html 200
+/dashboard/* /index.html 200
+/appointments/* /index.html 200
+/clients/* /index.html 200
+/settings/* /index.html 200
+/help/* /index.html 200
+/blog/* /index.html 200
+
+# 404 yönlendirmesi
+/* /index.html 404

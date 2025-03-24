@@ -1,88 +1,83 @@
 /**
  * PsikoRan Service Worker ve Cache Temizleme Aracı
  * 
- * Bu script, uygulama açılışında tüm service worker kayıtlarını ve önbellekleri temizler.
- * Workbox ve diğer service worker hatalarının önüne geçmek için kullanılır.
+ * Bu script, belirli sorunlar oluştuğunda service worker ve önbellekleri temizler.
+ * Yalnızca gerektiğinde kullanılır ve kullanıcı deneyimini olumsuz etkilemez.
  */
 
-(function clearServiceWorkerAndCache() {
-  console.log('Cache ve Service Worker temizleme işlemi başlatılıyor...');
+(function clearCacheOnlyWhenNeeded() {
+  // URL'de clear-cache parametresi varsa veya localStorage'da temizlik isteği varsa çalıştır
+  if (window.location.hash.includes('clear-cache') || localStorage.getItem('need_cache_clear') === 'true') {
+    console.log('Cache ve Service Worker temizleme işlemi başlatılıyor...');
+    
+    // Temizlik isteğini localStorage'dan kaldır
+    localStorage.removeItem('need_cache_clear');
 
-  // Service Worker'ları temizle
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      for (let registration of registrations) {
-        registration.unregister();
-        console.log('Service Worker kaydı silindi:', registration);
-      }
-    }).catch(function(err) {
-      console.log('Service Worker kaydı silinemedi:', err);
-    });
-  }
-
-  // Tüm önbellekleri temizle
-  if ('caches' in window) {
-    caches.keys().then(function(cacheNames) {
-      return Promise.all(
-        cacheNames.map(function(cacheName) {
-          console.log('Cache siliniyor:', cacheName);
-          return caches.delete(cacheName).then(function() {
-            console.log('Cache silindi:', cacheName);
-          });
-        })
-      );
-    }).catch(function(err) {
-      console.log('Cache silinemedi:', err);
-    });
-  }
-
-  // favicon önbellek çakışmalarını özellikle ele al
-  if ('caches' in window) {
-    caches.open('workbox-precache').then(function(cache) {
-      cache.delete('/favicon.ico').then(function(success) {
-        console.log('Favicon önbelleği silindi:', success);
+    // Service Worker'ları temizle
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('Service Worker kaydı silindi:', registration);
+        }
+      }).catch(function(err) {
+        console.log('Service Worker kaydı silinemedi:', err);
       });
-      cache.delete('/icon.ico').then(function(success) {
-        console.log('Icon önbelleği silindi:', success);
+    }
+
+    // Sadece workbox ve PWA ile ilgili önbellekleri temizle
+    if ('caches' in window) {
+      caches.keys().then(function(cacheNames) {
+        return Promise.all(
+          cacheNames.map(function(cacheName) {
+            // Sadece uygulamayla ilgili önbellekleri temizle
+            if (cacheName.includes('workbox') || 
+                cacheName.includes('wb-') || 
+                cacheName.includes('psikoran') || 
+                cacheName.includes('pwa')) {
+              console.log('Cache siliniyor:', cacheName);
+              return caches.delete(cacheName).then(function() {
+                console.log('Cache silindi:', cacheName);
+              });
+            }
+            return Promise.resolve(); // Diğer önbellekleri koru
+          })
+        );
+      }).catch(function(err) {
+        console.log('Cache silinemedi:', err);
       });
-      // Base64 encoded favicon önbelleğini de temizle
-      cache.keys().then(function(requests) {
-        requests.forEach(function(request) {
-          if (request.url.includes('favicon') || request.url.includes('icon')) {
-            cache.delete(request).then(function() {
-              console.log('Base64 favicon önbelleği silindi:', request.url);
-            });
+    }
+
+    // IndexedDB veritabanlarında sadece workbox olanları temizle
+    if (window.indexedDB && indexedDB.databases) {
+      indexedDB.databases().then(function(dbs) {
+        dbs.forEach(function(db) {
+          if (db.name && (db.name.includes('workbox') || db.name.includes('precache'))) {
+            indexedDB.deleteDatabase(db.name);
+            console.log('IndexedDB veritabanı silindi:', db.name);
           }
         });
+      }).catch(function(err) {
+        console.log('IndexedDB veritabanları listelenemedi:', err);
       });
-    });
-  }
+    }
 
-  // IndexedDB veritabanlarını temizle
-  if (window.indexedDB) {
-    var databases = indexedDB.databases ? indexedDB.databases() : Promise.resolve([]);
-    databases.then(function(dbs) {
-      dbs.forEach(function(db) {
-        if (db.name && (db.name.includes('workbox') || db.name.includes('precache'))) {
-          indexedDB.deleteDatabase(db.name);
-          console.log('IndexedDB veritabanı silindi:', db.name);
+    // LocalStorage temizliği sadece workbox girdileri için
+    if (window.localStorage) {
+      Object.keys(localStorage).forEach(function(key) {
+        if (key.includes('workbox') || key.includes('precache')) {
+          localStorage.removeItem(key);
+          console.log('LocalStorage girdisi silindi:', key);
         }
       });
-    }).catch(function(err) {
-      console.log('IndexedDB veritabanları listelenemedi:', err);
-    });
-  }
+    }
 
-  // LocalStorage'daki workbox girdilerini temizle
-  if (window.localStorage) {
-    Object.keys(localStorage).forEach(function(key) {
-      if (key.includes('workbox') || key.includes('precache')) {
-        localStorage.removeItem(key);
-        console.log('LocalStorage girdisi silindi:', key);
-      }
-    });
+    console.log('Cache ve Service Worker temizleme işlemi tamamlandı.');
+    
+    // URL'den clear-cache parametresini kaldırmak için sayfa yönlendirmesi
+    if (window.location.hash.includes('clear-cache')) {
+      // Temizleme parametresini kaldır ve sayfayı yeniden yükle
+      window.location.href = window.location.href.split('#')[0];
+    }
   }
-
-  console.log('Cache ve Service Worker temizleme işlemi tamamlandı.');
-  console.log('Sayfayı yenileyin veya uygulamayı yeniden başlatın.');
 })(); 

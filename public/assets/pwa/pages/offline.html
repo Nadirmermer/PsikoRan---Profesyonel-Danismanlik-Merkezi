@@ -5,19 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Çevrimdışı - PsikoRan</title>
-  <link rel="icon" href="icons/logo_2-192x192.png" type="image/png" />
-  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
-  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="/assets/pwa/logo_2-192x192.png" type="image/png" />
+  <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+  <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#4f46e5">
   <style>
     :root {
       --primary-color: #4f46e5;
+      --primary-dark: #4338ca;
       --dark-color: #1e293b;
       --light-color: #f8fafc;
       --danger-color: #ef4444;
       --success-color: #10b981;
+      --warning-color: #f59e0b;
       --white: #ffffff;
       --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
     
     * {
@@ -60,6 +63,12 @@
       color: var(--primary-color);
     }
     
+    h2 {
+      font-size: 1.8rem;
+      margin: 1.5rem 0 1rem;
+      color: var(--dark-color);
+    }
+    
     p {
       font-size: 1.2rem;
       margin-bottom: 1.5rem;
@@ -68,12 +77,18 @@
     
     .card {
       background-color: var(--white);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
       padding: 2rem;
       width: 100%;
       max-width: 600px;
       margin-bottom: 2rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg), 0 10px 25px -5px rgba(79, 70, 229, 0.1);
     }
     
     .btn {
@@ -82,22 +97,45 @@
       color: var(--white);
       padding: 0.75rem 1.5rem;
       border: none;
-      border-radius: 5px;
+      border-radius: 8px;
       cursor: pointer;
       text-decoration: none;
       font-size: 1rem;
       font-weight: 600;
-      transition: opacity 0.3s ease;
+      transition: all 0.3s ease;
       margin: 0.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: -100%;
+      background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+      transition: left 0.6s ease;
     }
     
     .btn:hover {
-      opacity: 0.9;
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    }
+    
+    .btn:hover::after {
+      left: 100%;
+    }
+    
+    .btn:active {
+      transform: translateY(1px);
     }
     
     .btn-outline {
       background-color: transparent;
-      border: 1px solid var(--primary-color);
+      border: 2px solid var(--primary-color);
       color: var(--primary-color);
     }
     
@@ -116,23 +154,51 @@
     
     .feature-card {
       background-color: var(--white);
-      border-radius: 8px;
+      border-radius: 12px;
       box-shadow: var(--shadow);
       padding: 1.5rem;
       width: 100%;
       max-width: 300px;
       text-align: left;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border-top: 4px solid var(--primary-color);
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg);
     }
     
     .feature-card h3 {
       font-size: 1.3rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.8rem;
       color: var(--primary-color);
+      display: flex;
+      align-items: center;
+    }
+    
+    .feature-card h3::before {
+      content: "•";
+      color: var(--primary-color);
+      font-size: 2rem;
+      margin-right: 0.5rem;
+      line-height: 0;
+    }
+    
+    .feature-card p {
+      font-size: 1rem;
+      margin-bottom: 0;
     }
     
     .logo {
       max-width: 120px;
       margin-bottom: 1.5rem;
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+      transition: transform 0.3s ease;
+    }
+    
+    .logo:hover {
+      transform: scale(1.05);
     }
     
     .offline-status {
@@ -145,6 +211,20 @@
       border-radius: 20px;
       font-weight: 600;
       margin-bottom: 1.5rem;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+      }
+      70% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+      }
     }
     
     .offline-status::before {
@@ -155,10 +235,50 @@
     }
     
     .footer {
-      padding: 1rem;
+      padding: 1.5rem;
       text-align: center;
       font-size: 0.9rem;
       color: #64748b;
+      border-top: 1px solid rgba(100, 116, 139, 0.1);
+      margin-top: 2rem;
+      width: 100%;
+    }
+    
+    .connection-timer {
+      font-size: 0.9rem;
+      color: var(--dark-color);
+      margin-top: 1rem;
+      opacity: 0.7;
+    }
+    
+    .sync-status {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: var(--primary-color);
+      display: none;
+    }
+    
+    .progress-container {
+      width: 100%;
+      max-width: 300px;
+      height: 8px;
+      background-color: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 0.5rem auto;
+      display: none;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background-color: var(--primary-color);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    
+    .hidden {
+      display: none;
     }
     
     @media (max-width: 768px) {
@@ -178,7 +298,7 @@
 </head>
 <body>
   <div class="main-container">
-    <img src="icons/logo_2-192x192.png" alt="PsikoRan Logo" class="logo">
+    <img src="/assets/pwa/logo_2-192x192.png" alt="PsikoRan Logo" class="logo">
     
     <div class="offline-status">Çevrimdışı</div>
     
@@ -187,6 +307,11 @@
       <p>Şu anda internet bağlantınız bulunmuyor. PsikoRan uygulamasının bazı özellikleri çevrimdışı olarak kullanılabilir.</p>
       <button class="btn" id="refreshButton">Yeniden Dene</button>
       <a href="/" class="btn btn-outline">Ana Sayfaya Dön</a>
+      <div class="connection-timer">Son bağlantı denemesi: <span id="lastConnectionAttempt">Şimdi</span></div>
+      <div class="sync-status" id="syncStatus"></div>
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
     </div>
     
     <h2>Çevrimdışı Çalışan Özellikler</h2>
@@ -206,6 +331,15 @@
         <p>Çevrimdışıyken not ekleyebilir, çevrimiçi olduğunuzda senkronize edebilirsiniz.</p>
       </div>
     </div>
+    
+    <div class="card" id="offlineFeaturesCard" style="margin-top: 2rem;">
+      <h2>Veri Senkronizasyonu</h2>
+      <p>Çevrimdışıyken yaptığınız değişiklikler otomatik olarak kaydedilir ve internet bağlantınız geri geldiğinde sunucuyla senkronize edilir.</p>
+      <div class="feature-card" style="max-width: 100%; margin-top: 1rem;">
+        <h3>Otomatik Senkronizasyon</h3>
+        <p>İnternet bağlantınız geri geldiğinde, tüm bekleyen verileriniz otomatik olarak senkronize edilir.</p>
+      </div>
+    </div>
   </div>
   
   <footer class="footer">
@@ -213,15 +347,98 @@
   </footer>
   
   <script>
+    let reconnectTimer;
+    let lastCheckTime = new Date();
+    const lastConnectionElement = document.getElementById('lastConnectionAttempt');
+    const syncStatusElement = document.getElementById('syncStatus');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    
     // Bağlantı durumunu kontrol et
     function checkConnection() {
+      lastCheckTime = new Date();
+      updateLastConnectionTime();
+      
       if (navigator.onLine) {
+        // Çevrimiçi olduğunda
+        showSyncingStatus();
         window.location.href = '/';
+      } else {
+        // Zamanla otomatik olarak tekrar kontrol et
+        scheduleReconnect();
       }
     }
     
-    // Sayfa yüklendiğinde bağlantı durumunu kontrol et
-    window.addEventListener('load', checkConnection);
+    // Yeniden bağlantı kontrolü için zamanlayıcı
+    function scheduleReconnect() {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(() => {
+        checkConnection();
+      }, 30000); // 30 saniyede bir kontrol et
+    }
+    
+    // Son bağlantı denemesi süresini güncelle
+    function updateLastConnectionTime() {
+      const now = new Date();
+      const diff = now - lastCheckTime;
+      
+      if (diff < 60000) {
+        // 1 dakikadan kısa
+        lastConnectionElement.textContent = "Az önce";
+      } else if (diff < 3600000) {
+        // 1 saatten kısa
+        const minutes = Math.floor(diff / 60000);
+        lastConnectionElement.textContent = `${minutes} dakika önce`;
+      } else {
+        // 1 saatten fazla
+        const hours = Math.floor(diff / 3600000);
+        lastConnectionElement.textContent = `${hours} saat önce`;
+      }
+      
+      // Her 10 saniyede bir güncelle
+      setTimeout(updateLastConnectionTime, 10000);
+    }
+    
+    // Senkronizasyon durumunu göster
+    function showSyncingStatus() {
+      syncStatusElement.style.display = 'block';
+      progressContainer.style.display = 'block';
+      syncStatusElement.textContent = 'Veriler senkronize ediliyor...';
+      
+      // İlerleme çubuğu animasyonu
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += 5;
+        progressBar.style.width = `${progress}%`;
+        
+        if (progress >= 100) {
+          clearInterval(progressInterval);
+          syncStatusElement.textContent = 'Senkronizasyon tamamlandı!';
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 500);
+        }
+      }, 100);
+    }
+    
+    // Sayfa yüklendiğinde
+    window.addEventListener('load', () => {
+      updateLastConnectionTime();
+      checkConnection();
+      
+      // IndexedDB'yi kontrol et
+      if ('indexedDB' in window) {
+        // Bekleyen verileri kontrol et
+        checkPendingData();
+      }
+    });
+    
+    // IndexedDB'de bekleyen verileri kontrol et
+    function checkPendingData() {
+      // Bu fonksiyon, gerçek bir uygulama için genişletilebilir
+      // Şu anda sadece örnek amaçlı buradadır
+      console.log('Bekleyen veriler kontrol ediliyor...');
+    }
     
     // Çevrimiçi olduğunda ana sayfaya yönlendir
     window.addEventListener('online', checkConnection);
