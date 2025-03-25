@@ -126,6 +126,8 @@ export default defineConfig({
         ]
       },
       workbox: {
+        // PWA önbelleğe alma limiti - varsayılan 2 MiB yerine 3 MiB olarak ayarla
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB
         // Çakışan önbellek girişlerini önlemek için
         globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,ttf,woff,woff2}'],
         // WB_REVISION parametrelerini temizle ve çakışan girişleri önle
@@ -177,16 +179,35 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false,
+    // JavaScript dosyalarının optimizasyonu için ek ayarlar
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,  // console.log ifadelerini kaldır
+        drop_debugger: true, // debugger ifadelerini kaldır
+      },
+      format: {
+        comments: false,     // yorum satırlarını kaldır
+      },
+    },
     rollupOptions: {
       output: {
+        // Daha iyi chunk stratejisi uygula
         manualChunks: {
           'vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui': ['framer-motion', '@headlessui/react'],
-          'charts': ['chart.js', 'react-chartjs-2']
-        }
+          'ui': ['framer-motion', '@headlessui/react', '@mantine/core', '@mantine/hooks'],
+          'charts': ['chart.js', 'react-chartjs-2'],
+          'editor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-color', '@tiptap/extension-text-style'],
+          'form': ['react-hook-form'],
+          'utils': ['date-fns', 'dayjs', 'crypto-js']
+        },
+        // Dosya adları için hash uzunluğunu azalt
+        entryFileNames: 'assets/[name]-[hash:8].js',
+        chunkFileNames: 'assets/[name]-[hash:8].js',
+        assetFileNames: 'assets/[name]-[hash:8].[ext]'
       }
     },
-    chunkSizeWarningLimit: 2000 // Chunk boyutu uyarı limitini artır
+    chunkSizeWarningLimit: 2500 // Chunk boyutu uyarı limitini 2.5 MB'a artır
   },
   resolve: {
     alias: {
