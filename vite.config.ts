@@ -186,7 +186,7 @@ export default defineConfig({
         }
       }
     },
-    chunkSizeWarningLimit: 3000 // Chunk boyutu uyarı limitini artır
+    chunkSizeWarningLimit: 2000 // Chunk boyutu uyarı limitini artır
   },
   resolve: {
     alias: {
