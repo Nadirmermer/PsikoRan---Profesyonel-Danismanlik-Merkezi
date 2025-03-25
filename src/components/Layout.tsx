@@ -16,7 +16,13 @@ import {
   Settings,
   Bell,
   BookOpen,
+  X,
+  AlertTriangle,
+  User,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import './layout.css';
+import { Logo } from './Logo';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -46,6 +52,7 @@ export function Layout({ children }: LayoutProps) {
   const { signOut, professional, assistant } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
 
   // Body scroll kilidini yönet
   useEffect(() => {
@@ -95,10 +102,13 @@ export function Layout({ children }: LayoutProps) {
   };
 
   const handleSignOut = async () => {
-    if (window.confirm('Çıkış yapmak istediğinize emin misiniz?')) {
-      await signOut();
-      navigate('/login');
-    }
+    setIsSignOutModalOpen(true);
+  };
+
+  const confirmSignOut = async () => {
+    await signOut();
+    setIsSignOutModalOpen(false);
+    navigate('/login');
   };
 
   // Rol bazlı menü öğelerini tanımla
@@ -212,65 +222,102 @@ export function Layout({ children }: LayoutProps) {
             fixed lg:static
             z-[60]
             will-change-transform
-            transition-[width,transform] duration-200 ease-out
-            bg-white/80 dark:bg-gray-800/80
+            transition-all duration-300 ease-out
+            bg-white/90 dark:bg-gray-800/90
             backdrop-blur-xl
             border-r border-gray-200/50 dark:border-gray-700/50
             h-full
-            shadow-[0_0_30px_-15px_rgba(0,0,0,0.2)] dark:shadow-[0_0_30px_-15px_rgba(0,0,0,0.5)]
+            shadow-lg dark:shadow-gray-900/30
             ${
               isSidebarOpen
-                ? 'translate-x-0 w-[280px] lg:w-64'
+                ? 'translate-x-0 w-[280px] lg:w-72'
                 : '-translate-x-full w-[280px] lg:w-20 lg:translate-x-0'
             }
           `}
         >
           <div className="h-full flex flex-col">
-            <div className="h-16 flex items-center justify-between px-4">
-              <h1
-                className={`
-                font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent
-                will-change-transform will-change-opacity
-                transition-[opacity,transform] duration-150 ease-out
-                ${isSidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 lg:hidden'}
-              `}
-              >
-                PsikoRan
-              </h1>
+            <div className="h-16 flex items-center justify-between px-5">
+              <div className="flex items-center">
+                <div className="flex items-center justify-center h-10 w-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md shadow-blue-500/20 dark:shadow-blue-500/10 mr-2 overflow-hidden">
+                  <Logo size="small" showText={false} />
+                </div>
+                <h1
+                  className={`
+                  font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent text-xl
+                  will-change-transform will-change-opacity
+                  transition-all duration-200 ease-out
+                  ${isSidebarOpen ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 lg:hidden'}
+                `}
+                >
+                  PsikoRan
+                </h1>
+              </div>
               <button
                 onClick={() => setSidebarOpen(!isSidebarOpen)}
                 className={`
-                  p-2.5 rounded-xl hover:bg-gray-100/80 dark:hover:bg-gray-700/80 
-                  transition-all duration-150 ease-out hover:scale-105 active:scale-95
-                  ${!isSidebarOpen && 'lg:w-full lg:flex lg:justify-center'}
+                  p-2.5 rounded-lg bg-gray-100/80 dark:bg-gray-700/80 hover:bg-gray-200/80 dark:hover:bg-gray-600/80
+                  transition-all duration-200 ease-out hover:scale-105 active:scale-95
+                  ${!isSidebarOpen && 'lg:w-10 lg:h-10 lg:flex lg:justify-center lg:items-center'}
                 `}
               >
-                <Menu className={`h-5 w-5 text-gray-600 dark:text-gray-300 transition-transform duration-150 ease-out ${isSidebarOpen ? 'rotate-180' : 'rotate-0'}`} />
+                <Menu className={`h-5 w-5 text-gray-600 dark:text-gray-300 transition-transform duration-200 ease-out ${isSidebarOpen ? 'rotate-90' : 'rotate-0'}`} />
               </button>
             </div>
+            
+            <div className={`px-3 py-2 ${!isSidebarOpen && 'lg:px-2'}`}>
+              <div className={`py-2 px-3 rounded-xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 dark:from-blue-500/5 dark:to-indigo-500/5 flex items-center ${!isSidebarOpen && 'lg:justify-center lg:px-0'}`}>
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-blue-500/20 dark:shadow-blue-500/10">
+                  <User className="h-4 w-4 text-white" />
+                </div>
+                {isSidebarOpen && (
+                  <div className="ml-3 overflow-hidden">
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                      {professional?.full_name || assistant?.full_name || 'Kullanıcı'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {professional ? 'Ruh Sağlığı Uzmanı' : assistant ? 'Asistan' : 'Misafir'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
 
-            <nav className={`flex-1 px-2 py-4 space-y-2 ${!isSidebarOpen && 'lg:px-1'}`}>
-              {menuItems.map((item) => {
+            <nav className={`flex-1 px-3 py-4 space-y-1.5 overflow-y-auto custom-scrollbar ${!isSidebarOpen && 'lg:px-2'}`}>
+              {menuItems.map((item, index) => {
                 const isActive = location.pathname === item.path;
                 return (
                   <button
                     key={item.path}
-                    onClick={() => navigate(item.path)}
+                    onClick={() => {
+                      navigate(item.path);
+                      if (window.innerWidth < 1024) {
+                        setSidebarOpen(false);
+                      }
+                    }}
                     className={`
-                      w-full flex items-center px-4 py-2.5 rounded-xl
-                      transition-all duration-150 ease-out
+                      w-full flex items-center px-4 py-3 rounded-xl
+                      transition-all duration-200 ease-out
                       hover:scale-[1.02] active:scale-[0.98]
-                      ${!isSidebarOpen && 'lg:justify-center lg:px-0'}
+                      ${!isSidebarOpen && 'lg:justify-center lg:px-0 lg:py-3'}
                       ${
                         isActive
-                          ? 'bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-400/10 dark:to-purple-400/10 text-blue-600 dark:text-blue-400 shadow-sm'
+                          ? 'bg-gradient-to-r from-blue-500/20 to-indigo-500/20 dark:from-blue-500/10 dark:to-indigo-500/10 text-blue-600 dark:text-blue-400 shadow-sm'
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80'
                       }
                     `}
                   >
-                    <item.icon className={`h-5 w-5 transition-transform duration-150 ease-out ${isActive ? 'text-blue-600 dark:text-blue-400' : ''}`} />
+                    <div className={`
+                      flex items-center justify-center 
+                      h-9 w-9 rounded-lg 
+                      ${isActive 
+                        ? 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shadow-blue-500/20 dark:shadow-blue-500/10' 
+                        : 'bg-gray-100 dark:bg-gray-700/70'}
+                      transition-colors duration-200
+                    `}>
+                      <item.icon className={`h-5 w-5 ${isActive ? 'text-white' : ''}`} />
+                    </div>
                     {isSidebarOpen && (
-                      <span className={`ml-3 will-change-transform will-change-opacity transition-[opacity,transform] duration-150 ease-out ${isActive ? 'text-blue-600 dark:text-blue-400' : ''}`}>
+                      <span className={`ml-3 will-change-transform will-change-opacity transition-all duration-200 ease-out text-sm font-medium ${isActive ? 'text-blue-600 dark:text-blue-400' : ''}`}>
                         {item.label}
                       </span>
                     )}
@@ -280,23 +327,25 @@ export function Layout({ children }: LayoutProps) {
             </nav>
 
             {/* Footer buttons with premium styling */}
-            <div className={`p-4 border-t border-gray-200/50 dark:border-gray-700/50 ${!isSidebarOpen && 'lg:px-1'}`}>
+            <div className={`p-4 space-y-2 border-t border-gray-200/50 dark:border-gray-700/50 ${!isSidebarOpen && 'lg:px-2'}`}>
               <button
                 onClick={toggleDarkMode}
                 className={`
-                  hidden lg:flex w-full items-center px-4 py-2.5 
+                  w-full flex items-center px-4 py-3
                   text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 
-                  rounded-xl transition-all duration-150 ease-out hover:scale-[1.02] active:scale-[0.98]
+                  rounded-xl transition-all duration-200 ease-out hover:scale-[1.02] active:scale-[0.98]
                   ${!isSidebarOpen && 'lg:justify-center lg:px-0'}
                 `}
               >
-                {isDarkMode ? (
-                  <Sun className="h-5 w-5 text-amber-500" />
-                ) : (
-                  <Moon className="h-5 w-5 text-blue-600" />
-                )}
+                <div className="h-9 w-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  {isDarkMode ? (
+                    <Sun className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  ) : (
+                    <Moon className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  )}
+                </div>
                 {isSidebarOpen && (
-                  <span className="ml-3 will-change-transform will-change-opacity transition-opacity duration-150 ease-out">
+                  <span className="ml-3 will-change-transform will-change-opacity transition-all duration-200 ease-out text-sm font-medium">
                     {isDarkMode ? 'Açık Mod' : 'Koyu Mod'}
                   </span>
                 )}
@@ -304,14 +353,21 @@ export function Layout({ children }: LayoutProps) {
               <button
                 onClick={handleSignOut}
                 className={`
-                  w-full flex items-center px-4 py-2.5 mt-2 
-                  text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 
-                  rounded-xl transition-all duration-150 ease-out hover:scale-[1.02] active:scale-[0.98]
+                  w-full flex items-center px-4 py-3
+                  text-gray-700 dark:text-gray-300 hover:bg-red-100/80 dark:hover:bg-red-900/30
+                  hover:text-red-600 dark:hover:text-red-400
+                  rounded-xl transition-all duration-200 ease-out hover:scale-[1.02] active:scale-[0.98]
                   ${!isSidebarOpen && 'lg:justify-center lg:px-0'}
                 `}
               >
-                <LogOut className="h-5 w-5" />
-                {isSidebarOpen && <span className="ml-3 will-change-transform will-change-opacity transition-opacity duration-150 ease-out">Çıkış Yap</span>}
+                <div className="h-9 w-9 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                  <LogOut className="h-5 w-5 text-red-600 dark:text-red-400" />
+                </div>
+                {isSidebarOpen && (
+                  <span className="ml-3 will-change-transform will-change-opacity transition-all duration-200 ease-out text-sm font-medium">
+                    Çıkış Yap
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -321,6 +377,61 @@ export function Layout({ children }: LayoutProps) {
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
+
+      {/* Çıkış Yapma Onay Modalı */}
+      <AnimatePresence>
+        {isSignOutModalOpen && (
+          <motion.div 
+            className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div 
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700"
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center">
+                  <span className="bg-red-100 dark:bg-red-900/30 rounded-full p-2 mr-3">
+                    <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  </span>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Çıkış Yap</h3>
+                </div>
+                <button 
+                  onClick={() => setIsSignOutModalOpen(false)}
+                  className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                </button>
+              </div>
+
+              <p className="text-gray-700 dark:text-gray-300 mb-6">
+                Oturumunuzu kapatmak istediğinize emin misiniz? Yeniden giriş yapmanız gerekecektir.
+              </p>
+
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                <button 
+                  onClick={() => setIsSignOutModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700/70 transition-colors"
+                >
+                  Vazgeç
+                </button>
+                <button 
+                  onClick={confirmSignOut}
+                  className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+                >
+                  Çıkış Yap
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

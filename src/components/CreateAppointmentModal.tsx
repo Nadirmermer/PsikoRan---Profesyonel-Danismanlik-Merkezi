@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -15,12 +15,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Video
+  Video,
+  Search
 } from 'lucide-react';
 import { format, isValid, parseISO, isWithinInterval, addMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import 'dayjs/locale/tr';
+import dayjs, { Dayjs } from 'dayjs';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -128,11 +134,29 @@ export function CreateAppointmentModal({
     clientId: '',
     professionalId: professionalId || '',
     roomId: '',
-    date: new Date(),
+    date: new Date(), // Date tipinde tutuyoruz
     time: '',
     duration: '45', // Varsayılan 45 dakika
     notes: '',
     isOnline: false
+  });
+
+  // MUI DateCalendar için dayjs state'i
+  const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs(new Date()));
+  
+  // Dark mode state'i
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.classList.contains('dark');
+    }
+    return false;
+  });
+  
+  // MUI teması
+  const theme = createTheme({
+    palette: {
+      mode: isDarkMode ? 'dark' : 'light',
+    },
   });
 
   // UI durumları
@@ -153,6 +177,41 @@ export function CreateAppointmentModal({
   const [existingAppointments, setExistingAppointments] = useState<Appointment[]>([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
+
+  // Danışan arama state'i
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Seçili danışanı bulma
+  const selectedClient = formData.clientId ? clients.find(c => c.id === formData.clientId) : null;
+
+  // useEffect içinde, combobox kapandığında veya danışan değiştiğinde, 
+  // seçili danışanın adını input'a ayarla
+  useEffect(() => {
+    if (selectedClient && !dropdownOpen) {
+      setSearchTerm(selectedClient.full_name);
+    }
+  }, [selectedClient, dropdownOpen]);
+
+  // Tıklamaları izle ve dışarıdaki tıklamalarda dropdown'ı kapat
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Arama terimine göre filtrelenmiş danışanlar
+  const filteredClients = clients.filter(client => 
+    client.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   // Sayfa yüklendiğinde veya modalın açılmasıyla verileri yükle
   useEffect(() => {
@@ -182,24 +241,121 @@ export function CreateAppointmentModal({
     }
   }, [formData.date, formData.time, existingAppointments]);
 
+  // Dark mode değişimini izle
+  useEffect(() => {
+    const updateThemeMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    };
+
+    // İlk render'da ve DOM değişimlerinde kontrol et
+    updateThemeMode();
+    
+    // MutationObserver ile dark class'ını dinle
+    if (typeof window !== 'undefined') {
+      const observer = new MutationObserver(updateThemeMode);
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+      
+      return () => {
+        observer.disconnect();
+      };
+    }
+  }, []);
+
   const loadInitialData = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      // Her fonksiyonu ayrı ayrı çağır, biri hata verirse diğerleri çalışmaya devam edebilsin
+      // Sadece başlangıçta gereken temel verileri yükle
       try {
+        // Danışan verileri
         await loadClients();
       } catch (error) {
         console.error('Danışan verileri yüklenirken hata:', error);
       }
       
+      // Professional ID varsa, sadece o uzmanla ilgili temel verileri yükle
+      if (professionalId) {
+        setFormData(prev => ({ ...prev, professionalId }));
+      } 
+      // Assistant ID varsa, o asistana bağlı tüm uzmanları yükle
+      else if (assistantId) {
+        try {
+          await loadProfessionals();
+        } catch (error) {
+          console.error('Uzman verileri yüklenirken hata:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Başlangıç verileri yüklenirken hata oluştu:', error);
+      setError('Veriler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Danışan seçimi yapıldığında ilgili verileri yükle
+  useEffect(() => {
+    if (formData.clientId) {
+      loadUserSpecificData();
+    }
+  }, [formData.clientId]);
+
+  // Tarih seçildiğinde ilgili verileri yükle
+  useEffect(() => {
+    if (formData.date) {
+      loadDateSpecificData();
+    }
+  }, [formData.date]);
+
+  // Saat seçildiğinde ilgili verileri yükle
+  useEffect(() => {
+    if (formData.date && formData.time) {
+      loadTimeSpecificData();
+    }
+  }, [formData.time]);
+
+  // Saat seçildiğinde ilgili verileri yükle
+  const loadTimeSpecificData = async () => {
+    // Odaları yükle (eğer daha önce yüklenmemişse)
+    if (rooms.length <= 1) { // Sadece online oda varsa veya hiç yoksa
       try {
         await loadRooms();
       } catch (error) {
         console.error('Oda verileri yüklenirken hata:', error);
       }
-      
+    }
+  };
+
+  // Danışan seçildiğinde ilgili verileri yükle
+  const loadUserSpecificData = async () => {
+    // Danışan seçildiğinde odaları yükle
+    try {
+      await loadRooms();
+    } catch (error) {
+      console.error('Oda verileri yüklenirken hata:', error);
+    }
+
+    // Profesyonel ID'yi danışandan belirle (eğer manuel ayarlanmadıysa)
+    if (!professionalId && formData.clientId) {
+      const selectedClient = clients.find(client => client.id === formData.clientId);
+      if (selectedClient) {
+        setFormData(prev => ({ ...prev, professionalId: selectedClient.professional_id }));
+        
+        try {
+          await loadProfessionalWorkingHours(selectedClient.professional_id);
+        } catch (error) {
+          console.error('Uzman çalışma saatleri yüklenirken hata:', error);
+        }
+      }
+    }
+  };
+
+  // Tarih seçildiğinde ilgili verileri yükle
+  const loadDateSpecificData = async () => {
       try {
         await loadClinicHours();
       } catch (error) {
@@ -218,41 +374,23 @@ export function CreateAppointmentModal({
         console.error('Klinik tatil verileri yüklenirken hata:', error);
       }
       
-      // Professional ID varsa, o uzman için çalışma saatlerini ve tatillerini yükle
-      if (professionalId) {
-        setFormData(prev => ({ ...prev, professionalId }));
-        
-        try {
-          await loadProfessionalWorkingHours(professionalId);
-        } catch (error) {
-          console.error('Uzman çalışma saatleri yüklenirken hata:', error);
-        }
-        
-        try {
-          await loadProfessionalBreaks(professionalId);
+    if (formData.professionalId) {
+      try {
+        await loadProfessionalBreaks(formData.professionalId);
         } catch (error) {
           console.error('Uzman mola verileri yüklenirken hata:', error);
         }
         
         try {
-          await loadProfessionalVacations(professionalId);
+        await loadProfessionalVacations(formData.professionalId);
         } catch (error) {
           console.error('Uzman tatil verileri yüklenirken hata:', error);
         }
       } 
-      // Assistant ID varsa, o asistana bağlı tüm uzmanları yükle
-      else if (assistantId) {
-        try {
-          await loadProfessionals();
-        } catch (error) {
-          console.error('Uzman verileri yüklenirken hata:', error);
-        }
-      }
-    } catch (error) {
-      console.error('Randevu verileri yüklenirken hata oluştu:', error);
-      setError('Veriler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin.');
-    } finally {
-      setLoading(false);
+
+    // Tarih için mevcut randevuları yükle
+    if (formData.date) {
+      await loadAppointmentsForDate(format(formData.date, 'yyyy-MM-dd'));
     }
   };
 
@@ -957,6 +1095,8 @@ export function CreateAppointmentModal({
 
   const handleDateChange = (date: Date) => {
     setFormData(prev => ({ ...prev, date, time: '' }));
+    // Dayjs state'ini de güncelle
+    setSelectedDate(dayjs(date));
     loadAppointmentsForDate(format(date, 'yyyy-MM-dd'));
   };
 
@@ -983,7 +1123,11 @@ export function CreateAppointmentModal({
       if (!formData.professionalId) throw new Error('Ruh sağlığı uzmanı belirlenmedi');
       if (!formData.date) throw new Error('Tarih seçilmedi');
       if (!formData.time) throw new Error('Saat seçilmedi');
-      if (!formData.isOnline && !formData.roomId) throw new Error('Görüşme yeri seçilmedi');
+      
+      // Online görüşme ise oda kontrol etme, yüz yüze ise oda seçimi zorunlu
+      if (!formData.isOnline && !formData.roomId) {
+        throw new Error('Yüz yüze görüşme için oda seçimi zorunludur');
+      }
       
       // Randevu başlangıç ve bitiş zamanlarını hesapla
       const startDateTime = new Date(formData.date);
@@ -1006,16 +1150,17 @@ export function CreateAppointmentModal({
       
       if (error) throw error;
       
-      setSuccess('Randevu başarıyla oluşturuldu!');
+      // Başarı mesajını göster, kısa süre sonra kapat
+      setSuccess('Randevu oluşturuldu!');
       
-      // Başarı mesajını gösterdikten sonra modalı kapat
+      // Başarı mesajını gösterdikten sonra hızlıca modalı kapat
       setTimeout(() => {
         // onSuccess fonksiyonunun varlığını kontrol et
         if (typeof onSuccess === 'function') {
           onSuccess();
         }
         onClose();
-      }, 1500);
+      }, 800); // Daha kısa bir süre
       
     } catch (error) {
       console.error('Randevu oluşturulurken hata:', error);
@@ -1024,8 +1169,7 @@ export function CreateAppointmentModal({
       } else {
         setError('Randevu oluşturulurken bir hata oluştu.');
       }
-    } finally {
-      setLoading(false);
+      setLoading(false); // Hata durumunda loading'i kapat
     }
   };
 
@@ -1044,49 +1188,25 @@ export function CreateAppointmentModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center overflow-y-auto p-1 sm:p-2 md:p-3">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center overflow-y-auto p-1">
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl overflow-hidden w-full max-w-[95vw] sm:max-w-[92vw] md:max-w-[90vw] lg:max-w-[85vw] xl:max-w-[80vw] mx-auto relative my-1 max-h-[98vh] sm:max-h-[96vh] md:max-h-[94vh]"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl overflow-hidden w-full max-w-[98vw] sm:max-w-[95vw] md:max-w-5xl lg:max-w-6xl mx-auto relative my-1"
         >
-          {/* Arkaplan Efekti */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-purple-100 dark:bg-purple-900/20 blur-3xl opacity-70 dark:opacity-30"></div>
-            <div className="absolute -bottom-24 -left-24 w-64 h-64 rounded-full bg-blue-100 dark:bg-blue-900/20 blur-3xl opacity-70 dark:opacity-30"></div>
-          </div>
+          
 
-          {/* Header - Daha Kompakt */}
-          <div className="relative bg-gradient-to-r from-primary-600 to-indigo-600 dark:from-primary-700 dark:to-indigo-700 p-1.5 sm:p-2 text-white">
-            <button
-              onClick={onClose}
-              className="absolute right-1.5 top-1.5 text-white hover:bg-white/20 rounded-full p-0.5 transition-colors z-10"
-              aria-label="Kapat"
-            >
-              <X size={16} />
-            </button>
-            <div className="flex items-center space-x-1.5">
-              <div className="flex-shrink-0 h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-white/20 flex items-center justify-center shadow-inner">
-                <Calendar size={14} className="text-white" />
-              </div>
-              <div>
-                <h2 className="text-sm sm:text-base font-bold">Yeni Randevu Oluştur</h2>
-                <p className="text-xs text-white/80">Randevu bilgilerini doldurun</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Form içeriği - maximum yükseklik azaltıldı */}
-          <div className="p-2 sm:p-3 md:p-4 max-h-[70vh] sm:max-h-[75vh] md:max-h-[80vh] overflow-y-auto relative overflow-x-hidden">
+          {/* Form içeriği */}
+          <div className="p-2 overflow-y-auto relative overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 110px)' }}>
             {loading && (
               <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 z-10 flex items-center justify-center backdrop-blur-sm">
-                <div className="flex flex-col items-center space-y-3">
-                  <div className="p-3 rounded-full bg-primary-100 dark:bg-primary-900/30 shadow-lg animate-pulse">
-                    <Loader2 size={28} className="animate-spin text-primary-600 dark:text-primary-400" />
+                <div className="flex flex-col items-center space-y-2">
+                  <div className="p-2 rounded-full bg-primary-100 dark:bg-primary-900/30 shadow-lg animate-pulse">
+                    <Loader2 size={20} className="animate-spin text-primary-600 dark:text-primary-400" />
                   </div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">İşleminiz gerçekleştiriliyor...</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">İşleminiz gerçekleştiriliyor...</p>
                 </div>
                 </div>
             )}
@@ -1095,63 +1215,120 @@ export function CreateAppointmentModal({
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 flex items-start"
+                className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 flex items-start"
               >
-                <AlertCircle size={18} className="mr-3 mt-0.5 flex-shrink-0" />
-                <p className="text-sm">{error}</p>
+                <AlertCircle size={16} className="mr-2 mt-0.5 flex-shrink-0" />
+                <p className="text-xs">{error}</p>
               </motion.div>
             )}
 
             {success && (
               <motion.div 
-                initial={{ opacity: 0, y: -10 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-green-700 dark:text-green-400 flex items-start"
+                className="fixed bottom-4 left-1/2 -translate-x-1/2 px-3 py-2 bg-green-500 dark:bg-green-600 rounded-lg shadow-lg text-white flex items-center z-50"
               >
-                <CheckCircle2 size={18} className="mr-3 mt-0.5 flex-shrink-0" />
-                <p className="text-sm">{success}</p>
+                <CheckCircle2 size={16} className="mr-2 flex-shrink-0" />
+                <p className="text-xs font-medium">{success}</p>
               </motion.div>
             )}
 
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 md:gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-3">
 
-                {/* Sol Taraf - Danışan seçimi ve takvim */}
-                <div className="space-y-2 md:space-y-4">
+                {/* Sol Taraf - Danışan seçimi ve tarih */}
+                <div className="space-y-2 md:space-y-3">
                   {/* Danışan Seçimi */}
                         <div>
-                    <h3 className="flex items-center text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2 sm:mb-3">
-                      <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
+                    <h3 className="flex items-center text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                      <div className="h-4 w-4 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
                         <span className="text-xs font-bold">1</span>
                           </div>
                       Danışan Bilgileri
                     </h3>
                     
-                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 sm:p-3 border border-gray-200 dark:border-gray-700/60 shadow-sm">
+                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 border border-gray-200 dark:border-gray-700/60 shadow-sm">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Danışan Seçin
                         </label>
+                        <div className="relative" ref={searchRef}>
                         <div className="relative">
-                          <select
-                            name="clientId"
-                            value={formData.clientId}
-                            onChange={handleInputChange}
-                            className="appearance-none block w-full px-4 py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-600 transition-shadow"
-                          >
-                            <option value="">Danışan seçin</option>
-                            {clients.map(client => (
-                              <option key={client.id} value={client.id}>
-                                {client.full_name}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none" />
+                            <input
+                              type="text"
+                              placeholder="Danışan ara..."
+                              value={searchTerm}
+                              onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                if (formData.clientId && e.target.value !== selectedClient?.full_name) {
+                                  setFormData(prev => ({ ...prev, clientId: '' }));
+                                }
+                                setDropdownOpen(true);
+                              }}
+                              onFocus={() => setDropdownOpen(true)}
+                              className="appearance-none block w-full px-4 py-2.5 pl-10 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-600 transition-shadow"
+                            />
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            {selectedClient && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, clientId: '' }));
+                                  setSearchTerm('');
+                                }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400"
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
+                          
+                          {dropdownOpen && (
+                            <div className="absolute z-[80] w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-36 overflow-y-auto">
+                              {clients.length === 0 ? (
+                                <div className="p-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                                  Henüz danışan eklenmemiş
+                                </div>
+                              ) : filteredClients.length === 0 ? (
+                                <div className="p-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                                  Eşleşen danışan bulunamadı
+                                </div>
+                              ) : (
+                                filteredClients.map(client => (
+                                  <div
+                                    key={client.id}
+                                    onClick={() => {
+                                      setFormData(prev => ({ ...prev, clientId: client.id }));
+                                      setSearchTerm(client.full_name);
+                                      setDropdownOpen(false);
+                                    }}
+                                    className={`p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                                      formData.clientId === client.id ? 'bg-primary-50 dark:bg-primary-900/30' : ''
+                                    }`}
+                                  >
+                                    <div className="flex items-center">
+                                      <div className="p-1 bg-primary-100 dark:bg-primary-900/50 rounded-full mr-1.5">
+                                        <User size={12} className="text-primary-600 dark:text-primary-400" />
+                                      </div>
+                                      <div className="flex-1">
+                                        <p className="text-xs font-medium text-gray-800 dark:text-gray-200">{client.full_name}</p>
+                                        <div className="flex flex-wrap items-center gap-1">
+                                          {client.phone && (
+                                            <p className="text-[10px] text-gray-500 dark:text-gray-400">{client.phone}</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          )}
                   </div>
               </div>
 
                       {/* Süre seçimi */}
-                    <div>
+                      <div className="mt-2">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Randevu Süresi
                         </label>
@@ -1171,83 +1348,119 @@ export function CreateAppointmentModal({
                           <ChevronDown size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none" />
                       </div>
                       </div>
-                      
-                      {formData.clientId && !professionalId && (
-                        <div className="p-3 bg-primary-50 dark:bg-primary-900/30 rounded-lg text-sm text-primary-700 dark:text-primary-300 border border-primary-100 dark:border-primary-800/50">
-                          <p>Danışan: {clients.find(c => c.id === formData.clientId)?.full_name}</p>
-                          <p>Uzman: {professionals.find(p => p.id === formData.professionalId)?.full_name}</p>
-                    </div>
-                      )}
                   </div>
                 </div>
 
               {/* Tarih Seçimi */}
               <div>
-                    <h3 className="flex items-center text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2 sm:mb-3">
-                      <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
+                    <h3 className="flex items-center text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                      <div className="h-4 w-4 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
                         <span className="text-xs font-bold">2</span>
                   </div>
                       Tarih Seçimi
                     </h3>
                     
                     {/* DatePicker konteyneri */}
-                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 sm:p-3 border border-gray-200 dark:border-gray-700/60 shadow-sm">
+                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 border border-gray-200 dark:border-gray-700/60 shadow-sm">
                       <div className="flex flex-col items-center justify-center">
-                        <div className="w-full max-w-full sm:max-w-lg md:max-w-xl mx-auto">
-                          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-sm">
-                    <DatePicker
-                              selected={formData.date}
-                              onChange={handleDateChange}
-                              locale={tr}
-                              inline
-                              dateFormat="dd/MM/yyyy"
-                      minDate={new Date()}
-                              filterDate={isClinicOpen}
-                              calendarClassName="!bg-white dark:!bg-gray-800 !border-0 !font-sans w-full"
-                              dayClassName={date => 
-                                isClinicOpen(date) 
-                                  ? 'text-gray-900 dark:text-gray-100 hover:bg-primary-100 dark:hover:bg-primary-900/30'
-                                  : 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                              }
-                              renderDayContents={(day, date) => (
-                                <div className="w-10 h-8 flex items-center justify-center">
-                                  {day}
-                                </div>
-                              )}
-                            />
-                          </div>
-                </div>
-              </div>
-
+                        {/* Seçilen tarihi takvimin üstünde gösteriyoruz */}
                       {formData.date && (
-                        <div className="mt-4 p-3 bg-primary-50 dark:bg-primary-900/30 rounded-lg border border-primary-100 dark:border-primary-800/50">
+                          <div className="w-full mb-2 p-2 bg-primary-50 dark:bg-primary-900/30 rounded-lg border border-primary-100 dark:border-primary-800/50">
                           <p className="text-sm text-primary-700 dark:text-primary-300 text-center">
                             <span className="font-semibold">{formatTurkishDay(formData.date)}</span>, {formatTurkishDate(formData.date)}
                           </p>
                       </div>
                     )}
+                        
+                        {/* Takvimi küçük boyutlu olarak gösteriyoruz */}
+                        <div className="w-full mx-auto">
+                          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-sm">
+                            <ThemeProvider theme={theme}>
+                              <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="tr">
+                                <DateCalendar 
+                                  value={selectedDate}
+                                  onChange={(newDate) => {
+                                    if (newDate) {
+                                      handleDateChange(newDate.toDate());
+                                    }
+                                  }}
+                                  disablePast
+                                  sx={{
+                                    width: '100%',
+                                    maxWidth: '100%',
+                                    bgcolor: theme => theme.palette.mode === 'dark' ? '#1e293b' : '#ffffff',
+                                    color: theme => theme.palette.mode === 'dark' ? '#f8fafc' : '#334155',
+                                    borderRadius: 1,
+                                    padding: '0.25rem',
+                                    '& .MuiPickersCalendarHeader-root': {
+                                      paddingLeft: '0.25rem',
+                                      paddingRight: '0.25rem',
+                                    },
+                                    '& .MuiDayCalendar-header': {
+                                      justifyContent: 'space-around',
+                                      paddingLeft: '0.25rem',
+                                      paddingRight: '0.25rem',
+                                    },
+                                    '& .MuiDayCalendar-weekContainer': {
+                                      justifyContent: 'space-around',
+                                      margin: '0.15rem 0',
+                                    },
+                                    '& .MuiPickersDay-root': {
+                                      margin: '0 0.1rem',
+                                      height: '2rem',
+                                      width: '2rem',
+                                      color: theme => theme.palette.mode === 'dark' ? '#f8fafc' : '#334155',
+                                      fontSize: '0.75rem',
+                                    },
+                                    '& .MuiPickersDay-root.Mui-selected': {
+                                      backgroundColor: '#4f46e5',
+                                      color: '#fff',
+                                    },
+                                    '& .MuiPickersDay-root:hover': {
+                                      backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                                    },
+                                    '& .MuiPickersDay-root.Mui-disabled': {
+                                      color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
+                                    },
+                                    '& .MuiPickersCalendarHeader-label': {
+                                      color: theme => theme.palette.mode === 'dark' ? '#f8fafc' : '#334155',
+                                      fontSize: '0.9rem',
+                                    },
+                                    '& .MuiSvgIcon-root': {
+                                      color: theme => theme.palette.mode === 'dark' ? '#94a3b8' : '#64748b',
+                                      width: '1.25rem',
+                                      height: '1.25rem',
+                                    }
+                                  }}
+                                  shouldDisableDate={(date) => !isClinicOpen(date.toDate())}
+                                />
+                              </LocalizationProvider>
+                            </ThemeProvider>
+                          </div>
+                        </div>
+                      </div>
                   </div>
                 </div>
             </div>
 
-                {/* Sağ Taraf - Saat, oda ve notlar */}
-                <div className="space-y-2 md:space-y-4">
+                {/* Orta Kısım - Saat ve oda seçimi */}
+                <div className="space-y-2 md:space-y-3">
               {/* Saat Seçimi */}
                 <div>
-                    <h3 className="flex items-center text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2 sm:mb-3">
-                      <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
+                    <h3 className="flex items-center text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                      <div className="h-4 w-4 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
                         <span className="text-xs font-bold">3</span>
                     </div>
                       Saat Seçimi
                     </h3>
                     
-                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 sm:p-3 border border-gray-200 dark:border-gray-700/60 shadow-sm">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 border border-gray-200 dark:border-gray-700/60 shadow-sm">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Randevu Saati
                     </label>
                       
                     {availableTimeSlots.length > 0 ? (
-                        <div className="grid grid-cols-3 gap-1.5 sm:gap-2 max-h-32 sm:max-h-40 overflow-y-auto pr-1">
+                        <div className="grid grid-cols-3 gap-1 max-h-[260px] overflow-y-auto pr-1">
                           {availableTimeSlots.map(time => (
                             <motion.button
                             key={time}
@@ -1255,7 +1468,7 @@ export function CreateAppointmentModal({
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               onClick={() => handleTimeChange(time)}
-                              className={`py-2 sm:py-2.5 px-1 rounded-lg text-center transition-all duration-200 text-sm sm:text-base ${
+                              className={`py-2 px-1 rounded-lg text-center transition-all duration-200 text-sm ${
                                 formData.time === time
                                   ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-md'
                                   : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700'
@@ -1266,12 +1479,12 @@ export function CreateAppointmentModal({
                         ))}
                       </div>
                     ) : (
-                        <div className="p-3 sm:p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-lg">
-                          <div className="flex items-center space-x-2 sm:space-x-3">
-                            <div className="rounded-full bg-amber-100 dark:bg-amber-900/50 p-1.5 sm:p-2 flex-shrink-0">
-                              <Clock size={14} className="text-amber-600 dark:text-amber-400 sm:h-4 sm:w-4" />
+                        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-lg">
+                          <div className="flex items-center space-x-2">
+                            <div className="rounded-full bg-amber-100 dark:bg-amber-900/50 p-1.5 flex-shrink-0">
+                              <Clock size={14} className="text-amber-600 dark:text-amber-400" />
                         </div>
-                            <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-400">
+                            <p className="text-xs text-amber-800 dark:text-amber-400">
                               Seçilen tarihte uygun randevu saati bulunamadı.
                             </p>
                           </div>
@@ -1279,10 +1492,10 @@ export function CreateAppointmentModal({
                     )}
                       
                       {formData.time && (
-                        <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-primary-50 dark:bg-primary-900/30 rounded-lg border border-primary-100 dark:border-primary-800/50">
+                        <div className="mt-2 p-2 bg-primary-50 dark:bg-primary-900/30 rounded-lg border border-primary-100 dark:border-primary-800/50">
                           <div className="flex items-center space-x-2">
-                            <Clock size={14} className="text-primary-600 dark:text-primary-400 sm:h-4 sm:w-4" />
-                            <p className="text-xs sm:text-sm text-primary-700 dark:text-primary-300">
+                            <Clock size={14} className="text-primary-600 dark:text-primary-400" />
+                            <p className="text-xs text-primary-700 dark:text-primary-300">
                               Seçilen saat: <span className="font-semibold">{formData.time}</span>
                             </p>
                   </div>
@@ -1293,42 +1506,84 @@ export function CreateAppointmentModal({
 
               {/* Oda Seçimi */}
                 <div>
-                    <h3 className="flex items-center text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2 sm:mb-3">
-                      <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
+                    <h3 className="flex items-center text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                      <div className="h-4 w-4 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
                         <span className="text-xs font-bold">4</span>
                     </div>
-                      Görüşme Yeri
+                      Görüşme Türü ve Yeri
                     </h3>
                     
-                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 sm:p-3 border border-gray-200 dark:border-gray-700/60 shadow-sm">
-                      <div className="space-y-1.5 sm:space-y-2 max-h-36 sm:max-h-44 overflow-y-auto pr-1">
-                        {/* Online Görüşme Seçeneği */}
+                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 border border-gray-200 dark:border-gray-700/60 shadow-sm">
+                      {/* Önce Görüşme Türü Seçimi */}
+                      <div className="mb-2">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                          Görüşme Türü
+                        </label>
+                        <div className="grid grid-cols-2 gap-1.5">
                         <motion.button
                           type="button"
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => handleRoomChange('online')}
-                          className={`flex items-center w-full p-2.5 sm:p-3 rounded-lg transition-all duration-200 ${
+                            onClick={() => setFormData(prev => ({ ...prev, isOnline: true, roomId: '' }))}
+                            className={`flex items-center p-1.5 rounded-lg transition-all duration-200 ${
                             formData.isOnline
                               ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-md'
                               : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700'
                           }`}
                         >
-                          <div className={`p-2 sm:p-2.5 rounded-full mr-3 ${
+                            <div className={`p-1 rounded-full mr-1.5 ${
                             formData.isOnline
                               ? 'bg-white/20'
                               : 'bg-primary-100 dark:bg-primary-900/30'
                           }`}>
-                            <Video size={16} className={formData.isOnline ? 'text-white' : 'text-primary-600 dark:text-primary-400 sm:h-[18px] sm:w-[18px]'} />
+                              <Video size={12} className={formData.isOnline ? 'text-white' : 'text-primary-600 dark:text-primary-400'} />
                   </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-sm sm:text-base">Online Görüşme</p>
-                            <p className="text-[10px] sm:text-xs opacity-80">Video konferans ile uzaktan görüşme</p>
+                            <span className="font-medium text-xs">Online</span>
+                          </motion.button>
+                          
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setFormData(prev => ({ ...prev, isOnline: false, roomId: '' }))}
+                            className={`flex items-center p-1.5 rounded-lg transition-all duration-200 ${
+                              !formData.isOnline
+                                ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-md'
+                                : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700'
+                            }`}
+                          >
+                            <div className={`p-1 rounded-full mr-1.5 ${
+                              !formData.isOnline
+                                ? 'bg-white/20'
+                                : 'bg-primary-100 dark:bg-primary-900/30'
+                            }`}>
+                              <Home size={12} className={!formData.isOnline ? 'text-white' : 'text-primary-600 dark:text-primary-400'} />
                           </div>
+                            <span className="font-medium text-xs">Yüz Yüze</span>
                         </motion.button>
-                        
-                        {/* Fiziksel Oda Seçenekleri */}
+                        </div>
+                      </div>
+                      
+                      {/* Sonra Oda Seçimi (Yüz Yüze seçildiğinde) */}
+                      {!formData.isOnline ? (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                            Oda Seçimi <span className="text-red-500">*</span>
+                          </label>
+                          
+                          <div className="space-y-1 max-h-[160px] overflow-y-auto pr-1">
                         {rooms
+                              .filter(room => room.id !== 'online')
+                              .length === 0 ? (
+                                <div className="p-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                                  Henüz oda eklenmemiş
+                                </div>
+                              ) : !availableRooms.some(room => room.id !== 'online') ? (
+                                <div className="p-2 text-xs text-amber-600 dark:text-amber-400 text-center">
+                                  Bu saatte müsait oda bulunmuyor
+                                </div>
+                              ) : (
+                                rooms
                           .filter(room => room.id !== 'online')
                           .map(room => {
                             const isAvailable = availableRooms.some(r => r.id === room.id);
@@ -1341,7 +1596,7 @@ export function CreateAppointmentModal({
                                 whileTap={isAvailable ? { scale: 0.98 } : { scale: 1 }}
                                 onClick={() => isAvailable && handleRoomChange(room.id)}
                                 disabled={!isAvailable}
-                                className={`flex items-center w-full p-2.5 sm:p-3 rounded-lg transition-all duration-200 ${
+                                        className={`flex items-center w-full p-1.5 rounded-lg transition-all duration-200 ${
                                   formData.roomId === room.id
                                     ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-md'
                                     : isAvailable
@@ -1349,24 +1604,24 @@ export function CreateAppointmentModal({
                                     : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed border border-gray-200 dark:border-gray-700 opacity-70'
                                 }`}
                               >
-                                <div className={`p-2 sm:p-2.5 rounded-full mr-3 ${
+                                        <div className={`p-1 rounded-full mr-1.5 ${
                                   formData.roomId === room.id
                                     ? 'bg-white/20'
                                     : isAvailable
                                     ? 'bg-primary-100 dark:bg-primary-900/30'
                                     : 'bg-gray-200 dark:bg-gray-700'
                                 }`}>
-                                  <Home size={16} className={
+                                          <Home size={12} className={
                                     formData.roomId === room.id
                                       ? 'text-white'
                                       : isAvailable
-                                      ? 'text-primary-600 dark:text-primary-400 sm:h-[18px] sm:w-[18px]'
-                                      : 'text-gray-400 dark:text-gray-500 sm:h-[18px] sm:w-[18px]'
+                                              ? 'text-primary-600 dark:text-primary-400'
+                                              : 'text-gray-400 dark:text-gray-500'
                                   } />
                       </div>
                                 <div className="flex-1 text-left">
-                                  <p className="font-medium text-sm sm:text-base">{room.name}</p>
-                                  <p className="text-xs sm:text-sm opacity-80">
+                                          <p className="font-medium text-xs">{room.name}</p>
+                                          <p className="text-[10px] opacity-80">
                                     {isAvailable 
                                       ? 'Müsait'
                                       : 'Bu saatte dolu'
@@ -1376,36 +1631,33 @@ export function CreateAppointmentModal({
                               </motion.button>
                             );
                           })
-                        }
+                              )}
                       </div>
-                      
-                      {!availableRooms.length && formData.time && (
-                        <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-lg">
-                          <div className="flex items-center space-x-2 sm:space-x-3">
-                            <div className="rounded-full bg-amber-100 dark:bg-amber-900/50 p-1.5 sm:p-2 flex-shrink-0">
-                              <Home size={14} className="text-amber-600 dark:text-amber-400 sm:h-4 sm:w-4" />
                             </div>
-                            <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-400">
-                              Seçilen saat için uygun oda bulunamadı.
-                            </p>
-                  </div>
+                      ) : (
+                        // Online görüşme seçildiğinde bilgi mesajı
+                        <div className="p-2 mt-1 text-xs text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-100 dark:border-primary-800/50">
+                          Online görüşme seçildi. Oda seçimine gerek yok.
                 </div>
               )}
                     </div>
+                    </div>
                   </div>
 
+                {/* Sağ Taraf - Notlar ve özet */}
+                <div className="space-y-2 md:space-y-3">
                   {/* Notlar */}
                 <div>
-                    <h3 className="flex items-center text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-2 sm:mb-3">
-                      <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
+                    <h3 className="flex items-center text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                      <div className="h-4 w-4 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
                         <span className="text-xs font-bold">5</span>
                     </div>
                       Randevu Notları
                     </h3>
                     
-                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 sm:p-3 border border-gray-200 dark:border-gray-700/60 shadow-sm">
+                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 border border-gray-200 dark:border-gray-700/60 shadow-sm">
                       <div>
-                        <label htmlFor="notes" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor="notes" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Notlar (Opsiyonel)
                     </label>
                         <div className="relative">
@@ -1414,13 +1666,11 @@ export function CreateAppointmentModal({
                             name="notes"
                             value={formData.notes}
                             onChange={handleInputChange}
-                            rows={3}
-                            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-600 transition-shadow text-xs sm:text-sm"
+                            rows={2}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-600 transition-shadow text-xs"
                             placeholder="Randevu ile ilgili ekstra bilgiler..."
                           ></textarea>
-                          <PencilLine size={14} className="absolute right-3 top-3 text-gray-400 pointer-events-none sm:h-4 sm:w-4" />
-                  </div>
-                      </div>
+                          <PencilLine size={14} className="absolute right-3 top-3 text-gray-400 pointer-events-none" />
                     </div>
                   </div>
                 </div>
@@ -1432,55 +1682,55 @@ export function CreateAppointmentModal({
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5 }}
-                  className="mt-3 sm:mt-4 p-2 bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-900/30 dark:to-indigo-900/30 rounded-lg border border-primary-100 dark:border-primary-800/50 relative overflow-hidden"
+                      className="p-2 bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-900/30 dark:to-indigo-900/30 rounded-lg border border-primary-100 dark:border-primary-800/50 relative overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-pattern-dots opacity-5 pointer-events-none"></div>
                   
-                  <h3 className="text-base sm:text-lg font-semibold text-primary-800 dark:text-primary-300 mb-3 sm:mb-4 flex items-center">
-                    <CheckCircle2 size={18} className="mr-2 text-primary-600 dark:text-primary-400 sm:h-5 sm:w-5" />
+                      <h3 className="text-sm font-semibold text-primary-800 dark:text-primary-300 mb-2 flex items-center">
+                        <CheckCircle2 size={16} className="mr-2 text-primary-600 dark:text-primary-400" />
                     Randevu Özeti
                   </h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
-                    <div className="flex items-center text-xs sm:text-sm bg-white/60 dark:bg-gray-800/60 p-2.5 sm:p-3 rounded-lg shadow-sm backdrop-blur-sm">
-                      <div className="p-1.5 sm:p-2 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2 sm:mr-3">
-                        <User size={14} className="text-primary-600 dark:text-primary-400 sm:h-4 sm:w-4" />
+                      <div className="grid grid-cols-1 gap-1">
+                        <div className="flex items-center text-xs bg-white/60 dark:bg-gray-800/60 p-2 rounded-lg shadow-sm backdrop-blur-sm">
+                          <div className="p-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2">
+                            <User size={12} className="text-primary-600 dark:text-primary-400" />
                       </div>
                       <p className="text-gray-800 dark:text-gray-200">
                         <span className="font-medium">Danışan:</span> {clients.find(c => c.id === formData.clientId)?.full_name}
                       </p>
                     </div>
                     
-                    <div className="flex items-center text-xs sm:text-sm bg-white/60 dark:bg-gray-800/60 p-2.5 sm:p-3 rounded-lg shadow-sm backdrop-blur-sm">
-                      <div className="p-1.5 sm:p-2 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2 sm:mr-3">
-                        <Users size={14} className="text-primary-600 dark:text-primary-400 sm:h-4 sm:w-4" />
+                        <div className="flex items-center text-xs bg-white/60 dark:bg-gray-800/60 p-2 rounded-lg shadow-sm backdrop-blur-sm">
+                          <div className="p-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2">
+                            <Users size={12} className="text-primary-600 dark:text-primary-400" />
                       </div>
                       <p className="text-gray-800 dark:text-gray-200">
                         <span className="font-medium">Uzman:</span> {professionals.find(p => p.id === formData.professionalId)?.full_name}
                     </p>
                   </div>
                     
-                    <div className="flex items-center text-xs sm:text-sm bg-white/60 dark:bg-gray-800/60 p-2.5 sm:p-3 rounded-lg shadow-sm backdrop-blur-sm">
-                      <div className="p-1.5 sm:p-2 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2 sm:mr-3">
-                        <Calendar size={14} className="text-primary-600 dark:text-primary-400 sm:h-4 sm:w-4" />
+                        <div className="flex items-center text-xs bg-white/60 dark:bg-gray-800/60 p-2 rounded-lg shadow-sm backdrop-blur-sm">
+                          <div className="p-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2">
+                            <Calendar size={12} className="text-primary-600 dark:text-primary-400" />
                 </div>
                       <p className="text-gray-800 dark:text-gray-200">
                         <span className="font-medium">Tarih:</span> {formatTurkishDate(formData.date)}
                       </p>
             </div>
                     
-                    <div className="flex items-center text-xs sm:text-sm bg-white/60 dark:bg-gray-800/60 p-2.5 sm:p-3 rounded-lg shadow-sm backdrop-blur-sm">
-                      <div className="p-1.5 sm:p-2 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2 sm:mr-3">
-                        <Clock size={14} className="text-primary-600 dark:text-primary-400 sm:h-4 sm:w-4" />
+                        <div className="flex items-center text-xs bg-white/60 dark:bg-gray-800/60 p-2 rounded-lg shadow-sm backdrop-blur-sm">
+                          <div className="p-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2">
+                            <Clock size={12} className="text-primary-600 dark:text-primary-400" />
                       </div>
                       <p className="text-gray-800 dark:text-gray-200">
                         <span className="font-medium">Saat:</span> {formData.time} ({formData.duration} dk)
                       </p>
           </div>
 
-                    <div className="flex items-center text-xs sm:text-sm bg-white/60 dark:bg-gray-800/60 p-2.5 sm:p-3 rounded-lg shadow-sm backdrop-blur-sm md:col-span-2">
-                      <div className="p-1.5 sm:p-2 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2 sm:mr-3">
-                        <Home size={14} className="text-primary-600 dark:text-primary-400 sm:h-4 sm:w-4" />
+                        <div className="flex items-center text-xs bg-white/60 dark:bg-gray-800/60 p-2 rounded-lg shadow-sm backdrop-blur-sm">
+                          <div className="p-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2">
+                            <Home size={12} className="text-primary-600 dark:text-primary-400" />
                       </div>
                       <p className="text-gray-800 dark:text-gray-200">
                         <span className="font-medium">Yer:</span> {
@@ -1493,18 +1743,21 @@ export function CreateAppointmentModal({
                   </div>
                 </motion.div>
               )}
+                </div>
+              </div>
             </form>
           </div>
 
           {/* Footer - Daha Kompakt */}
-          <div className="p-2 sm:p-3 border-t border-gray-200 dark:border-gray-700 flex justify-end bg-gray-50/80 dark:bg-gray-900/30 backdrop-blur-sm">
-            <div className="flex space-x-3">
+          <div className="p-1.5 border-t border-gray-200 dark:border-gray-700 flex justify-end bg-gray-50/80 dark:bg-gray-900/30 backdrop-blur-sm">
+            <div className="flex space-x-2">
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                disabled={loading}
+                className="px-2.5 py-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 İptal
               </motion.button>
@@ -1515,14 +1768,24 @@ export function CreateAppointmentModal({
                 type="button"
                 onClick={handleSubmit}
                 disabled={
+                  loading ||
                   !formData.clientId ||
                   !formData.date ||
                   !formData.time ||
                   (!formData.isOnline && !formData.roomId)
                 }
-                className="flex items-center px-4 py-2 rounded-md bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white text-sm font-medium transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-primary-600 disabled:hover:to-indigo-600"
+                className="flex items-center px-2.5 py-1 rounded-md bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white text-xs font-medium transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-primary-600 disabled:hover:to-indigo-600"
               >
-                Randevuyu Oluştur <CheckCircle2 size={16} className="ml-2" />
+                {loading ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin mr-1" />
+                    İşleniyor...
+                  </>
+                ) : (
+                  <>
+                Randevuyu Oluştur <CheckCircle2 size={12} className="ml-1" />
+                  </>
+                )}
               </motion.button>
             </div>
           </div>

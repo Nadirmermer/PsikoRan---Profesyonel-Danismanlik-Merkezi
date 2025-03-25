@@ -439,16 +439,7 @@ export function Dashboard() {
   // Uzman performans grafiği - Sadece asistan için
   const generateProfessionalPerformanceData = () => {
     if (!assistant || !monthlyAppointments.length) {
-      setProfessionalPerformanceData({
-        labels: ['Veri yok'],
-        datasets: [{
-          label: 'Veri yok',
-          data: [0],
-          backgroundColor: ['rgba(99, 102, 241, 0.2)'],
-          borderColor: ['rgb(99, 102, 241)'],
-          borderWidth: 1,
-        }]
-      });
+      setProfessionalPerformanceData(null);
       return;
     }
     
@@ -2100,6 +2091,8 @@ export function Dashboard() {
               
               
 
+              
+
               {/* Yaklaşan Randevular */}
               <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-4">
@@ -2145,6 +2138,29 @@ export function Dashboard() {
                 </div>
               </div>
             </motion.div>
+
+            {/* Uzman Performansı - Sadece asistanlar için */}
+            {assistant && professionalPerformanceData && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+                className="mt-8"
+              >
+                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-6">
+                    <BrainCircuit className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
+                    <span>Uzman Performansı</span>
+                  </h2>
+                  <div className="h-[280px] w-full px-2 pt-1 pb-3">
+                    <Bar 
+                      data={professionalPerformanceData} 
+                      options={mixedChartOptions} 
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
             {/* Randevu tablosu başlığı */}
             <motion.div
@@ -2659,20 +2675,89 @@ export function Dashboard() {
                 </div>
               </div>
 
-              {/* Uzman Performansı grafiği */}
-              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-6">
-                  <LineChart className="h-5 w-5 mr-2 text-indigo-600 dark:text-indigo-400" />
-                  <span>Uzman Performansı</span>
-                </h2>
-                <div className="h-[280px] w-full flex items-center justify-center px-2 pt-1 pb-3">
-                  {professionalPerformanceData ? (
-                    <Bar data={professionalPerformanceData} options={mixedChartOptions} />
-                  ) : (
-                    <LoadingData />
-                  )}
+              {/* Profesyonel Kazanç İstatistikleri - sadece ruh sağlığı uzmanları için */}
+              {professional && (
+                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-4">
+                    <TurkLiraIcon className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
+                    <span>Net Kazanç İstatistikleri</span>
+                  </h2>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Haftalık Kazanç</div>
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                        {monthlyPayments
+                          .filter(payment => {
+                            const paymentDate = new Date(payment.payment_date);
+                            const startOfWeekDate = startOfWeek(new Date(), { weekStartsOn: 1 });
+                            const endOfWeekDate = endOfWeek(new Date(), { weekStartsOn: 1 });
+                            return paymentDate >= startOfWeekDate && paymentDate <= endOfWeekDate;
+                          })
+                          .reduce((sum: number, payment) => {
+                            // Ödeme durumuna göre net kazancı hesapla
+                            if (payment.payment_status === 'paid_to_clinic') {
+                              return sum + Number(payment.professional_amount || 0);
+                            } else if (payment.payment_status === 'paid_to_professional') {
+                              return sum + Number(payment.professional_amount || 0) - Number(payment.clinic_amount || 0);
+                            }
+                            return sum + Number(payment.professional_amount || 0);
+                          }, 0)
+                          .toLocaleString('tr-TR', {
+                            style: 'currency',
+                            currency: 'TRY',
+                          })}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Aylık Kazanç</div>
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                        {monthlyPayments
+                          .reduce((sum: number, payment) => {
+                            // Ödeme durumuna göre net kazancı hesapla
+                            if (payment.payment_status === 'paid_to_clinic') {
+                              return sum + Number(payment.professional_amount || 0);
+                            } else if (payment.payment_status === 'paid_to_professional') {
+                              return sum + Number(payment.professional_amount || 0) - Number(payment.clinic_amount || 0);
+                            }
+                            return sum + Number(payment.professional_amount || 0);
+                          }, 0)
+                          .toLocaleString('tr-TR', {
+                            style: 'currency',
+                            currency: 'TRY',
+                          })}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Geçen Ay Kazanç</div>
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                        {monthlyPayments
+                          .filter(payment => {
+                            const paymentDate = new Date(payment.payment_date);
+                            const startLastMonth = startOfMonth(subMonths(new Date(), 1));
+                            const endLastMonth = endOfMonth(subMonths(new Date(), 1));
+                            return paymentDate >= startLastMonth && paymentDate <= endLastMonth;
+                          })
+                          .reduce((sum: number, payment) => {
+                            // Ödeme durumuna göre net kazancı hesapla
+                            if (payment.payment_status === 'paid_to_clinic') {
+                              return sum + Number(payment.professional_amount || 0);
+                            } else if (payment.payment_status === 'paid_to_professional') {
+                              return sum + Number(payment.professional_amount || 0) - Number(payment.clinic_amount || 0);
+                            }
+                            return sum + Number(payment.professional_amount || 0);
+                          }, 0)
+                          .toLocaleString('tr-TR', {
+                            style: 'currency',
+                            currency: 'TRY',
+                          })}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </motion.div>
 
             {showCreateModal && (
