@@ -6,6 +6,7 @@ import { UserPlus, Pencil, Trash2, Search, Mail, Phone, Calendar } from 'lucide-
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useAuth } from '../lib/auth';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 export function Clients() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -244,9 +245,7 @@ export function Clients() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
-      </div>
+      <LoadingSpinner fullPage size="medium" showLoadingText={false} />
     );
   }
 
@@ -433,8 +432,15 @@ export function Clients() {
                     <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <input
                       type="email"
+                      id="email"
+                      name="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => 
+                        setFormData({
+                          ...formData,
+                          email: e.target.value.toLowerCase()
+                        })
+                      }
                       className="w-full h-12 pl-12 pr-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                       placeholder="ornek@email.com"
                     />
@@ -632,9 +638,11 @@ export function Clients() {
                 </label>
                 <input
                   type="email"
+                  id="edit-email"
+                  name="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value.toLowerCase() })}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                 />
               </div>
 

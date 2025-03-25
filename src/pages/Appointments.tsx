@@ -21,6 +21,7 @@ import { CreateAppointmentModal } from '../components/CreateAppointmentModal';
 import { requestNotificationPermission } from '../utils/notificationUtils';
 import logo2 from '../assets/logos/logo_2.png';
 import AppointmentShareModal from '../components/AppointmentShareModal';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 type ViewType = 'daily' | 'weekly' | 'monthly' | 'all';
 
@@ -689,9 +690,7 @@ export function Appointments() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
-      </div>
+      <LoadingSpinner fullPage size="medium" showLoadingText={false} />
     );
   }
 

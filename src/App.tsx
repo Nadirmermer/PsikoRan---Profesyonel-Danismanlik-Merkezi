@@ -212,10 +212,12 @@ function AnimatedRoutes() {
 
 export function App() {
   const { initializeTheme } = useTheme();
+  const { user } = useAuth();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [pwaInstallReady, setPwaInstallReady] = useState(false);
 
+  // Uygulama başlatma
   useEffect(() => {
     const initApp = async () => {
       try {
@@ -255,6 +257,14 @@ export function App() {
 
     initApp();
   }, [initializeTheme]);
+
+  // Kullanıcı oturum açtığında temayı yeniden başlat
+  useEffect(() => {
+    if (user) {
+      // Kullanıcı giriş yaptığında tema tercihlerini yeniden uygula
+      initializeTheme();
+    }
+  }, [user, initializeTheme]);
 
   return (
     <SubscriptionProvider>

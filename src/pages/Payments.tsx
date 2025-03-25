@@ -5,14 +5,24 @@ import { Payment, Professional } from '../types/database';
 import {
   Search,
   FileDown,
-  DollarSign,
   Filter,
   CreditCard,
   Wallet,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  FileText,
+  CalendarDays,
+  Receipt,
+  User,
+  X,
+  Check
 } from 'lucide-react';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useAuth } from '../lib/auth';
+import { TurkLiraIcon } from '../components/icons/TurkLiraIcon';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 type PaymentView = 'daily' | 'settlements' | 'cash';
 type PaymentStatus = 'pending' | 'paid_to_clinic' | 'paid_to_professional';
@@ -323,9 +333,7 @@ export function Payments() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
-      </div>
+      <LoadingSpinner fullPage size="medium" showLoadingText={false} />
     );
   }
 

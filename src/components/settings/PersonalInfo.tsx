@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, Save, Edit2, Key, Lock } from 'lucide-react';
+import { User, Save, Edit2, Key, Lock, Mail } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
 import { Professional, Assistant } from '../../types';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 
 interface UserData {
   full_name: string;
@@ -286,20 +287,19 @@ export function PersonalInfo() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setUserData(prev => ({ ...prev, [name]: value }));
+    
+    // E-posta alanı için küçük harfe dönüştürme
+    if (name === 'email') {
+      setUserData({ ...userData, [name]: value.toLowerCase() });
+    } else {
+      setUserData({ ...userData, [name]: value });
+    }
   };
 
   if (loading) {
     return (
       <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm p-4 sm:p-6">
-        <div className="animate-pulse">
-          <div className="h-6 w-48 bg-slate-200 dark:bg-slate-700 rounded mb-4"></div>
-          <div className="space-y-3">
-            <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded"></div>
-            <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded"></div>
-            <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded"></div>
-          </div>
-        </div>
+        <LoadingSpinner size="small" loadingText="Kişisel bilgiler yükleniyor..." />
       </div>
     );
   }
@@ -364,23 +364,23 @@ export function PersonalInfo() {
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-slate-700 dark:text-slate-300"
-            >
+          <div className="col-span-6 sm:col-span-4">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               E-posta
             </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={userData.email}
-              onChange={handleInputChange}
-              disabled={!isEditing}
-              required
-              className="mt-1 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-slate-800 dark:text-white sm:text-sm disabled:opacity-75 disabled:bg-slate-100 dark:disabled:bg-slate-900"
-            />
+            <div className="mt-1 relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Mail className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="email"
+                name="email"
+                id="email"
+                value={userData.email}
+                onChange={handleInputChange}
+                className="pl-10 block w-full shadow-sm sm:text-sm border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+              />
+            </div>
           </div>
 
           <div>

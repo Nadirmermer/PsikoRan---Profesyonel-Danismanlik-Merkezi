@@ -231,12 +231,17 @@ export function Contact() {
                   </label>
                   <input
                     type="email"
-                        id="email"
-                        name="email"
+                    id="email"
+                    name="email"
                     required
                     value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        className="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    onChange={(e) => 
+                      setFormData({
+                        ...formData,
+                        email: e.target.value.toLowerCase()
+                      })
+                    }
+                    className="pl-12 w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                     placeholder="ornek@email.com"
                   />
                     </div>

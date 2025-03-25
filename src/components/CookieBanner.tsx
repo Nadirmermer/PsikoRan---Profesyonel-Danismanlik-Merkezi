@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Cookie, ChevronDown, ChevronUp, Check, Settings } from 'lucide-react';
+import { X, Cookie, ChevronDown, ChevronUp, Check, Settings, BarChart4 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 // Google Analytics için TypeScript tanımları
@@ -170,10 +170,10 @@ export function CookieBanner() {
       <div className="fixed bottom-6 left-6 z-50">
         <button
           onClick={reopenBanner}
-          className="flex items-center space-x-2 bg-white dark:bg-slate-800 p-2 rounded-full shadow-lg hover:shadow-xl transition-shadow border border-slate-200 dark:border-slate-700"
+          className="flex items-center justify-center w-10 h-10 bg-white dark:bg-slate-800 rounded-full shadow-lg hover:shadow-xl transition-shadow border border-slate-200 dark:border-slate-700"
           aria-label="Çerez ayarlarını aç"
         >
-          <Settings className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+          <Settings className="h-5 w-5 text-primary-600 dark:text-primary-400" />
         </button>
       </div>
     );
@@ -201,8 +201,8 @@ export function CookieBanner() {
             exit={{ y: 100, opacity: 0 }}
             transition={{ type: 'spring', damping: 20 }}
             className={`fixed ${
-              showSettings ? 'inset-0 m-auto max-h-[80vh] overflow-y-auto' : 'bottom-0 left-0 right-0'
-            } max-w-3xl mx-auto p-4 md:p-6 bg-white dark:bg-slate-800 shadow-2xl rounded-t-xl md:rounded-xl border border-slate-200 dark:border-slate-700 z-50`}
+              showSettings ? 'inset-0 m-auto max-h-[80vh] max-w-4xl w-full overflow-y-auto' : 'bottom-0 left-0 right-0'
+            } w-full max-w-4xl mx-auto p-4 md:p-6 bg-white dark:bg-slate-800 shadow-lg rounded-t-lg md:rounded-lg border border-slate-200 dark:border-slate-700 z-50`}
           >
             {/* Kapatma Düğmesi */}
             <button
@@ -221,8 +221,10 @@ export function CookieBanner() {
             
             {/* Banner Başlığı */}
             <div className="flex items-center space-x-3 mb-4">
-              <Cookie className="h-6 w-6 text-primary-600 dark:text-primary-400" />
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30">
+                <Cookie className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+              </div>
+              <h2 className="text-lg font-medium text-slate-900 dark:text-white">
                 {showSettings ? 'Çerez Tercihleriniz' : 'Bu site çerezleri kullanır'}
               </h2>
             </div>
@@ -237,7 +239,7 @@ export function CookieBanner() {
                 
                 <div className="space-y-4">
                   {/* Zorunlu Çerezler */}
-                  <div className="p-4 bg-slate-50 dark:bg-slate-850 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
@@ -263,7 +265,7 @@ export function CookieBanner() {
                   </div>
                   
                   {/* Tercih Çerezleri */}
-                  <div className="p-4 bg-slate-50 dark:bg-slate-850 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
@@ -289,13 +291,11 @@ export function CookieBanner() {
                   </div>
                   
                   {/* Analitik Çerezler */}
-                  <div className="p-4 bg-slate-50 dark:bg-slate-850 rounded-lg border border-slate-200 dark:border-slate-700">
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                          <svg className="h-5 w-5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                          </svg>
+                          <BarChart4 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                         </div>
                         <div>
                           <h3 className="text-base font-medium text-slate-900 dark:text-white">Analitik Çerezler</h3>
@@ -382,22 +382,22 @@ export function CookieBanner() {
                     )}
                   </button>
                   
-                  <div className="flex flex-wrap gap-3 justify-end">
+                  <div className="flex flex-wrap sm:flex-nowrap gap-2 mt-2 sm:mt-0 w-full sm:w-auto justify-center sm:justify-end">
                     <button
                       onClick={handleRejectNonEssential}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                      className="flex-grow sm:flex-grow-0 px-3 py-2 rounded-lg text-xs font-medium border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                     >
                       Sadece Zorunlu Çerezler
                     </button>
                     <button
                       onClick={handleOpenSettings}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium border border-primary-600 text-primary-600 hover:bg-primary-50 dark:border-primary-400 dark:text-primary-400 dark:hover:bg-primary-900/20 transition-colors"
+                      className="flex-grow sm:flex-grow-0 px-3 py-2 rounded-lg text-xs font-medium border border-primary-600 text-primary-600 hover:bg-primary-50 dark:border-primary-400 dark:text-primary-400 dark:hover:bg-primary-900/20 transition-colors"
                     >
                       Ayarları Yönet
                     </button>
                     <button
                       onClick={handleAcceptAll}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-primary-600 hover:bg-primary-700 text-white transition-colors"
+                      className="flex-grow sm:flex-grow-0 px-3 py-2 rounded-lg text-xs font-medium bg-primary-600 hover:bg-primary-700 text-white transition-colors"
                     >
                       Tümünü Kabul Et
                     </button>

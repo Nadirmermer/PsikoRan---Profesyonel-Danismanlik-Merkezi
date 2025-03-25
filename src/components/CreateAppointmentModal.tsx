@@ -1044,13 +1044,13 @@ export function CreateAppointmentModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center overflow-y-auto p-1 sm:p-2">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center overflow-y-auto p-1 sm:p-2 md:p-3">
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl overflow-hidden w-full max-w-3xl sm:max-w-4xl md:max-w-5xl lg:max-w-6xl mx-auto relative my-1 sm:my-2"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl overflow-hidden w-full max-w-[95vw] sm:max-w-[92vw] md:max-w-[90vw] lg:max-w-[85vw] xl:max-w-[80vw] mx-auto relative my-1 max-h-[98vh] sm:max-h-[96vh] md:max-h-[94vh]"
         >
           {/* Arkaplan Efekti */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -1079,7 +1079,7 @@ export function CreateAppointmentModal({
           </div>
 
           {/* Form içeriği - maximum yükseklik azaltıldı */}
-          <div className="p-2 sm:p-3 max-h-[60vh] sm:max-h-[65vh] md:max-h-[70vh] overflow-y-auto relative">
+          <div className="p-2 sm:p-3 md:p-4 max-h-[70vh] sm:max-h-[75vh] md:max-h-[80vh] overflow-y-auto relative overflow-x-hidden">
             {loading && (
               <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 z-10 flex items-center justify-center backdrop-blur-sm">
                 <div className="flex flex-col items-center space-y-3">
@@ -1114,7 +1114,7 @@ export function CreateAppointmentModal({
             )}
 
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 md:gap-4">
 
                 {/* Sol Taraf - Danışan seçimi ve takvim */}
                 <div className="space-y-2 md:space-y-4">
@@ -1193,7 +1193,7 @@ export function CreateAppointmentModal({
                     {/* DatePicker konteyneri */}
                     <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 sm:p-3 border border-gray-200 dark:border-gray-700/60 shadow-sm">
                       <div className="flex flex-col items-center justify-center">
-                        <div className="w-full max-w-md mx-auto">
+                        <div className="w-full max-w-full sm:max-w-lg md:max-w-xl mx-auto">
                           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-sm">
                     <DatePicker
                               selected={formData.date}
@@ -1497,14 +1497,14 @@ export function CreateAppointmentModal({
           </div>
 
           {/* Footer - Daha Kompakt */}
-          <div className="p-1.5 sm:p-2 border-t border-gray-200 dark:border-gray-700 flex justify-end bg-gray-50/80 dark:bg-gray-900/30 backdrop-blur-sm">
-            <div className="flex space-x-1.5">
+          <div className="p-2 sm:p-3 border-t border-gray-200 dark:border-gray-700 flex justify-end bg-gray-50/80 dark:bg-gray-900/30 backdrop-blur-sm">
+            <div className="flex space-x-3">
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 type="button"
                 onClick={onClose}
-                className="px-2 py-1 sm:py-1.5 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+                className="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 İptal
               </motion.button>
@@ -1520,9 +1520,9 @@ export function CreateAppointmentModal({
                   !formData.time ||
                   (!formData.isOnline && !formData.roomId)
                 }
-                className="flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-md bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white text-xs font-medium transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-primary-600 disabled:hover:to-indigo-600"
+                className="flex items-center px-4 py-2 rounded-md bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white text-sm font-medium transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-primary-600 disabled:hover:to-indigo-600"
               >
-                Randevuyu Oluştur <CheckCircle2 size={12} className="ml-1" />
+                Randevuyu Oluştur <CheckCircle2 size={16} className="ml-2" />
               </motion.button>
             </div>
           </div>

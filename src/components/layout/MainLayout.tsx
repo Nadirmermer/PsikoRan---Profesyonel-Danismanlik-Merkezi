@@ -1,13 +1,16 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { Header } from './Header';
 import { Footer } from './Footer';
+import { useTheme } from '../../lib/theme';
 
 interface MainLayoutProps {
   children: ReactNode;
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
+  // Theme context'ten tema bilgilerini al
+  const { theme, isDarkMode, setTheme, initializeTheme } = useTheme();
+  const [localIsDarkMode, setLocalIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('app_theme');
       if (savedTheme === 'dark') return true;
@@ -17,12 +20,18 @@ export function MainLayout({ children }: MainLayoutProps) {
     return false;
   });
 
+  // Tema başlatma: sayfa yüklendiğinde tema tercihini uygula
+  useEffect(() => {
+    // Tema context'i başlat
+    initializeTheme();
+  }, [initializeTheme]);
+
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
       const currentTheme = localStorage.getItem('app_theme');
       if (!currentTheme || currentTheme === 'system') {
-        setIsDarkMode(e.matches);
+        setLocalIsDarkMode(e.matches);
         if (e.matches) {
           document.documentElement.classList.add('dark');
         } else {
@@ -33,19 +42,27 @@ export function MainLayout({ children }: MainLayoutProps) {
 
     mediaQuery.addEventListener('change', handleChange);
     
-    if (isDarkMode) {
+    if (localIsDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
 
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [isDarkMode]);
+  }, [localIsDarkMode]);
 
   const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-    localStorage.setItem('app_theme', !isDarkMode ? 'dark' : 'light');
-    if (!isDarkMode) {
+    const newDarkMode = !localIsDarkMode;
+    setLocalIsDarkMode(newDarkMode);
+    
+    // Context'teki tema durumunu güncelle
+    setTheme(newDarkMode ? 'dark' : 'light');
+    
+    // Local storage'ı güncelle
+    localStorage.setItem('app_theme', newDarkMode ? 'dark' : 'light');
+    
+    // HTML elementine doğru class ekle/kaldır
+    if (newDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
@@ -54,7 +71,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-900 flex flex-col transition-colors duration-300">
-      <Header toggleDarkMode={toggleDarkMode} isDarkMode={isDarkMode} />
+      <Header toggleDarkMode={toggleDarkMode} isDarkMode={localIsDarkMode} />
       <main className="flex-grow">
         {children}
       </main>

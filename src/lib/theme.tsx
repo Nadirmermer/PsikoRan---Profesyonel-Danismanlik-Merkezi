@@ -19,58 +19,88 @@ const ThemeContext = createContext<ThemeContextType>({
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<ThemeMode>(() => {
     // LocalStorage'dan tema tercihini al
-    const savedTheme = localStorage.getItem('app_theme') as ThemeMode;
-    return savedTheme || 'system';
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('app_theme') as ThemeMode;
+      return savedTheme || 'system';
+    }
+    return 'system';
   });
 
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   const initializeTheme = () => {
     let finalIsDark = false;
-
-    if (theme === 'system') {
-      finalIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    } else {
-      finalIsDark = theme === 'dark';
+    
+    if (typeof window !== 'undefined') {
+      // Kullanıcı tercihini al
+      const savedTheme = localStorage.getItem('app_theme') as ThemeMode;
+      
+      // Kullanıcı tercihine göre tema belirle
+      if (savedTheme === 'dark') {
+        finalIsDark = true;
+        setTheme('dark');
+      } else if (savedTheme === 'light') {
+        finalIsDark = false;
+        setTheme('light');
+      } else {
+        // Sistem temasını kontrol et
+        finalIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setTheme('system');
+      }
     }
 
     // Tema değişikliğini hemen uygula
     setIsDarkMode(finalIsDark);
-    document.documentElement.classList.toggle('dark', finalIsDark);
+    
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('dark', finalIsDark);
+    }
   };
 
   useEffect(() => {
+    // Tema başlatma
+    initializeTheme();
+  }, []);
+
+  useEffect(() => {
     // Tema değişikliğini localStorage'a kaydet
-    localStorage.setItem('app_theme', theme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('app_theme', theme);
+    }
 
     // Tema uygulaması
     const applyTheme = () => {
       let finalIsDark = false;
 
-      if (theme === 'system') {
+      if (theme === 'system' && typeof window !== 'undefined') {
         finalIsDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       } else {
         finalIsDark = theme === 'dark';
       }
 
       setIsDarkMode(finalIsDark);
-      document.documentElement.classList.toggle('dark', finalIsDark);
+      
+      if (typeof document !== 'undefined') {
+        document.documentElement.classList.toggle('dark', finalIsDark);
+      }
     };
 
     // Tema değişimini hemen uygula
     applyTheme();
 
     // Sistem tema değişimini dinle
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      if (theme === 'system') {
-        setIsDarkMode(e.matches);
-        document.documentElement.classList.toggle('dark', e.matches);
-      }
-    };
+    if (typeof window !== 'undefined') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = (e: MediaQueryListEvent) => {
+        if (theme === 'system') {
+          setIsDarkMode(e.matches);
+          document.documentElement.classList.toggle('dark', e.matches);
+        }
+      };
 
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
   }, [theme]);
 
   const contextValue = {

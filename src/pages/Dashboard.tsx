@@ -18,12 +18,13 @@ import {
   subMonths,
   getDay,
   startOfWeek,
-  subDays
+  endOfWeek,
+  subDays,
+  addMonths
 } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import {
   Calendar,
-  DollarSign,
   Clock,
   Wallet,
   CreditCard,
@@ -48,6 +49,7 @@ import {
   Activity,
   CalendarOff
 } from 'lucide-react';
+import { TurkLiraIcon } from '../components/icons/TurkLiraIcon';
 import { CreateAppointmentModal } from '../components/CreateAppointmentModal';
 import { Appointment, Client, Professional, Room, Payment } from '../types/database';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -69,6 +71,8 @@ import { Line, Bar, Pie, Doughnut } from 'react-chartjs-2';
 import { Chart } from 'react-chartjs-2';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { Logo } from '../components/Logo';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 // Chart.js bileşenlerini kaydet
 ChartJS.register(
@@ -169,6 +173,13 @@ const appointmentStatusStyles: Record<string, string> = {
   missed: 'bg-gray-100 dark:bg-gray-900/20 text-gray-800 dark:text-gray-300',
   rescheduled: 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-300',
   default: 'bg-indigo-100 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-300',
+};
+
+// Veri yükleniyor bileşeni
+const LoadingData = () => {
+  return (
+    <LoadingSpinner size="small" />
+  );
 };
 
 export function Dashboard() {
@@ -312,7 +323,9 @@ export function Dashboard() {
     
     const today = new Date();
     let labels: string[] = [];
-    let data: number[] = [];
+    let incomeData: number[] = []; // Psikologlardan Alınacaklar (gelir)
+    let expenseData: number[] = []; // Psikologlara Ödenecekler (gider)
+    let netIncomeData: number[] = []; // Kasada Olan Para (net gelir)
     
     if (chartPeriod === 'weekly') {
       // Son 7 gün için veri oluştur
@@ -322,18 +335,27 @@ export function Dashboard() {
         return format(date, 'dd MMM', { locale: tr });
       });
       
-      data = labels.map((_, index) => {
+      labels.forEach((_, index) => {
         const date = new Date();
         date.setDate(date.getDate() - 6 + index);
         
-        return monthlyPayments
-          .filter(payment => isSameDay(new Date(payment.payment_date), date))
-          .reduce((sum, payment) => {
-            return sum + (professional 
-              ? Number(payment.professional_amount) 
-              : Number(payment.amount)
-            );
-          }, 0);
+        const dayPayments = monthlyPayments.filter(payment => 
+          isSameDay(new Date(payment.payment_date), date)
+        );
+        
+        // Gelir: Psikologlardan alınacaklar (paid_to_professional statüsündeki klinik payı)
+        const income = dayPayments
+          .filter(payment => payment.payment_status === 'paid_to_professional')
+          .reduce((sum, payment) => sum + Number(payment.clinic_amount || 0), 0);
+        
+        // Gider: Psikologlara ödenecekler (paid_to_clinic statüsündeki profesyonel payı)
+        const expense = dayPayments
+          .filter(payment => payment.payment_status === 'paid_to_clinic')
+          .reduce((sum, payment) => sum + Number(payment.professional_amount || 0), 0);
+        
+        incomeData.push(income);
+        expenseData.push(expense);
+        netIncomeData.push(income - expense);
       });
     } else if (chartPeriod === 'monthly') {
       // Bu ay için veri oluştur
@@ -343,71 +365,75 @@ export function Dashboard() {
         return format(date, 'dd', { locale: tr });
       });
       
-      data = labels.map((_, index) => {
+      labels.forEach((_, index) => {
         const date = new Date(today.getFullYear(), today.getMonth(), index + 1);
         
-        return monthlyPayments
-          .filter(payment => isSameDay(new Date(payment.payment_date), date))
-          .reduce((sum, payment) => {
-            return sum + (professional 
-              ? Number(payment.professional_amount) 
-              : Number(payment.amount)
-            );
-          }, 0);
+        const dayPayments = monthlyPayments.filter(payment => 
+          isSameDay(new Date(payment.payment_date), date)
+        );
+        
+        // Gelir: Psikologlardan alınacaklar (paid_to_professional statüsündeki klinik payı)
+        const income = dayPayments
+          .filter(payment => payment.payment_status === 'paid_to_professional')
+          .reduce((sum, payment) => sum + Number(payment.clinic_amount || 0), 0);
+        
+        // Gider: Psikologlara ödenecekler (paid_to_clinic statüsündeki profesyonel payı)
+        const expense = dayPayments
+          .filter(payment => payment.payment_status === 'paid_to_clinic')
+          .reduce((sum, payment) => sum + Number(payment.professional_amount || 0), 0);
+        
+        incomeData.push(income);
+        expenseData.push(expense);
+        netIncomeData.push(income - expense);
       });
     }
     
     setRevenueChartData({
       labels,
-      datasets: [{
-        label: 'Gelir',
-        data,
-        backgroundColor: 'rgba(16, 185, 129, 0.2)',
-        borderColor: 'rgb(16, 185, 129)',
-        borderWidth: 2,
-        fill: true,
-        borderRadius: 4,
-      }]
+      datasets: [
+        {
+          label: 'Psikologlardan Alınacaklar (gelir)',
+          data: incomeData,
+          backgroundColor: 'rgba(16, 185, 129, 0.0)',
+          borderColor: 'rgb(16, 185, 129)',
+          borderWidth: 2,
+          tension: 0.4,
+          pointBackgroundColor: 'rgb(16, 185, 129)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1,
+          pointRadius: 4,
+        },
+        {
+          label: 'Psikologlara Ödenecekler (gider)',
+          data: expenseData,
+          backgroundColor: 'rgba(239, 68, 68, 0.0)',
+          borderColor: 'rgb(239, 68, 68)',
+          borderWidth: 2,
+          tension: 0.4,
+          pointBackgroundColor: 'rgb(239, 68, 68)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1,
+          pointRadius: 4,
+        },
+        {
+          label: 'Kasada Olan Para (net gelir)',
+          data: netIncomeData,
+          backgroundColor: 'rgba(99, 102, 241, 0.0)',
+          borderColor: 'rgb(99, 102, 241)',
+          borderWidth: 2,
+          tension: 0.4,
+          pointBackgroundColor: 'rgb(99, 102, 241)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 1,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        }
+      ]
     });
   };
   
   const generateClientDistributionData = () => {
-    if (!clients.length) {
-      setClientDistributionData({
-        labels: ['Veri yok'],
-        datasets: [{
-          data: [1],
-          backgroundColor: ['rgba(99, 102, 241, 0.2)'],
-          borderColor: ['rgb(99, 102, 241)'],
-          borderWidth: 1,
-        }]
-      });
-      return;
-    }
-    
-    // Basit bir dağılım için cinsiyet veya yaş grupları kullanılabilir
-    // Bu örnekte rastgele kategoriler oluşturacağım
-    const categories = {
-      'Kadın': Math.floor(clients.length * 0.6), // %60
-      'Erkek': Math.floor(clients.length * 0.4), // %40
-    };
-    
-    setClientDistributionData({
-      labels: Object.keys(categories),
-      datasets: [{
-        data: Object.values(categories),
-        backgroundColor: [
-          'rgba(249, 115, 22, 0.2)',
-          'rgba(99, 102, 241, 0.2)',
-        ],
-        borderColor: [
-          'rgb(249, 115, 22)',
-          'rgb(99, 102, 241)',
-        ],
-        borderWidth: 1,
-        hoverOffset: 4
-      }]
-    });
+    // Bu fonksiyonun tamamını kaldıralım
   };
   
   // Uzman performans grafiği - Sadece asistan için
@@ -493,6 +519,7 @@ export function Dashboard() {
   // Chart konfigürasyon seçenekleri
   const lineChartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         display: false,
@@ -528,7 +555,8 @@ export function Dashboard() {
         ticks: {
           color: '#9CA3AF',
           padding: 10,
-          stepSize: Math.max(1, Math.ceil(Math.max(...(appointmentChartData?.datasets[0]?.data || [1])) / 10)),
+          // Akıllı stepSize hesaplama - çok fazla tick oluşturmamak için
+          stepSize: 100,
           precision: 0
         },
       },
@@ -542,6 +570,7 @@ export function Dashboard() {
   
   const barChartOptions = {
     ...lineChartOptions,
+    maintainAspectRatio: false,
     barPercentage: 0.6,
     categoryPercentage: 0.7,
     scales: {
@@ -550,7 +579,7 @@ export function Dashboard() {
         ...lineChartOptions.scales.y,
         ticks: {
           ...lineChartOptions.scales.y.ticks,
-          stepSize: Math.max(1, Math.ceil(Math.max(...(revenueChartData?.datasets[0]?.data || [1])) / 10)),
+          stepSize: 100,
         }
       }
     }
@@ -558,6 +587,7 @@ export function Dashboard() {
   
   const doughnutChartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         display: true,
@@ -587,6 +617,7 @@ export function Dashboard() {
   
   const mixedChartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     interaction: {
       mode: 'index' as const,
       intersect: false,
@@ -639,7 +670,7 @@ export function Dashboard() {
         ticks: {
           color: '#9CA3AF',
           padding: 10,
-          stepSize: Math.max(1, Math.ceil(Math.max(...(professionalPerformanceData?.datasets?.[0]?.data || [1])) / 10)),
+          stepSize: 10,
           precision: 0
         },
         title: {
@@ -663,7 +694,7 @@ export function Dashboard() {
         ticks: {
           color: '#10B981',
           padding: 10,
-          stepSize: Math.max(1, Math.ceil(Math.max(...(professionalPerformanceData?.datasets?.[1]?.data || [1])) / 10)),
+          stepSize: 1000,
           callback: function(value: any) {
             return value.toLocaleString('tr-TR', {
               style: 'currency',
@@ -695,7 +726,7 @@ export function Dashboard() {
     }
     
     if (clients.length > 0) {
-      generateClientDistributionData();
+
     }
 
     if (assistant && monthlyAppointments.length > 0) {
@@ -716,20 +747,34 @@ export function Dashboard() {
     const initializeData = async () => {
       try {
         setLoading(true);
+        
+        // Öncelikli veriler - sayfanın gösterilmesi için kritik olanlar
         await loadClinicHours();
-        await loadClinicBreaks();
-        await loadClinicVacations();
         await loadRooms();
+        
         if (professional) {
           await loadProfessionalWorkingHours();
-          await loadProfessionalBreaks();
-          await loadProfessionalVacations();
+          // Profesyonel için kritik veriler
           await loadProfessionalData();
-          await loadClients();
         } else if (assistant) {
+          // Asistan için kritik veriler
           await loadAssistantData();
         }
-      } finally {
+        
+        // Ana yükleme işlemi tamamlandı
+        setLoading(false);
+        
+        // İkincil veriler - arka planda yüklenmeye devam edebilir
+        await loadClinicBreaks();
+        await loadClinicVacations();
+        
+        if (professional) {
+          await loadProfessionalBreaks();
+          await loadProfessionalVacations();
+          await loadClients();
+        }
+      } catch (error) {
+        console.error("Veri yüklenirken hata oluştu:", error);
         setLoading(false);
       }
     };
@@ -739,6 +784,8 @@ export function Dashboard() {
     }
   }, [professional?.id, assistant?.id]);
 
+  // Yeni eklenen useEffect yeterli
+  // Tarih veya görünüm modu değiştiğinde günlük, haftalık ve aylık görünümleri güncelleme
   useEffect(() => {
     if (selectedDate) {
       const date = new Date(selectedDate);
@@ -747,15 +794,26 @@ export function Dashboard() {
       const currentDay = days[dayOfWeek];
       const dayHours = clinicHours?.[currentDay];
 
-      if (!dayHours?.isOpen) {
-        setTimeSlots([]);
-        return;
+      // Tarihin ISO formatını alalım
+      const formattedDate = date.toISOString().split('T')[0];
+      
+      // Her tarih veya görünüm modu değişiminde uygun randevuları yükleyelim
+      if (calendarViewMode === 'daily') {
+        // Günlük görünüm için randevuları yükle
+        loadExistingAppointments(formattedDate);
+        
+        if (!dayHours?.isOpen) {
+          setTimeSlots([]);
+          return;
+        }
+        
+        setTimeSlots(generateTimeSlots(dayHours));
+      } else {
+        // Haftalık ve aylık görünümler önceki kodda olduğu gibi çalışıyor
+        // Burada değişiklik yapmaya gerek yok
       }
-
-      loadExistingAppointments(date.toISOString().split('T')[0]);
-      setTimeSlots(generateTimeSlots(dayHours));
     }
-  }, [selectedDate, clinicHours]);
+  }, [selectedDate, clinicHours, calendarViewMode]);
 
   function generateTimeSlots(dayHours: { opening: string; closing: string; isOpen: boolean }) {
     if (!dayHours.isOpen) return [];
@@ -927,15 +985,15 @@ export function Dashboard() {
     const durationInMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
     
     // Bir saatin piksel yüksekliği (saat bloğu yüksekliği)
-    const hourHeight = 96; // Yüksekliği tr içindeki h-[96px] değeri ile eşleşmeli
+    const hourHeight = 100; // Yüksekliği tr içindeki h-[100px] değeri ile eşleşmeli
     
     // Randevu yüksekliğini hesapla (saatin yüzde kaçını kapsadığına göre)
     const height = (durationInMinutes / 60) * hourHeight;
     
     return {
       top: `${topPercentage}%`,
-      height: `${Math.max(24, height)}px`, // En az 24px yükseklik
-      minHeight: '24px'
+      height: `${Math.max(22, height)}px`, // En az 22px yükseklik
+      minHeight: '22px'
     };
   }
 
@@ -1411,7 +1469,12 @@ export function Dashboard() {
 
       let query = supabase
         .from('appointments')
-        .select('*')
+        .select(`
+          *,
+          client:clients(*),
+          professional:professionals(*),
+          room:rooms(*)
+        `)
         .gte('start_time', startTime.toISOString())
         .lte('start_time', endTime.toISOString())
         .eq('status', 'scheduled');
@@ -1434,6 +1497,9 @@ export function Dashboard() {
       if (error) throw error;
 
       setExistingAppointments(data || []);
+      
+      // Günlük randevuları da güncelle - bu günlük takvim görünümü için gerekli
+      setTodayAppointments(data || []);
     } catch (error) {
       console.error('Error loading existing appointments:', error);
     }
@@ -1868,836 +1934,139 @@ export function Dashboard() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
-      </div>
-    );
-  }
-
-  if (loadingClinicHours || !clinicHours) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full space-y-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white" />
-        <p className="text-gray-600 dark:text-gray-400">
-          Klinik çalışma saatleri yükleniyor...
-        </p>
-      </div>
-    );
-  }
-
-  if (professional) {
-    const todayEarnings = todayPayments.reduce(
-      (sum, payment) => sum + Number(payment.professional_amount),
-      0
-    );
-    const monthlyEarnings = monthlyPayments.reduce(
-      (sum, payment) => sum + Number(payment.professional_amount),
-      0
-    );
-
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
-        {/* Arka plan efektleri */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary-100 dark:bg-primary-900/20 blur-3xl opacity-50 dark:opacity-20"></div>
-          <div className="absolute top-1/3 right-10 w-64 h-64 rounded-full bg-blue-100 dark:bg-blue-900/20 blur-3xl opacity-50 dark:opacity-20"></div>
-          <div className="absolute bottom-20 left-1/4 w-80 h-80 rounded-full bg-purple-100 dark:bg-purple-900/20 blur-3xl opacity-50 dark:opacity-20"></div>
-        </div>
-
-        {/* Ana içerik */}
-        <div className="relative max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-6">
-          {/* Üst kısım - Hoşgeldiniz ve tarih seçici */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-4">
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
-                Hoş Geldiniz, {professional.full_name}
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-1">
-                {format(new Date(), "d MMMM yyyy, EEEE", { locale: tr })}
-              </p>
-            </motion.div>
-
-            <div className="flex">
-              <motion.div 
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-              >
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="w-full md:w-auto flex items-center justify-center px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium transition-all duration-300 shadow-md hover:shadow-lg"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  <span>Yeni Randevu</span>
-                </button>
-              </motion.div>
-            </div>
-          </div>
-
-          {/* Özet istatistikler */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6"
-          >
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-              <div className="flex items-start">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Bugünkü Randevular</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{todayAppointments.length}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-              <div className="flex items-start">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                  <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Toplam Danışan</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{clients.length}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-              <div className="flex items-start">
-                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                  <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Bugünkü Kazanç</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {todayEarnings.toLocaleString('tr-TR', {
-                      style: 'currency',
-                      currency: 'TRY',
-                    })}
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-              <div className="flex items-start">
-                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                  <Activity className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Aylık Kazanç</p>
-                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                    {monthlyEarnings.toLocaleString('tr-TR', {
-                      style: 'currency',
-                      currency: 'TRY',
-                    })}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Grafik ve bilgiler */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6"
-          >
-            {/* Randevu grafiği */}
-            <div className="md:col-span-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-5 border border-gray-200/50 dark:border-gray-700/50">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                  <BarChart4 className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
-                  <span>Randevu İstatistikleri</span>
-                </h2>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => setChartPeriod('weekly')}
-                    className={`text-xs px-3 py-1 rounded-full ${
-                      chartPeriod === 'weekly'
-                        ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 font-medium'
-                        : 'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300'
-                    }`}
-                  >
-                    Haftalık
-                  </button>
-                  <button
-                    onClick={() => setChartPeriod('monthly')}
-                    className={`text-xs px-3 py-1 rounded-full ${
-                      chartPeriod === 'monthly'
-                        ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 font-medium'
-                        : 'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300'
-                    }`}
-                  >
-                    Aylık
-                  </button>
-                </div>
-              </div>
-              <div className="h-64">
-                {appointmentChartData ? (
-                  <Line data={appointmentChartData} options={lineChartOptions} />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500 dark:text-gray-400">Veri yükleniyor...</p>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Danışan dağılımı ve kazanç grafiği */}
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-5 border border-gray-200/50 dark:border-gray-700/50">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-6">
-                <PieChart className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
-                <span>Danışan Dağılımı</span>
-              </h2>
-              <div className="h-64 flex items-center justify-center">
-                {clientDistributionData ? (
-                  <Doughnut data={clientDistributionData} options={doughnutChartOptions} />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500 dark:text-gray-400">Veri yükleniyor...</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Randevu tablosu başlığı */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="mt-8"
-          >
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                <Clock className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
-                <span>Günlük Randevular - {format(selectedDate, "d MMMM yyyy", { locale: tr })}</span>
-              </h2>
-
-                {/* Tarih seçme kontrolleri */}
-                <div className="flex items-center space-x-4 mt-4 md:mt-0">
-                  <button
-                    onClick={() => setSelectedDate(subDays(selectedDate, 1))}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                    aria-label="Önceki gün"
-                  >
-                    <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                  </button>
-                  
-                  <DatePicker
-                    selected={selectedDate}
-                    onChange={(date: Date) => setSelectedDate(date)}
-                    locale={tr}
-                    dateFormat="d MMMM yyyy"
-                    className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm text-gray-900 dark:text-white"
-                    popperClassName="z-[9999]"
-                    customInput={
-                      <button className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm flex items-center">
-                        <Calendar className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400" />
-                        <span className="text-sm text-gray-900 dark:text-white">
-                          {format(selectedDate, "d MMMM yyyy", { locale: tr })}
-                        </span>
-                      </button>
-                    }
-                    renderDayContents={(day, date) => {
-                      // Tatil ve çalışma günlerini göster
-                      const dayDate = new Date(date);
-                      const isVacation = isDateInVacations(dayDate);
-                      const isOpen = isClinicOpen(dayDate);
-                      
-                      return (
-                        <div className={`relative ${!isOpen || isVacation ? 'text-red-500 font-medium' : ''}`}>
-                          {day}
-                          {(!isOpen || isVacation) && (
-                            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 h-1 w-1 bg-red-500 rounded-full"></div>
-                          )}
-                        </div>
-                      );
-                    }}
-                  />
-                  
-                  <button
-                    onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                    aria-label="Sonraki gün"
-                  >
-                    <ChevronRight className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                  </button>
-                </div>
-              </div>
-              
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-                {/* Takvim ve randevu görünümü */}
-                <div className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
-                  {/* Randevu bulunamadı mesajı */}
-                  {(!clinicHours || !clinicHours[days[selectedDate.getDay()]].isOpen || timeSlots.length === 0) && (
-                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                      <CalendarOff className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                        Bu gün için randevu oluşturulamaz
-                      </h3>
-                      <p className="text-gray-600 dark:text-gray-400 max-w-md">
-                        {isDateInVacations(selectedDate) 
-                          ? "Bu tarih tatil veya izin gününe denk geliyor." 
-                          : "Kliniğin bu gün için çalışma saati bulunmuyor veya kapalı."}
-                      </p>
-                <button
-                        onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-                        className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center"
-                >
-                        <ChevronRight className="h-4 w-4 mr-1" />
-                        <span>Sonraki güne git</span>
-                </button>
-              </div>
-                  )}
-
-                  {/* Randevu tablosu */}
-                  {clinicHours && clinicHours[days[selectedDate.getDay()]].isOpen && timeSlots.length > 0 && (
-                <div className="overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10 md:rounded-lg relative">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl sticky top-0 z-30">
-                      <tr>
-                        <th className="px-4 py-3 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sticky left-0 z-10 min-w-[100px] border-b border-gray-200 dark:border-gray-700">
-                          Saat
-                        </th>
-                        {rooms.map((room: any, index: number) => (
-                          <th
-                            key={room.id}
-                            className="px-4 py-3 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider min-w-[200px] max-w-[250px] border-b border-gray-200 dark:border-gray-700"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <div className={`w-3 h-3 rounded-full ${ROOM_COLORS[index % ROOM_COLORS.length].split(' ')[0]}`}></div>
-                              <span>{room.name}</span>
-                            </div>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl divide-y divide-gray-200 dark:divide-gray-700">
-                      {timeSlots.map((timeSlot) => (
-                        <tr key={timeSlot} className="relative hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors duration-200">
-                          <td className="px-4 py-3 border-r border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-900 dark:text-gray-100 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl sticky left-0 z-20">
-                            {timeSlot}
-                          </td>
-                          {rooms.map((room, index) => (
-                            <td key={room.id} className="relative border-r border-gray-200 dark:border-gray-700 p-1 h-[96px]">
-                              {todayAppointments
-                                .filter(appointment => {
-                                  const appointmentStart = new Date(appointment.start_time);
-                                  const appointmentHour = appointmentStart.getHours();
-                                  const slotHour = parseInt(timeSlot.split(':')[0]);
-                                  return appointmentHour === slotHour && appointment.room_id === room.id;
-                                })
-                                .map(appointment => {
-                                  const position = calculateAppointmentPosition(appointment);
-                                  return (
-                                        <motion.div
-                                      key={appointment.id}
-                                          initial={{ scale: 0.95, opacity: 0.8 }}
-                                          animate={{ scale: 1, opacity: 1 }}
-                                          whileHover={{ scale: 1.02, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-                                          transition={{ duration: 0.2 }}
-                                      className={`absolute left-0 right-0 mx-2 p-2 rounded-lg shadow-sm ${
-                                        ROOM_COLORS[index % ROOM_COLORS.length]
-                                          } backdrop-blur-sm backdrop-filter transition-all duration-200 hover:shadow-md cursor-pointer overflow-hidden`}
-                                      style={{
-                                        top: position.top,
-                                        height: position.height,
-                                        minHeight: position.minHeight,
-                                        zIndex: 25
-                                      }}
-                                    >
-                                      {professional ? (
-                                        <div className="font-medium truncate">
-                                          {appointment.client?.full_name}
-                                        </div>
-                                      ) : (
-                                        <>
-                                          <div className="font-medium text-base truncate">
-                                            {appointment.professional?.full_name}
-                                          </div>
-                                          <div className="text-sm truncate opacity-90">
-                                            {appointment.client?.full_name}
-                                          </div>
-                                        </>
-                                      )}
-                                      <div className="text-xs opacity-75">
-                                        {format(new Date(appointment.start_time), 'HH:mm')} - 
-                                        {format(new Date(appointment.end_time), 'HH:mm')}
-                                      </div>
-                                        </motion.div>
-                                  );
-                                })}
-                              {selectedDate && 
-                                format(selectedDate, 'yyyy-MM-dd') === format(currentTime, 'yyyy-MM-dd') && 
-                                parseInt(timeSlot.split(':')[0]) === currentTime.getHours() && (
-                                <div
-                                  className="absolute left-0 right-0 border-t-2 border-red-500 pointer-events-none"
-                                  style={{
-                                    top: calculateTimeLinePosition(),
-                                    zIndex: 20
-                                  }}
-                                />
-                              )}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                  )}
-              </div>
-            </div>
-          </div>
-          </motion.div>
-
-          {/* Bugün ve Aylık istatistikler */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6"
-          >
-            {/* Gelir grafiği */}
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-5 border border-gray-200/50 dark:border-gray-700/50">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-6">
-                <BarChart className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
-                <span>Gelir İstatistikleri</span>
-              </h2>
-              <div className="h-64">
-                {revenueChartData ? (
-                  <Bar data={revenueChartData} options={barChartOptions} />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500 dark:text-gray-400">Veri yükleniyor...</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Yaklaşan randevular */}
-            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-5 border border-gray-200/50 dark:border-gray-700/50">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-4">
-                <Clock className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
-                <span>Yaklaşan Randevular</span>
-              </h2>
-              <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-                {todayAppointments.length > 0 ? (
-                  todayAppointments
-                    .filter(appointment => new Date(appointment.start_time) >= currentTime)
-                    .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-                    .slice(0, 5)
-                    .map((appointment) => (
-                      <motion.div
-                        key={appointment.id}
-                        initial={{ x: -10, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        transition={{ duration: 0.3 }}
-                        className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:shadow-md transition-all duration-200"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              {appointment.client?.full_name}
-                  </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {format(new Date(appointment.start_time), 'HH:mm')} - {format(new Date(appointment.end_time), 'HH:mm')}
-                  </div>
-                </div>
-                          <div className={`text-xs font-medium px-2 py-1 rounded-full ${
-                            ROOM_COLORS[rooms.findIndex(r => r.id === appointment.room_id) % ROOM_COLORS.length]
-                          }`}>
-                            {appointment.room?.name || 'Oda belirtilmedi'}
-                  </div>
-                  </div>
-                      </motion.div>
-                    ))
-                ) : (
-                  <div className="flex items-center justify-center h-32">
-                    <p className="text-gray-500 dark:text-gray-400">Bugün için yaklaşan randevu bulunmuyor.</p>
-                </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
-
-          {showCreateModal && (
-            <CreateAppointmentModal
-              isOpen={showCreateModal}
-              onClose={() => setShowCreateModal(false)}
-              onSuccess={() => {
-                if (professional) {
-                  loadProfessionalData();
-                } else if (assistant) {
-                  loadAssistantData();
-                }
-              }}
-              professionalId={professional?.id}
-              assistantId={assistant?.id}
-            />
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Assistant kullanıcısı için arayüz
-  const totalCash =
-    cashStatus.opening_balance +
-    cashStatus.from_professionals -
-    cashStatus.to_professionals;
-    
-  const totalMonthlyAppointments = monthlyAppointments.length;
-  const totalMonthlyRevenue = monthlyPayments.reduce(
-    (sum, payment) => sum + Number(payment.amount),
-    0
-  );
-  const totalTodayRevenue = todayPayments.reduce(
-    (sum, payment) => sum + Number(payment.amount),
-    0
-  );
-
-  const totalProfessionals = new Set(monthlyAppointments.map(a => a.professional_id)).size;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
-      {/* Arka plan efektleri */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary-100 dark:bg-primary-900/20 blur-3xl opacity-50 dark:opacity-20"></div>
-        <div className="absolute top-1/3 right-10 w-64 h-64 rounded-full bg-blue-100 dark:bg-blue-900/20 blur-3xl opacity-50 dark:opacity-20"></div>
-        <div className="absolute bottom-20 left-1/4 w-80 h-80 rounded-full bg-purple-100 dark:bg-purple-900/20 blur-3xl opacity-50 dark:opacity-20"></div>
-      </div>
+    <>
+      {loading ? (
+        <LoadingSpinner fullPage size="medium" loadingText="Dashboard yükleniyor..." showLoadingText={true} />
+      ) : (
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
+          {/* Arka plan efektleri */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary-100 dark:bg-primary-900/20 blur-3xl opacity-50 dark:opacity-20"></div>
+            <div className="absolute top-1/3 right-10 w-64 h-64 rounded-full bg-blue-100 dark:bg-blue-900/20 blur-3xl opacity-50 dark:opacity-20"></div>
+            <div className="absolute bottom-20 left-1/4 w-80 h-80 rounded-full bg-purple-100 dark:bg-purple-900/20 blur-3xl opacity-50 dark:opacity-20"></div>
+          </div>
 
-      {/* Ana içerik */}
-      <div className="relative max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-6">
-        {/* Üst kısım - Hoşgeldiniz ve tarih seçici */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-4">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
-              Hoş Geldiniz, {assistant.full_name}
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">
-              {format(new Date(), "d MMMM yyyy, EEEE", { locale: tr })}
-            </p>
-          </motion.div>
-
-          <div className="flex">
-            <motion.div 
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="w-full md:w-auto flex items-center justify-center px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium transition-all duration-300 shadow-md hover:shadow-lg"
+          {/* Ana içerik */}
+          <div className="relative max-w-7xl mx-auto px-3 md:px-5 lg:px-6 py-4 space-y-4">
+            {/* Üst kısım - Hoşgeldiniz ve tarih seçici */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pt-4">
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
               >
-                <Plus className="h-5 w-5 mr-2" />
-                <span>Yeni Randevu</span>
-              </button>
-            </motion.div>
-          </div>
-        </div>
-
-        {/* Özet kart alanı */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6"
-        >
-          {/* Kasa durumu kartı */}
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-            <div className="flex items-start">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Toplam Kasa</p>
-                <p className={`text-2xl font-bold ${
-                  totalCash >= 0
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-red-600 dark:text-red-400'
-                }`}>
-                  {totalCash.toLocaleString('tr-TR', {
-                    style: 'currency',
-                    currency: 'TRY',
-                    maximumFractionDigits: 0
-                  })}
+                <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+                  Hoş Geldiniz, {professional ? professional.full_name : assistant ? assistant.full_name : 'Kullanıcı'}
+                </h1>
+                <p className="text-slate-600 dark:text-slate-400 mt-1">
+                  {format(new Date(), "d MMMM yyyy, EEEE", { locale: tr })}
                 </p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Toplam uzman kartı */}
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-            <div className="flex items-start">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <BrainCircuit className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Aktif Uzmanlar</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalProfessionals}</p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Günlük randevu kartı */}
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-            <div className="flex items-start">
-              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                <Calendar className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Bugünkü Randevular</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{todayAppointments.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          {/* Günlük gelir kartı */}
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-            <div className="flex items-start">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Bugünkü Gelir</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {totalTodayRevenue.toLocaleString('tr-TR', {
-                    style: 'currency',
-                    currency: 'TRY',
-                    maximumFractionDigits: 0
-                  })}
-                </p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
+              </motion.div>
 
-        {/* Randevu tablosu */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="mt-6"
-        >
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-              <Clock className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
-                <span>Günlük Randevular - {format(selectedDate, "d MMMM yyyy", { locale: tr })}</span>
-            </h2>
-
-              {/* Tarih seçme kontrolleri */}
-              <div className="flex items-center space-x-4 mt-4 md:mt-0">
-                <button
-                  onClick={() => setSelectedDate(subDays(selectedDate, 1))}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                  aria-label="Önceki gün"
+              <div className="flex">
+                <motion.div 
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
                 >
-                  <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                </button>
-                
-                <DatePicker
-                  selected={selectedDate}
-                  onChange={(date: Date) => setSelectedDate(date)}
-                  locale={tr}
-                  dateFormat="d MMMM yyyy"
-                  className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm text-gray-900 dark:text-white"
-                  popperClassName="z-[9999]"
-                  customInput={
-                    <button className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400" />
-                      <span className="text-sm text-gray-900 dark:text-white">
-                        {format(selectedDate, "d MMMM yyyy", { locale: tr })}
-                      </span>
-                    </button>
-                  }
-                  renderDayContents={(day, date) => {
-                    // Tatil ve çalışma günlerini göster
-                    const dayDate = new Date(date);
-                    const isVacation = isDateInVacations(dayDate);
-                    const isOpen = isClinicOpen(dayDate);
-                    
-                    return (
-                      <div className={`relative ${!isOpen || isVacation ? 'text-red-500 font-medium' : ''}`}>
-                        {day}
-                        {(!isOpen || isVacation) && (
-                          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 h-1 w-1 bg-red-500 rounded-full"></div>
-                        )}
-                      </div>
-                    );
-                  }}
-                />
-                
-                <button
-                  onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                  aria-label="Sonraki gün"
-                >
-                  <ChevronRight className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                </button>
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="w-full md:w-auto flex items-center justify-center px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium transition-all duration-300 shadow-md hover:shadow-lg"
+                  >
+                    <Plus className="h-5 w-5 mr-2" />
+                    <span>Yeni Randevu</span>
+                  </button>
+                </motion.div>
               </div>
             </div>
-            
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-              {/* Takvim ve randevu görünümü */}
-              <div className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
-                {/* Randevu bulunamadı mesajı */}
-                {(!clinicHours || !clinicHours[days[selectedDate.getDay()]].isOpen || timeSlots.length === 0) && (
-                  <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                    <CalendarOff className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                      Bu gün için randevu oluşturulamaz
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-400 max-w-md">
-                      {isDateInVacations(selectedDate) 
-                        ? "Bu tarih tatil veya izin gününe denk geliyor." 
-                        : "Kliniğin bu gün için çalışma saati bulunmuyor veya kapalı."}
-                    </p>
-              <button
-                      onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-                      className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center"
-              >
-                      <ChevronRight className="h-4 w-4 mr-1" />
-                      <span>Sonraki güne git</span>
-              </button>
-            </div>
-                )}
 
-                {/* Randevu tablosu */}
-                {clinicHours && clinicHours[days[selectedDate.getDay()]].isOpen && timeSlots.length > 0 && (
-              <div className="overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10 md:rounded-lg relative">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                      <thead className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl sticky top-0 z-30">
-                    <tr>
-                          <th className="px-4 py-3 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sticky left-0 z-10 min-w-[100px] border-b border-gray-200 dark:border-gray-700">
-                        Saat
-                      </th>
-                      {rooms.map((room: any, index: number) => (
-                        <th
-                          key={room.id}
-                              className="px-4 py-3 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider min-w-[200px] max-w-[250px] border-b border-gray-200 dark:border-gray-700"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <div className={`w-3 h-3 rounded-full ${ROOM_COLORS[index % ROOM_COLORS.length].split(' ')[0]}`}></div>
-                            <span>{room.name}</span>
-                          </div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                      <tbody className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl divide-y divide-gray-200 dark:divide-gray-700">
-                    {timeSlots.map((timeSlot) => (
-                          <tr key={timeSlot} className="relative hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors duration-200">
-                            <td className="px-4 py-3 border-r border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-900 dark:text-gray-100 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl sticky left-0 z-20">
-                          {timeSlot}
-                        </td>
-                        {rooms.map((room, index) => (
-                          <td key={room.id} className="relative border-r border-gray-200 dark:border-gray-700 p-1 h-[96px]">
-                            {todayAppointments
-                              .filter(appointment => {
-                                const appointmentStart = new Date(appointment.start_time);
-                                const appointmentHour = appointmentStart.getHours();
-                                const slotHour = parseInt(timeSlot.split(':')[0]);
-                                return appointmentHour === slotHour && appointment.room_id === room.id;
-                              })
-                              .map(appointment => {
-                                const position = calculateAppointmentPosition(appointment);
-                                return (
-                                      <motion.div
-                                    key={appointment.id}
-                                        initial={{ scale: 0.95, opacity: 0.8 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        whileHover={{ scale: 1.02, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-                                        transition={{ duration: 0.2 }}
-                                    className={`absolute left-0 right-0 mx-2 p-2 rounded-lg shadow-sm ${
-                                      ROOM_COLORS[index % ROOM_COLORS.length]
-                                        } backdrop-blur-sm backdrop-filter transition-all duration-200 hover:shadow-md cursor-pointer overflow-hidden`}
-                                    style={{
-                                      top: position.top,
-                                      height: position.height,
-                                      minHeight: position.minHeight,
-                                      zIndex: 25
-                                    }}
-                                  >
-                                    {professional ? (
-                                      <div className="font-medium truncate">
-                                        {appointment.client?.full_name}
-                                      </div>
-                                    ) : (
-                                      <>
-                                        <div className="font-medium text-base truncate">
-                                          {appointment.professional?.full_name}
-                                        </div>
-                                        <div className="text-sm truncate opacity-90">
-                                          {appointment.client?.full_name}
-                                        </div>
-                                      </>
-                                    )}
-                                    <div className="text-xs opacity-75">
-                                      {format(new Date(appointment.start_time), 'HH:mm')} - 
-                                      {format(new Date(appointment.end_time), 'HH:mm')}
-                                    </div>
-                                      </motion.div>
-                                );
-                              })}
-                            {selectedDate && 
-                              format(selectedDate, 'yyyy-MM-dd') === format(currentTime, 'yyyy-MM-dd') && 
-                              parseInt(timeSlot.split(':')[0]) === currentTime.getHours() && (
-                              <div
-                                className="absolute left-0 right-0 border-t-2 border-red-500 pointer-events-none"
-                                style={{
-                                  top: calculateTimeLinePosition(),
-                                  zIndex: 20
-                                }}
-                              />
-                            )}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-                )}
-            </div>
-          </div>
-        </div>
-        </motion.div>
-
-        {assistant && (
-          <>
-            {/* Grafik ve performans istatistikleri - Asistan için */}
+            {/* Özet istatistikler */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="mt-6"
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6"
             >
-              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                <div className="flex items-start">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                    <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Bugünkü Randevular</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{todayAppointments.length}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                <div className="flex items-start">
+                  <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                    <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Toplam Danışan</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{clients.length}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                <div className="flex items-start">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                    <TurkLiraIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Bugünkü Kazanç</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      {todayPayments.reduce(
+                        (sum, payment) => sum + Number(payment.professional_amount),
+                        0
+                      ).toLocaleString('tr-TR', {
+                        style: 'currency',
+                        currency: 'TRY',
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-4 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                <div className="flex items-start">
+                  <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                    <Activity className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Aylık Kazanç</p>
+                    <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                      {monthlyPayments.reduce(
+                        (sum, payment) => sum + Number(payment.professional_amount),
+                        0
+                      ).toLocaleString('tr-TR', {
+                        style: 'currency',
+                        currency: 'TRY',
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Grafik ve bilgiler */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6"
+            >
+              {/* Randevu grafiği */}
+              <div className="md:col-span-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                     <BarChart4 className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
-                    <span>Uzman Performansı</span>
-            </h2>
-                  
-                  <div className="flex space-x-2 mt-3 md:mt-0">
+                    <span>Randevu İstatistikleri</span>
+                  </h2>
+                  <div className="flex space-x-2">
                     <button
                       onClick={() => setChartPeriod('weekly')}
                       className={`text-xs px-3 py-1 rounded-full ${
@@ -2718,157 +2087,612 @@ export function Dashboard() {
                     >
                       Aylık
                     </button>
+                  </div>
+                </div>
+                <div className="h-[280px] w-full flex items-center justify-center px-2 pt-1 pb-3">
+                  {appointmentChartData ? (
+                    <Line data={appointmentChartData} options={lineChartOptions} />
+                  ) : (
+                    <LoadingData />
+                  )}
                 </div>
               </div>
-                
-                <div className="h-72">
-                  {professionalPerformanceData ? (
-                    <Chart 
-                      type="bar" 
-                      data={professionalPerformanceData} 
-                      options={mixedChartOptions} 
-                    />
+              
+              
+
+              {/* Yaklaşan Randevular */}
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-4">
+                  <Calendar className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
+                  <span>Yaklaşan Randevular</span>
+                </h2>
+                <div className="space-y-3 h-[280px] overflow-y-auto pr-2 custom-scrollbar">
+                  {todayAppointments.length > 0 ? (
+                    todayAppointments
+                      .filter(appointment => new Date(appointment.start_time) >= currentTime)
+                      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                      .slice(0, 5)
+                      .map((appointment) => (
+                        <motion.div
+                          key={appointment.id}
+                          initial={{ x: -10, opacity: 0 }}
+                          animate={{ x: 0, opacity: 1 }}
+                          transition={{ duration: 0.3 }}
+                          className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:shadow-md transition-all duration-200"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                {appointment.client?.full_name}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {format(new Date(appointment.start_time), 'HH:mm')} - {format(new Date(appointment.end_time), 'HH:mm')}
+                              </div>
+                            </div>
+                            <div className={`text-xs font-medium px-2 py-1 rounded-full ${
+                              ROOM_COLORS[rooms.findIndex(r => r.id === appointment.room_id) % ROOM_COLORS.length]
+                            }`}>
+                              {appointment.room?.name || 'Oda belirtilmedi'}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))
                   ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500 dark:text-gray-400">Veri yükleniyor...</p>
-            </div>
+                    <div className="flex items-center justify-center h-32">
+                      <p className="text-gray-500 dark:text-gray-400">Bugün için yaklaşan randevu bulunmuyor.</p>
+                    </div>
                   )}
-          </div>
+                </div>
               </div>
             </motion.div>
-            
-            {/* İstatistik kartları - Asistan için */}
+
+            {/* Randevu tablosu başlığı */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="mt-8"
+            >
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-lg p-4 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:justify-between md:items-center mb-6">
+                  <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                      <Clock className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
+                      <span>Randevular</span>
+                    </h2>
+                    
+                    {/* Görünüm modu seçenekleri */}
+                    <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg text-xs font-medium">
+                      <button
+                        onClick={() => setCalendarViewMode('daily')}
+                        className={`px-3 py-1.5 rounded-md transition-all ${
+                          calendarViewMode === 'daily'
+                          ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-400'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        }`}
+                      >
+                        Günlük
+                      </button>
+                      <button
+                        onClick={() => setCalendarViewMode('weekly')}
+                        className={`px-3 py-1.5 rounded-md transition-all ${
+                          calendarViewMode === 'weekly'
+                          ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-400'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        }`}
+                      >
+                        Haftalık
+                      </button>
+                      <button
+                        onClick={() => setCalendarViewMode('monthly')}
+                        className={`px-3 py-1.5 rounded-md transition-all ${
+                          calendarViewMode === 'monthly'
+                          ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-400'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        }`}
+                      >
+                        Aylık
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Tarih seçme kontrolleri */}
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => {
+                        if (calendarViewMode === 'daily') {
+                          setSelectedDate(subDays(selectedDate, 1));
+                        } else if (calendarViewMode === 'weekly') {
+                          setSelectedDate(subDays(selectedDate, 7));
+                        } else if (calendarViewMode === 'monthly') {
+                          setSelectedDate(subMonths(selectedDate, 1));
+                        }
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                      aria-label="Önceki dönem"
+                    >
+                      <ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    </button>
+                    
+                    <DatePicker
+                      selected={selectedDate}
+                      onChange={(date: Date) => setSelectedDate(date)}
+                      locale={tr}
+                      dateFormat="d MMMM yyyy"
+                      className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm text-gray-900 dark:text-white"
+                      popperClassName="z-[9999]"
+                      customInput={
+                        <button className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm flex items-center">
+                          <Calendar className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400" />
+                          <span className="text-sm text-gray-900 dark:text-white">
+                            {calendarViewMode === 'daily' 
+                              ? format(selectedDate, "d MMMM yyyy", { locale: tr })
+                              : calendarViewMode === 'weekly'
+                                ? `${format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "d MMM", { locale: tr })} - ${format(endOfWeek(selectedDate, { weekStartsOn: 1 }), "d MMM", { locale: tr })}`
+                                : format(selectedDate, "MMMM yyyy", { locale: tr })
+                            }
+                          </span>
+                        </button>
+                      }
+                      renderDayContents={(day, date) => {
+                        // Tatil ve çalışma günlerini göster
+                        const dayDate = new Date(date);
+                        const isVacation = isDateInVacations(dayDate);
+                        const isOpen = isClinicOpen(dayDate);
+                        
+                        return (
+                          <div className={`relative ${!isOpen || isVacation ? 'text-red-500 font-medium' : ''}`}>
+                            {day}
+                            {(!isOpen || isVacation) && (
+                              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 h-1 w-1 bg-red-500 rounded-full"></div>
+                            )}
+                          </div>
+                        );
+                      }}
+                    />
+                    
+                    <button
+                      onClick={() => {
+                        if (calendarViewMode === 'daily') {
+                          setSelectedDate(addDays(selectedDate, 1));
+                        } else if (calendarViewMode === 'weekly') {
+                          setSelectedDate(addDays(selectedDate, 7));
+                        } else if (calendarViewMode === 'monthly') {
+                          setSelectedDate(addMonths(selectedDate, 1));
+                        }
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                      aria-label="Sonraki dönem"
+                    >
+                      <ChevronRight className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                    </button>
+
+                    <button
+                      onClick={() => setSelectedDate(new Date())}
+                      className="mb-2 md:mb-0 px-3 py-1.5 rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 transition-all hover:bg-blue-200 dark:hover:bg-blue-800/40 flex items-center text-xs font-medium"
+                    >
+                      <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                      Bugüne Git
+                    </button>
+                  </div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                  {/* Takvim ve randevu görünümü - Scroll ihtiyacı olmadan, görünüm moduna göre uyarlanmış yükseklik */}
+                  <div className={`
+                    ${calendarViewMode === 'daily' ? 'overflow-auto' : 'overflow-visible'} 
+                    ${calendarViewMode === 'daily' ? 'h-[550px]' : 'h-auto'}
+                    ${calendarViewMode === 'weekly' ? 'h-[300px]' : ''}
+                    ${calendarViewMode === 'monthly' ? 'h-[600px]' : ''}
+                  `}>
+                    {/* Randevu bulunamadı mesajı - Sadece günlük görünümde gösteriliyor */}
+                    {calendarViewMode === 'daily' && (!clinicHours || !clinicHours[days[selectedDate.getDay()]].isOpen || timeSlots.length === 0) && (
+                      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                        <CalendarOff className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                          Bu gün için randevu oluşturulamaz
+                        </h3>
+                        <p className="text-gray-600 dark:text-gray-400 max-w-md">
+                          {isDateInVacations(selectedDate) 
+                            ? "Bu tarih tatil veya izin gününe denk geliyor." 
+                            : "Kliniğin bu gün için çalışma saati bulunmuyor veya kapalı."}
+                        </p>
+                        <button
+                          onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+                          className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center"
+                        >
+                          <ChevronRight className="h-4 w-4 mr-1" />
+                          <span>Sonraki güne git</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Randevu tablosu - Günlük görünüm */}
+                    {calendarViewMode === 'daily' && clinicHours && clinicHours[days[selectedDate.getDay()]].isOpen && timeSlots.length > 0 && (
+                      <div className="overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10 md:rounded-lg relative table-fixed">
+                        <table className="w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700">
+                          <colgroup>
+                            <col className="w-[70px]" />
+                            {rooms.map((room) => (
+                              <col key={room.id} style={{ width: `calc((100% - 70px) / ${rooms.length})` }} />
+                            ))}
+                          </colgroup>
+                          <thead className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl sticky top-0 z-30">
+                            <tr>
+                              <th className="px-3 py-3 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sticky left-0 z-10 w-[70px] min-w-[70px] max-w-[70px] border-b border-gray-200 dark:border-gray-700">
+                                Saat
+                              </th>
+                              {rooms.map((room: any, index: number) => (
+                                <th
+                                  key={room.id}
+                                  className="px-3 py-3 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700"
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    <div className={`w-3 h-3 rounded-full ${ROOM_COLORS[index % ROOM_COLORS.length].split(' ')[0]}`}></div>
+                                    <span>{room.name}</span>
+                                  </div>
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl divide-y divide-gray-200 dark:divide-gray-700">
+                            {timeSlots.map((timeSlot) => (
+                              <tr key={timeSlot} className="relative hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors duration-200">
+                                <td className="px-3 py-3 border-r border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-900 dark:text-gray-100 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl sticky left-0 z-20 w-[70px] min-w-[70px] max-w-[70px]">
+                                  {timeSlot}
+                                </td>
+                                {rooms.map((room, index) => (
+                                  <td key={room.id} className="relative border-r border-gray-200 dark:border-gray-700 p-1 h-[100px] overflow-visible">
+                                    {todayAppointments
+                                      .filter(appointment => {
+                                        const appointmentStart = new Date(appointment.start_time);
+                                        const appointmentHour = appointmentStart.getHours();
+                                        const slotHour = parseInt(timeSlot.split(':')[0]);
+                                        return appointmentHour === slotHour && appointment.room_id === room.id;
+                                      })
+                                      .map(appointment => {
+                                        const position = calculateAppointmentPosition(appointment);
+                                        return (
+                                          <motion.div
+                                            key={appointment.id}
+                                            initial={{ scale: 0.95, opacity: 0.8 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            whileHover={{ scale: 1.02, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                                            transition={{ duration: 0.2 }}
+                                            className={`absolute left-0 right-0 mx-1 p-1.5 rounded-lg shadow-sm ${
+                                              ROOM_COLORS[index % ROOM_COLORS.length]
+                                              } backdrop-blur-sm backdrop-filter transition-all duration-200 hover:shadow-md cursor-pointer overflow-hidden`}
+                                            style={{
+                                              top: position.top,
+                                              height: position.height,
+                                              minHeight: position.minHeight,
+                                              zIndex: 25
+                                            }}
+                                          >
+                                            {professional ? (
+                                              <div className="font-medium text-sm truncate">
+                                                {appointment.client?.full_name}
+                                              </div>
+                                            ) : (
+                                              <>
+                                                <div className="font-medium text-sm truncate">
+                                                  {appointment.professional?.full_name}
+                                                </div>
+                                                <div className="text-xs truncate opacity-90">
+                                                  {appointment.client?.full_name}
+                                                </div>
+                                              </>
+                                            )}
+                                            <div className="text-xs opacity-75 mt-1">
+                                              {format(new Date(appointment.start_time), 'HH:mm')}-{format(new Date(appointment.end_time), 'HH:mm')}
+                                            </div>
+                                          </motion.div>
+                                        );
+                                      })}
+                                    {selectedDate && 
+                                      format(selectedDate, 'yyyy-MM-dd') === format(currentTime, 'yyyy-MM-dd') && 
+                                      parseInt(timeSlot.split(':')[0]) === currentTime.getHours() && (
+                                        <div
+                                          className="absolute left-0 right-0 border-t-2 border-red-500 pointer-events-none"
+                                          style={{
+                                            top: calculateTimeLinePosition(),
+                                            zIndex: 20
+                                          }}
+                                        />
+                                    )}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    
+                    {/* Haftalık Görünüm */}
+                    {calendarViewMode === 'weekly' && (
+                      <div className="overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10 md:rounded-lg relative h-full">
+                        <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl p-4 h-full">
+                          <div className="grid grid-cols-7 gap-2 h-full">
+                            {/* Haftanın günleri başlıkları */}
+                            {Array.from({ length: 7 }).map((_, index) => {
+                              const day = addDays(startOfWeek(selectedDate, { weekStartsOn: 1 }), index);
+                              const dayName = format(day, 'EEEE', { locale: tr });
+                              const dayNumber = format(day, 'd');
+                              const isToday = isSameDay(day, new Date());
+                              
+                              return (
+                                <div 
+                                  key={index}
+                                  className={`flex flex-col items-center py-2 ${isToday ? 'bg-blue-50 dark:bg-blue-900/20 rounded-lg' : ''}`}
+                                >
+                                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 capitalize">
+                                    {dayName}
+                                  </span>
+                                  <span className={`text-lg font-semibold mt-1 ${isToday ? 'bg-blue-600 dark:bg-blue-500 text-white w-8 h-8 flex items-center justify-center rounded-full' : 'text-gray-800 dark:text-gray-200'}`}>
+                                    {dayNumber}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                            
+                            {/* Haftanın günleri için randevular */}
+                            {Array.from({ length: 7 }).map((_, dayIndex) => {
+                              const currentDay = addDays(startOfWeek(selectedDate, { weekStartsOn: 1 }), dayIndex);
+                              const formattedDay = format(currentDay, 'yyyy-MM-dd');
+                              
+                              // Bu gün için randevuları filtrele
+                              const dayAppointments = monthlyAppointments.filter(appointment => 
+                                format(new Date(appointment.start_time), 'yyyy-MM-dd') === formattedDay
+                              );
+                              
+                              // Kliniğin bu gün açık olup olmadığını kontrol et
+                              const isOpen = isClinicOpen(currentDay);
+                              const isVacation = isDateInVacations(currentDay);
+                              
+                              return (
+                                <div 
+                                  key={dayIndex}
+                                  className={`
+                                    col-span-1 min-h-[180px] border-t border-gray-200 dark:border-gray-700 pt-2 relative
+                                    ${!isOpen || isVacation ? 'bg-red-50/30 dark:bg-red-900/5' : ''}
+                                  `}
+                                >
+                                  {(!isOpen || isVacation) && (
+                                    <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 flex items-center justify-center opacity-30 pointer-events-none">
+                                      <CalendarOff className="h-8 w-8 text-red-500 dark:text-red-400" />
+                                    </div>
+                                  )}
+                                  
+                                  {dayAppointments.length === 0 ? (
+                                    <div className={`text-center text-xs h-full flex items-center justify-center relative z-10 ${!isOpen || isVacation ? 'text-red-500 dark:text-red-400 font-medium' : 'text-gray-400 dark:text-gray-600'}`}>
+                                      {!isOpen || isVacation ? "Çalışma Günü Değil" : "Randevu yok"}
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-1 relative z-10">
+                                      {dayAppointments
+                                        .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                                        .slice(0, 4)
+                                        .map(appointment => (
+                                          <div 
+                                            key={appointment.id}
+                                            className={`text-xs p-2 rounded truncate ${
+                                              appointment.room_id 
+                                                ? ROOM_COLORS[rooms.findIndex(r => r.id === appointment.room_id) % ROOM_COLORS.length]
+                                                : 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300'
+                                            }`}
+                                          >
+                                            <div className="flex items-center">
+                                              <span className="mr-1">{format(new Date(appointment.start_time), 'HH:mm')}</span>
+                                              <span className="truncate font-medium">
+                                                {professional ? appointment.client?.full_name : appointment.professional?.full_name}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ))
+                                      }
+                                      {dayAppointments.length > 4 && (
+                                        <div className="text-xs text-center text-gray-500 dark:text-gray-400">
+                                          + {dayAppointments.length - 4} daha
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Aylık Görünüm */}
+                    {calendarViewMode === 'monthly' && (
+                      <div className="overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10 md:rounded-lg relative h-full">
+                        <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl p-4 h-full">
+                          <div className="grid grid-cols-7 gap-1 h-full">
+                            {/* Hafta günü isimleri */}
+                            {['Ptesi', 'Salı', 'Çarş', 'Perş', 'Cuma', 'Ctesi', 'Pazar'].map((day, index) => (
+                              <div key={index} className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2">
+                                {day}
+                              </div>
+                            ))}
+                            
+                            {/* Ayın günleri */}
+                            {(() => {
+                              // Ayın ilk günü
+                              const firstDayOfMonth = startOfMonth(selectedDate);
+                              // İlk günün haftanın kaçıncı günü olduğunu bul (0: Pazar, 1: Pazartesi, ...)
+                              // Ancak bizim takvimde Pazartesi ilk gün olduğu için -1 çıkaralım, Pazar ise 6'ya dönüşsün
+                              let firstDayIndex = firstDayOfMonth.getDay() - 1;
+                              if (firstDayIndex < 0) firstDayIndex = 6;
+                              
+                              // Ayın toplam gün sayısı
+                              const daysInMonth = getDaysInMonth(selectedDate);
+                              
+                              // Takvim hücreleri için gerekli günleri oluştur
+                              // Önceki ayın günlerini, mevcut ayın günlerini ve sonraki ayın günlerini içerir
+                              const calendarDays = [];
+                              
+                              // Önceki ayın günleri
+                              for (let i = 0; i < firstDayIndex; i++) {
+                                calendarDays.push({ 
+                                  date: subDays(firstDayOfMonth, firstDayIndex - i),
+                                  isCurrentMonth: false
+                                });
+                              }
+                              
+                              // Mevcut ayın günleri
+                              for (let i = 0; i < daysInMonth; i++) {
+                                calendarDays.push({ 
+                                  date: addDays(firstDayOfMonth, i),
+                                  isCurrentMonth: true
+                                });
+                              }
+                              
+                              // Sonraki ayın günleri (toplam 42 hücre için, 6 hafta)
+                              const remaining = 42 - calendarDays.length;
+                              for (let i = 0; i < remaining; i++) {
+                                calendarDays.push({ 
+                                  date: addDays(addDays(firstDayOfMonth, daysInMonth), i),
+                                  isCurrentMonth: false
+                                });
+                              }
+                              
+                              return calendarDays.map((day, index) => {
+                                const isToday = isSameDay(day.date, new Date());
+                                const isSelected = isSameDay(day.date, selectedDate);
+                                const formattedDate = format(day.date, 'yyyy-MM-dd');
+                                
+                                // Bu gün için randevuları filtrele
+                                const dayAppointments = monthlyAppointments.filter(appointment => 
+                                  format(new Date(appointment.start_time), 'yyyy-MM-dd') === formattedDate
+                                );
+                                
+                                // Kliniğin bu gün açık olup olmadığını kontrol et
+                                const isOpen = isClinicOpen(day.date);
+                                const isVacation = isDateInVacations(day.date);
+                                
+                                return (
+                                  <div 
+                                    key={index}
+                                    className={`
+                                      p-1 h-[90px] border border-gray-100 dark:border-gray-800 relative
+                                      ${!day.isCurrentMonth ? 'opacity-40' : ''}
+                                      ${isToday ? 'bg-blue-50 dark:bg-blue-900/10' : ''}
+                                      ${isSelected ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}
+                                      ${!isOpen || isVacation ? 'bg-red-50/30 dark:bg-red-900/5' : ''}
+                                    `}
+                                    onClick={() => setSelectedDate(day.date)}
+                                  >
+                                    <div className={`
+                                      text-right text-sm font-medium mb-1 
+                                      ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}
+                                      ${!isOpen || isVacation ? 'text-red-500 dark:text-red-400' : ''}
+                                    `}>
+                                      {format(day.date, 'd')}
+                                    </div>
+                                    
+                                    {/* Bu gün için randevular */}
+                                    {dayAppointments.length > 0 && (
+                                      <div className="space-y-1">
+                                        {dayAppointments
+                                          .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                                          .slice(0, 2)
+                                          .map(appointment => (
+                                            <div 
+                                              key={appointment.id}
+                                              className={`text-xs p-0.5 rounded truncate ${
+                                                appointment.room_id 
+                                                  ? ROOM_COLORS[rooms.findIndex(r => r.id === appointment.room_id) % ROOM_COLORS.length]
+                                                  : 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300'
+                                              }`}
+                                            >
+                                              {format(new Date(appointment.start_time), 'HH:mm')} {professional ? appointment.client?.full_name.split(' ')[0] : appointment.professional?.full_name.split(' ')[0]}
+                                            </div>
+                                          ))
+                                        }
+                                        {dayAppointments.length > 2 && (
+                                          <div className="text-xs text-center text-gray-500 dark:text-gray-400">
+                                            +{dayAppointments.length - 2}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                    
+                                    {(!isOpen || isVacation) && dayAppointments.length === 0 && (
+                                      <div className="absolute inset-0 flex items-center justify-center">
+                                        <CalendarOff className="h-4 w-4 text-red-400/50 dark:text-red-500/50" />
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Bugün ve Aylık istatistikler */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6"
+              className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6"
             >
-              {/* Danışan dağılımı */}
-              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-5 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-4">
-                  <PieChart className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
-                  <span>Danışan Dağılımı</span>
-                </h2>
-                
-                <div className="h-48 flex items-center justify-center">
-                  {clientDistributionData ? (
-                    <Doughnut data={clientDistributionData} options={doughnutChartOptions} />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500 dark:text-gray-400">Veri yükleniyor...</p>
-                      </div>
-                  )}
-                      </div>
-                    </div>
-              
-              {/* Randevu sayısı */}
-              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-5 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-4">
-                  <BarChart className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
-                  <span>Randevu İstatistikleri</span>
-                </h2>
-                
-                <div className="h-48">
-                  {appointmentChartData ? (
-                    <Line data={appointmentChartData} options={lineChartOptions} />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500 dark:text-gray-400">Veri yükleniyor...</p>
-                    </div>
-                  )}
-                  </div>
-                </div>
-              
-              {/* Gelir */}
-              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-5 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-4">
+              {/* Gelir grafiği */}
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-6">
                   <LineChart className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
-                  <span>Gelir İstatistikleri</span>
+                  <span>Kasa İstatistikleri</span>
                 </h2>
-                
-                <div className="h-48">
+                <div className="h-[280px] w-full flex items-center justify-center px-2 pt-1 pb-3">
                   {revenueChartData ? (
-                    <Bar data={revenueChartData} options={barChartOptions} />
+                    <Line data={revenueChartData} options={lineChartOptions} />
                   ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <p className="text-gray-500 dark:text-gray-400">Veri yükleniyor...</p>
-            </div>
+                    <LoadingData />
                   )}
+                </div>
+              </div>
+
+              {/* Uzman Performansı grafiği */}
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-6">
+                  <LineChart className="h-5 w-5 mr-2 text-indigo-600 dark:text-indigo-400" />
+                  <span>Uzman Performansı</span>
+                </h2>
+                <div className="h-[280px] w-full flex items-center justify-center px-2 pt-1 pb-3">
+                  {professionalPerformanceData ? (
+                    <Bar data={professionalPerformanceData} options={mixedChartOptions} />
+                  ) : (
+                    <LoadingData />
+                  )}
+                </div>
+              </div>
+            </motion.div>
+
+            {showCreateModal && (
+              <CreateAppointmentModal
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSuccess={() => {
+                  if (professional) {
+                    loadProfessionalData();
+                  } else if (assistant) {
+                    loadAssistantData();
+                  }
+                }}
+                professionalId={professional?.id}
+                assistantId={assistant?.id}
+              />
+            )}
           </div>
         </div>
-            </motion.div>
-          </>
-        )}
-
-        {showCreateModal && (
-          <CreateAppointmentModal
-            isOpen={showCreateModal}
-            onClose={() => setShowCreateModal(false)}
-            onSuccess={() => {
-              if (professional) {
-                loadProfessionalData();
-              } else if (assistant) {
-                loadAssistantData();
-              }
-            }}
-            professionalId={professional?.id}
-            assistantId={assistant?.id}
-          />
-        )}
-      </div>
-    </div>
+      )}
+    </>
   );
-}
-
-function getAppointmentDurationInMinutes(appointment: any) {
-  const start = parseISO(appointment.start_time);
-  const end = parseISO(appointment.end_time);
-  return (end.getTime() - start.getTime()) / (60 * 1000);
-}
-
-// Randevu görünüm modu fonksiyonları
-const getWeekDates = (date: Date): Date[] => {
-  // Pazartesiden başlayacak şekilde haftanın günlerini hesapla
-  const start = startOfWeek(date, { weekStartsOn: 1 }); // 1 = Pazartesi
-  return Array.from({ length: 7 }, (_, i) => addDays(start, i));
-};
-
-function isCurrentWeek(date: Date): boolean {
-  const today = new Date();
-  const weekDates = getWeekDates(today);
-  return weekDates.some(weekDate => isSameDay(weekDate, date));
-}
-
-function getMonthWeeks(date: Date): Date[][] {
-  const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-  const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  
-  // Ayın ilk gününün haftanın hangi günü olduğunu bul (0: Pazar, 1: Pazartesi, ...)
-  const dayOfWeekOfFirstDay = getDay(firstDayOfMonth);
-  
-  // Pazartesiden başlatmak için düzenleme yapılıyor (getDay'de Pazar=0)
-  const daysToSubtract = dayOfWeekOfFirstDay === 0 ? 6 : dayOfWeekOfFirstDay - 1;
-  
-  // Takvimin ilk gününü hesapla (önceki ayın günlerini içerebilir)
-  const firstCalendarDate = addDays(firstDayOfMonth, -daysToSubtract);
-  
-  // Takvimin son gününü hesapla (sonraki ayın günlerini içerebilir)
-  const lastDayIndex = getDay(lastDayOfMonth);
-  const daysToAdd = lastDayIndex === 0 ? 0 : 7 - lastDayIndex;
-  const lastCalendarDate = addDays(lastDayOfMonth, daysToAdd);
-  
-  // Tüm takvim günlerini al
-  const calendarDates = eachDayOfInterval({
-    start: firstCalendarDate,
-    end: lastCalendarDate
-  });
-  
-  // Günleri haftalara böl
-  const weeks: Date[][] = [];
-  for (let i = 0; i < calendarDates.length; i += 7) {
-    weeks.push(calendarDates.slice(i, i + 7));
-  }
-  
-  return weeks;
 }

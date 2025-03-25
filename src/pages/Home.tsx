@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Calendar, Clipboard, Users, Clock, MessageSquare, BarChart, Award, ArrowRight, ChevronRight, User, Heart, BrainCircuit, Sparkles, Wand2 } from 'lucide-react';
+import { Shield, Calendar, Clipboard, Users, Clock, MessageSquare, BarChart, Award, ArrowRight, ChevronRight, User, Heart, BrainCircuit, Sparkles, Wand2, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { fetchBlogPosts, formatBlogDate } from '../lib/blog';
 import { MainLayout } from '../components/layout/MainLayout';
 import logo2 from '../assets/logos/logo_2.png';
+import { TurkLiraIcon } from '../components/icons/TurkLiraIcon';
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
 // Blog yazısı tipi tanımı
 interface BlogPost {
@@ -57,7 +60,7 @@ export function Home() {
   return (
     <MainLayout>
       {/* Hero Section - Tamamen Yenilendi */}
-      <section className="relative overflow-hidden pt-16 pb-24 md:py-24 lg:py-32">
+      <section className="relative overflow-hidden pt-16 pb-24 md:py-24 lg:py-10">
         {/* Arka Plan Efektleri */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute inset-0 bg-[radial-gradient(45%_40%_at_50%_40%,rgba(120,119,198,0.1),transparent)]"></div>
@@ -195,119 +198,116 @@ export function Home() {
                   <div className="p-4 lg:p-5 backdrop-blur-sm bg-white/70 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-700">
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center space-x-2">
-                        <div className="h-10 w-10 rounded-lg bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
-                          <BrainCircuit className="h-6 w-6 text-primary-600 dark:text-primary-400" />
-                </div>
+                        <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center">
+                          <img src={logo2} alt="PsikoRan Logo" className="h-6 w-6 md:h-8 md:w-8 object-contain" />
+                        </div>
                         <div>
-                          <div className="text-lg font-bold text-slate-900 dark:text-white">PsikoRan Dashboard</div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400">Pazartesi, 12 Mart 2025</div>
-                </div>
+                          <div className="text-base md:text-lg font-bold text-slate-900 dark:text-white">PsikoRan Dashboard</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{format(new Date(), "d MMMM yyyy, EEEE", { locale: tr })}</div>
+                        </div>
                       </div>
                       <div className="flex space-x-1">
                         {["bg-red-500", "bg-amber-500", "bg-green-500"].map((color, i) => (
-                          <div key={i} className={`h-3 w-3 rounded-full ${color}`}></div>
+                          <div key={i} className={`h-2 w-2 md:h-3 md:w-3 rounded-full ${color}`}></div>
                         ))}
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-4 mb-5">
+                    {/* Dashboard Özet Kartları */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-5">
                       {[
-                        { label: "Bugünkü Randevular", value: "6", icon: <Calendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />, color: "bg-indigo-100 dark:bg-indigo-900/30" },
-                        { label: "Toplam Danışan", value: "48", icon: <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />, color: "bg-blue-100 dark:bg-blue-900/30" },
-                        { label: "Yeni Mesajlar", value: "12", icon: <MessageSquare className="h-5 w-5 text-teal-600 dark:text-teal-400" />, color: "bg-teal-100 dark:bg-teal-900/30" },
+                        { label: "Bugünkü Randevular", value: "4", icon: <Calendar className="h-4 w-4 md:h-5 md:w-5 text-blue-600 dark:text-blue-400" />, color: "bg-blue-100 dark:bg-blue-900/30" },
+                        { label: "Toplam Danışan", value: "36", icon: <Users className="h-4 w-4 md:h-5 md:w-5 text-purple-600 dark:text-purple-400" />, color: "bg-purple-100 dark:bg-purple-900/30" },
+                        { label: "Bugünkü Kazanç", value: "850₺", icon: <TurkLiraIcon className="h-4 w-4 md:h-5 md:w-5 text-green-600 dark:text-green-400" />, color: "bg-green-100 dark:bg-green-900/30" },
+                        { label: "Aylık Kazanç", value: "10250₺", icon: <Activity className="h-4 w-4 md:h-5 md:w-5 text-amber-600 dark:text-amber-400" />, color: "bg-amber-100 dark:bg-amber-900/30" },
                       ].map((item, i) => (
-                        <div key={i} className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-3 border border-slate-200 dark:border-slate-700">
-                          <div className="flex justify-between items-center">
-                            <div className={`h-8 w-8 rounded-lg ${item.color} flex items-center justify-center`}>
+                        <div key={i} className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-2 md:p-3 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                          <div className="flex items-start">
+                            <div className={`p-1.5 md:p-2 ${item.color} rounded-lg`}>
                               {item.icon}
                             </div>
-                            <div className="text-xl font-bold text-slate-900 dark:text-white">{item.value}</div>
+                            <div className="ml-2 md:ml-3">
+                              <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">{item.label}</p>
+                              <p className="text-sm md:text-lg font-bold text-gray-900 dark:text-white">{item.value}</p>
+                            </div>
                           </div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{item.label}</div>
                         </div>
                       ))}
-                    </div>
-                    
-                    <div className="relative h-36 rounded-xl bg-gradient-to-r from-primary-500 to-indigo-600 p-4 overflow-hidden">
-                      <div className="absolute inset-0 bg-pattern-dots opacity-10"></div>
-                      <div className="relative z-10">
-                        <div className="text-sm font-medium text-white opacity-80">Günün Hatırlatması</div>
-                        <div className="text-lg font-bold text-white mt-1">Danışanlarınızla İlgili Notları Tamamlayın</div>
-                        <div className="mt-3 flex">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/20 text-xs font-medium text-white">
-                    <motion.div 
-                              animate={{ rotate: [0, 360] }}
-                              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                              className="mr-1"
-                            >
-                              <Wand2 className="h-3 w-3" />
-                    </motion.div>
-                            AI Yardımcı
-                          </span>
-                        </div>
-                      </div>
                     </div>
                   </div>
                   
-                  {/* Alt Kısım - İlerleme Göstergeleri */}
-                  <div className="p-4 lg:p-5">
-                    <div className="text-sm font-medium text-slate-900 dark:text-white mb-4">Haftalık İlerleme</div>
-                    <div className="space-y-4">
-                      {[
-                        { label: "Tamamlanan Randevular", value: "85%", color: "bg-teal-500" },
-                        { label: "Not Dökümantasyonu", value: "67%", color: "bg-amber-500" },
-                        { label: "Danışan Memnuniyeti", value: "92%", color: "bg-green-500" },
-                      ].map((item, i) => (
-                        <div key={i}>
-                          <div className="flex justify-between items-center mb-1">
-                            <div className="text-xs text-slate-600 dark:text-slate-400">{item.label}</div>
-                            <div className="text-xs font-medium text-slate-800 dark:text-slate-300">{item.value}</div>
-                          </div>
-                          <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                            <motion.div 
-                              initial={{ width: "0%" }}
-                              animate={{ width: item.value }}
-                              transition={{ duration: 1, delay: 0.5 + (i * 0.2) }}
-                              className={`h-full ${item.color}`}
-                            ></motion.div>
-                          </div>
-                        </div>
-                      ))}
+                  {/* Randevu Grafiği */}
+                  <div className="p-3 md:p-5">
+                    <div className="flex items-center justify-between mb-3 md:mb-4">
+                      <div className="text-base md:text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                        <BarChart className="h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 text-blue-600 dark:text-blue-400" />
+                        <span>Randevu İstatistikleri</span>
+                      </div>
+                      <div className="flex space-x-1 md:space-x-2">
+                        <button className="text-[10px] md:text-xs px-2 md:px-3 py-0.5 md:py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 font-medium">
+                          Haftalık
+                        </button>
+                        <button className="text-[10px] md:text-xs px-2 md:px-3 py-0.5 md:py-1 rounded-full bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300">
+                          Aylık
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* Line Chart */}
+                    <div className="h-32 md:h-48 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl rounded-xl p-2 md:p-4 border border-gray-200/50 dark:border-gray-700/50">
+                      <div className="relative h-full">
+                        <div className="absolute inset-0 bg-gradient-to-t from-blue-50/50 to-transparent dark:from-blue-900/5"></div>
+                        <svg className="w-full h-full" viewBox="0 0 300 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M0,90 C30,40 60,80 90,60 C120,40 150,20 180,40 C210,60 240,80 270,30 C280,20 290,10 300,0" stroke="rgb(99, 102, 241)" strokeWidth="2" fill="none" />
+                          <path d="M0,90 C30,40 60,80 90,60 C120,40 150,20 180,40 C210,60 240,80 270,30 C280,20 290,10 300,0 L300,100 L0,100 Z" fill="url(#appointmentGradient)" />
+                          <defs>
+                            <linearGradient id="appointmentGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="rgba(99, 102, 241, 0.2)" />
+                              <stop offset="100%" stopColor="rgba(99, 102, 241, 0)" />
+                            </linearGradient>
+                          </defs>
+                        </svg>
+                        
+                        {/* Data Points */}
+                        <div className="absolute top-[40%] left-[30%] w-1.5 h-1.5 md:w-2 md:h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full shadow-md"></div>
+                        <div className="absolute top-[60%] left-[60%] w-1.5 h-1.5 md:w-2 md:h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full shadow-md"></div>
+                        <div className="absolute top-[40%] left-[90%] w-1.5 h-1.5 md:w-2 md:h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full shadow-md"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
                 
-                {/* Yüzen Bildirim Kartları */}
+                {/* Yüzen Bildirim Kartları - Mobil görünümünde daha küçük veya sadece geniş ekranlarda gösterilecek şekilde */}
                 <motion.div
                   initial={{ opacity: 0, x: 30, y: -20 }}
                   animate={{ opacity: 1, x: 0, y: 0 }}
                   transition={{ duration: 0.7, delay: 1 }}
-                  className="absolute -top-5 -right-8 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-3 w-64"
+                  className="absolute -top-2 -right-2 md:-top-5 md:-right-8 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-2 md:p-3 w-48 md:w-64 hidden sm:block"
                 >
                   <div className="flex items-start">
-                    <div className="h-9 w-9 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center mr-3 flex-shrink-0">
-                      <Heart className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                    <div className="h-7 w-7 md:h-9 md:w-9 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center mr-2 md:mr-3 flex-shrink-0">
+                      <Clock className="h-4 w-4 md:h-5 md:w-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-slate-900 dark:text-white">Yeni Danışan Randevusu</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">Ahmet B. ile görüşmeniz 15 dk sonra başlayacak</div>
+                      <div className="text-xs md:text-sm font-medium text-slate-900 dark:text-white">Yeni Danışan Randevusu</div>
+                      <div className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">Ahmet B. ile görüşmeniz 15 dk sonra</div>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
+                </motion.div>
                 
                 <motion.div
                   initial={{ opacity: 0, x: -30, y: 20 }}
                   animate={{ opacity: 1, x: 0, y: 0 }}
                   transition={{ duration: 0.7, delay: 1.3 }}
-                  className="absolute -bottom-5 -left-8 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-3 w-64"
+                  className="absolute -bottom-2 -left-2 md:-bottom-5 md:-left-8 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-2 md:p-3 w-48 md:w-64 hidden sm:block"
                 >
                   <div className="flex items-start">
-                    <div className="h-9 w-9 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center mr-3 flex-shrink-0">
-                      <Award className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                    <div className="h-7 w-7 md:h-9 md:w-9 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center mr-2 md:mr-3 flex-shrink-0">
+                      <TurkLiraIcon className="h-4 w-4 md:h-5 md:w-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-slate-900 dark:text-white">Danışman İlerlemesi</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">Bu hafta 12 danışan görüşmesi tamamladınız</div>
+                      <div className="text-xs md:text-sm font-medium text-slate-900 dark:text-white">Günlük Gelir</div>
+                      <div className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">Bugün 3 ödeme ile 850₺ kazanç</div>
                     </div>
                   </div>
                 </motion.div>
@@ -318,7 +318,7 @@ export function Home() {
       </section>
 
       {/* Blog Section - Hero'dan hemen sonra */}
-      <section className="py-16 bg-gray-50 dark:bg-gray-800/50 transition-colors duration-300">
+      <section className="py-8 bg-gray-50 dark:bg-gray-800/50 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">

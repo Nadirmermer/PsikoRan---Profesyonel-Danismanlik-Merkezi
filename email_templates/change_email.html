@@ -4,63 +4,77 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>E-posta Adresinizi Doğrulayın - PsikoRan</title>
+  <title>E-posta Adresinizi Değiştirin - PsikoRan</title>
   <style>
     /* Temel stiller */
     body, html {
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
       line-height: 1.6;
-      color: #1e293b;
-      background-color: #f8fafc;
+      color: #2d3748;
+      background-color: #f7fafc;
     }
     
     /* Karanlık mod desteği */
     @media (prefers-color-scheme: dark) {
       body, html {
-        background-color: #0f172a;
+        background-color: #171923;
         color: #e2e8f0;
       }
       .email-container {
-        background-color: #1e293b !important;
-        border-color: #334155 !important;
+        background-color: #1a202c !important;
+        border-color: #2d3748 !important;
       }
       .header {
-        background-color: #1e293b !important;
-        border-bottom-color: #334155 !important;
+        background-color: #1a202c !important;
+        border-bottom-color: #2d3748 !important;
       }
       .content {
-        background-color: #1e293b !important;
+        background-color: #1a202c !important;
       }
       .footer {
-        background-color: #1e293b !important;
-        border-top-color: #334155 !important;
-        color: #94a3b8 !important;
+        background-color: #171923 !important;
+        border-top-color: #2d3748 !important;
+        color: #a0aec0 !important;
       }
       .button {
-        background-image: linear-gradient(to right, #0284c7 0%, #4f46e5 100%) !important;
+        background: linear-gradient(135deg, #5e72e4 0%, #825ee4 100%) !important;
       }
       .text-title {
-        color: #f1f5f9 !important;
+        color: #fff !important;
       }
       .text-body {
-        color: #cbd5e1 !important;
+        color: #e2e8f0 !important;
       }
       .text-muted {
-        color: #94a3b8 !important;
-      }
-      .code-display {
-        background-color: #334155 !important;
-        border-color: #475569 !important;
-        color: #f1f5f9 !important;
+        color: #a0aec0 !important;
       }
       .divider {
-        border-color: #334155 !important;
+        border-color: #2d3748 !important;
       }
-      .alert {
-        background-color: #334155 !important;
-        border-color: #475569 !important;
+      .email-icon {
+        background-color: #5e72e4 !important;
+      }
+      .info-box {
+        background-color: #2d3748 !important;
+        border-color: #5e72e4 !important;
+      }
+      .warning-box {
+        background-color: #2d3748 !important;
+        border-color: #ed8936 !important;
+      }
+      .code-display {
+        background-color: #2d3748 !important;
+        border-color: #4a5568 !important;
+        color: #e2e8f0 !important;
+      }
+      .email-change-box {
+        background-color: #2d3748 !important;
+        border-color: #4a5568 !important;
+      }
+      a {
+        color: #63b3ed !important;
       }
     }
     
@@ -69,108 +83,217 @@
       max-width: 600px;
       margin: 20px auto;
       background-color: #ffffff;
-      border-radius: 12px;
+      border-radius: 16px;
       overflow: hidden;
       border: 1px solid #e2e8f0;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
     }
     
     /* Başlık */
     .header {
-      padding: 24px;
+      padding: 30px 24px;
       text-align: center;
       background-color: #ffffff;
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid #edf2f7;
     }
     
     .logo {
-      max-width: 120px;
+      max-width: 160px;
       height: auto;
     }
     
     /* İçerik */
     .content {
-      padding: 32px 24px;
+      padding: 40px 32px;
       background-color: #ffffff;
     }
     
     .text-title {
-      color: #0f172a;
+      color: #1a202c;
       font-weight: 700;
-      font-size: 20px;
-      margin-bottom: 16px;
+      font-size: 24px;
+      margin-bottom: 24px;
+      letter-spacing: -0.5px;
+      text-align: center;
     }
     
     .text-body {
-      color: #334155;
+      color: #4a5568;
       font-size: 16px;
-      margin-bottom: 24px;
+      margin-bottom: 28px;
+      line-height: 1.7;
     }
     
     .text-muted {
-      color: #64748b;
+      color: #718096;
       font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    /* E-posta değişiklik kutusu */
+    .email-change-box {
+      text-align: center;
+      margin: 32px 0;
+      background-color: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 24px;
+    }
+    
+    .email-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      background-color: #4299e1;
+      border-radius: 50%;
+      margin-bottom: 16px;
+    }
+    
+    .email-icon svg {
+      width: 32px;
+      height: 32px;
+      color: white;
+    }
+    
+    .email-change-details {
+      padding: 14px;
+      background-color: #edf2f7;
+      border-radius: 10px;
+      margin: 20px 0;
+      text-align: left;
+    }
+    
+    .email-change-row {
+      display: flex;
+      margin-bottom: 8px;
+    }
+    
+    .email-change-label {
+      flex: 0 0 130px;
+      font-weight: 600;
+      color: #4a5568;
+    }
+    
+    .email-change-value {
+      flex: 1;
+      color: #2d3748;
     }
     
     /* Buton */
     .button-container {
       text-align: center;
-      margin: 32px 0;
+      margin: 36px 0;
     }
     
     .button {
       display: inline-block;
-      background-image: linear-gradient(to right, #0ea5e9 0%, #6366f1 100%);
+      background: linear-gradient(135deg, #4299e1 0%, #667eea 100%);
       color: white;
       text-decoration: none;
-      padding: 12px 32px;
-      border-radius: 8px;
+      padding: 14px 36px;
+      border-radius: 10px;
       font-weight: 600;
       font-size: 16px;
       border: none;
       cursor: pointer;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 6px 12px rgba(66, 153, 225, 0.15);
       transition: all 0.3s ease;
     }
     
     .button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 15px rgba(66, 153, 225, 0.2);
     }
     
-    /* Kod görüntüleme */
+    /* URL Kodu */
     .code-display {
       word-break: break-all;
       font-size: 14px;
-      color: #475569;
-      background-color: #f1f5f9;
-      padding: 12px;
-      border-radius: 6px;
+      color: #4a5568;
+      background-color: #edf2f7;
+      padding: 16px;
+      border-radius: 10px;
       border: 1px solid #e2e8f0;
+      margin: 24px 0;
     }
     
-    /* Uyarı */
-    .alert {
-      background-color: #fffbeb;
-      border-left: 4px solid #f59e0b;
-      padding: 16px;
-      margin: 20px 0;
-      border-radius: 0 6px 6px 0;
+    /* Info box */
+    .info-box {
+      background-color: #ebf8ff;
+      border-left: 4px solid #4299e1;
+      padding: 16px 20px;
+      border-radius: 0 10px 10px 0;
+      margin: 28px 0;
+    }
+    
+    .info-box-title {
+      font-weight: 600;
+      color: #2b6cb0;
+      margin: 0;
+      margin-bottom: 8px;
+    }
+    
+    .info-box-content {
+      color: #2c5282;
+      margin: 0;
+    }
+    
+    /* Warning box */
+    .warning-box {
+      background-color: #fffaf0;
+      border-left: 4px solid #ed8936;
+      padding: 16px 20px;
+      border-radius: 0 10px 10px 0;
+      margin: 28px 0;
+    }
+    
+    .warning-box-title {
+      font-weight: 600;
+      color: #c05621;
+      margin: 0;
+      margin-bottom: 8px;
+    }
+    
+    .warning-box-content {
+      color: #9c4221;
+      margin: 0;
     }
     
     /* Alt bilgi */
     .divider {
-      border-top: 1px solid #f1f5f9;
-      margin: 24px 0;
+      border-top: 1px solid #edf2f7;
+      margin: 32px 0;
     }
     
     .footer {
-      padding: 24px;
+      padding: 32px 24px;
       text-align: center;
-      background-color: #ffffff;
-      border-top: 1px solid #f1f5f9;
-      color: #64748b;
-      font-size: 12px;
+      background-color: #f9fafc;
+      border-top: 1px solid #edf2f7;
+      color: #718096;
+      font-size: 13px;
+    }
+    
+    .social-links {
+      margin: 20px 0;
+    }
+    
+    .social-link {
+      display: inline-block;
+      margin: 0 8px;
+    }
+    
+    .social-icon {
+      width: 32px;
+      height: 32px;
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
+    }
+    
+    .social-icon:hover {
+      opacity: 1;
     }
     
     /* Duyarlı tasarım için */
@@ -184,15 +307,32 @@
       }
       
       .content {
-        padding: 24px 16px !important;
+        padding: 30px 20px !important;
+      }
+      
+      .email-change-details {
+        padding: 12px !important;
+      }
+      
+      .email-change-row {
+        flex-direction: column !important;
+        margin-bottom: 16px !important;
+      }
+      
+      .email-change-label {
+        margin-bottom: 4px !important;
       }
       
       .button {
-        padding: 12px 24px !important;
-        font-size: 14px !important;
+        padding: 14px 28px !important;
+        font-size: 15px !important;
         width: auto !important;
         display: block !important;
-        margin: 0 32px !important;
+        margin: 0 24px !important;
+      }
+      
+      .text-title {
+        font-size: 22px !important;
       }
     }
   </style>
@@ -200,53 +340,97 @@
 <body>
   <div class="email-container">
     <div class="header">
-      <img src="{{ .SiteURL }}/logo_1.png" alt="PsikoRan Logo" class="logo">
+      <img src="https://psikoran.com/logo_1.png" alt="PsikoRan Logo" class="logo">
     </div>
     
     <div class="content">
-      <h1 class="text-title">E-posta Adresinizi Doğrulayın</h1>
+      <h1 class="text-title">E-posta Adresinizi Değiştirin</h1>
+      
+      <div class="email-change-box">
+        <div class="email-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+            <polyline points="22,6 12,13 2,6"></polyline>
+          </svg>
+        </div>
+        <p style="font-size: 18px; font-weight: 600; color: #2d3748; margin-bottom: 8px;">E-posta Değişikliği Talebi</p>
+        <p style="color: #4a5568; margin-top: 0;">E-posta adresinizi değiştirmek için onayınız gerekiyor.</p>
+        
+        <div class="email-change-details">
+          <div class="email-change-row">
+            <div class="email-change-label">Mevcut E-posta:</div>
+            <div class="email-change-value">{{ .Email }}</div>
+          </div>
+          <div class="email-change-row">
+            <div class="email-change-label">Yeni E-posta:</div>
+            <div class="email-change-value">{{ .NewEmail }}</div>
+          </div>
+        </div>
+      </div>
       
       <p class="text-body">Merhaba,</p>
       
       <p class="text-body">
-        PsikoRan hesabınız için e-posta adresinizi değiştirme talebinde bulundunuz. 
-        Yeni e-posta adresinizi (<strong>{{ .Email }}</strong>) doğrulamak için aşağıdaki düğmeye tıklayın:
+        PsikoRan hesabınızın e-posta adresini değiştirme talebinde bulundunuz. 
+        Güvenlik nedeniyle, bu değişikliği onaylamanız gerekmektedir. 
+        Bu talep sizin tarafınızdan yapıldıysa, lütfen aşağıdaki onay düğmesine tıklayın.
       </p>
       
-      <div class="button-container">
-        <a href="{{ .ConfirmationURL }}" class="button">E-posta Adresimi Doğrula</a>
-      </div>
-      
-      <div class="alert">
-        <p style="margin: 0; font-weight: 500; color: #92400e;">Güvenlik Uyarısı</p>
-        <p style="margin: 8px 0 0; color: #92400e;">
-          Bu işlemi siz başlatmadıysanız, hesabınıza erişmeye çalışan biri olabilir. Lütfen şifrenizi değiştirin ve bizimle iletişime geçin.
+      <div class="info-box">
+        <p class="info-box-title">Değişiklik Yürürlüğe Girdikten Sonra</p>
+        <p class="info-box-content">
+          E-posta değişikliğiniz onaylandıktan sonra, tüm PsikoRan iletişimleri 
+          yeni e-posta adresinize gönderilecektir. Hesabınıza giriş yaparken de 
+          bu yeni e-posta adresini kullanmanız gerekecektir.
         </p>
       </div>
       
       <p class="text-body">
-        Eğer düğme çalışmazsa, aşağıdaki bağlantıyı tarayıcınıza kopyalayabilirsiniz:
-      </p>
-
-      <p class="code-display">
-        {{ .ConfirmationURL }}
+        E-posta değişikliğini onaylamak için aşağıdaki düğmeye tıklayın:
       </p>
       
+      <div class="button-container">
+        <a href="{{ .ConfirmationURL }}" class="button">E-posta Değişikliğini Onayla</a>
+      </div>
+      
+      <div class="warning-box">
+        <p class="warning-box-title">Güvenlik Uyarısı</p>
+        <p class="warning-box-content">
+          Bu e-posta değişiklik talebini siz başlatmadıysanız, lütfen bu e-postayı görmezden gelin ve 
+          <a href="https://psikoran.com/contact" style="color: #c05621; text-decoration: underline;">bizimle iletişime geçin</a>. 
+          Hesabınızın güvenliği için şifrenizi değiştirmenizi de öneririz.
+        </p>
+      </div>
+      
       <p class="text-body">
-        Güvenlik nedeniyle bu bağlantı 24 saat içinde kullanılmalıdır. Bu süre sonunda, değişiklik talebiniz geçerliliğini yitirecektir.
+        Düğme çalışmazsa, aşağıdaki bağlantıyı tarayıcınıza kopyalayabilirsiniz:
+      </p>
+
+      <div class="code-display">
+        {{ .ConfirmationURL }}
+      </div>
+      
+      <p class="text-body">
+        Güvenlik nedeniyle bu bağlantı 24 saat içinde kullanılmalıdır. Bu süre sonunda, yeni bir e-posta değişikliği talebi oluşturmanız gerekecektir.
       </p>
       
       <div class="divider"></div>
       
       <p class="text-muted">
-        Bu e-posta size PsikoRan tarafından, e-posta adresi değişikliği talebi nedeniyle gönderilmiştir.
-        Bu değişikliği siz talep etmediyseniz, lütfen <a href="{{ .SiteURL }}/contact">bizimle iletişime geçin</a>.
+        Bu e-posta size PsikoRan tarafından gönderilmiştir. Bu talebi siz başlatmadıysanız, 
+        lütfen bu e-postayı görmezden gelin ve hesabınızın güvenliği için şifrenizi değiştirmeyi düşünün.
       </p>
     </div>
     
     <div class="footer">
-      <p>&copy; PsikoRan - Profesyonel Danışmanlık Merkezi 2024. Tüm hakları saklıdır.</p>
-      <p>Gizliliğinize değer veriyoruz. <a href="{{ .SiteURL }}/privacy">Gizlilik Politikamızı</a> inceleyebilirsiniz.</p>
+      <p>PsikoRan - Profesyonel Psikolojik Danışmanlık Merkezi</p>
+      <div class="social-links">
+        <a href="https://facebook.com/psikoran" class="social-link"><img src="https://cdn.simpleicons.org/facebook/718096" alt="Facebook" class="social-icon"></a>
+        <a href="https://twitter.com/psikoran" class="social-link"><img src="https://cdn.simpleicons.org/twitter/718096" alt="Twitter" class="social-icon"></a>
+        <a href="https://instagram.com/psikoran" class="social-link"><img src="https://cdn.simpleicons.org/instagram/718096" alt="Instagram" class="social-icon"></a>
+      </div>
+      <p>&copy; PsikoRan 2024. Tüm hakları saklıdır.</p>
+      <p>Gizliliğinize değer veriyoruz. <a href="https://psikoran.com/privacy" style="color: #4299e1; text-decoration: none;">Gizlilik Politikamızı</a> inceleyebilirsiniz.</p>
     </div>
   </div>
 </body>

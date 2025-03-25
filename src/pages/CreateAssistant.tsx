@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { UserPlus, Mail, Lock, Phone, Building, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { UserPlus, Mail, Lock, Phone, Building, Eye, EyeOff, ArrowLeft, CheckCircle } from 'lucide-react';
 import Logo from '../components/Logo';
 import { MainLayout } from '../components/layout/MainLayout';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function Register() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     document.title = "Asistan Hesabı Oluştur - PsikoRan";
@@ -81,15 +83,20 @@ export function Register() {
 
       if (clinicError) throw clinicError;
 
-      // Başarılı kayıt sonrası yönlendirme
-      alert('Hesabınız başarıyla oluşturuldu. Lütfen e-posta adresinize gönderilen doğrulama bağlantısına tıklayınız.');
-      navigate('/login');
+      // Başarılı kayıt sonrası modalı göster
+      setShowSuccessModal(true);
     } catch (err: any) {
       console.error('Registration error:', err);
       setError(err.message || 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Başarı modalının kapatılması
+  const handleCloseModal = () => {
+    setShowSuccessModal(false);
+    navigate('/login');
   };
 
   return (
@@ -149,7 +156,12 @@ export function Register() {
                   name="email"
                   required
                   value={formData.email}
-                  onChange={handleChange}
+                  onChange={(e) => 
+                    setFormData({
+                      ...formData,
+                      email: e.target.value.toLowerCase()
+                    })
+                  }
                   className="pl-12 w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                   placeholder="ornek@email.com"
                 />
@@ -287,6 +299,52 @@ export function Register() {
           </p>
         </div>
       </div>
+
+      {/* Başarı Popup/Modal */}
+      <AnimatePresence>
+        {showSuccessModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={handleCloseModal}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-6 max-w-md w-full mx-auto border border-slate-200 dark:border-slate-700"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-green-100 dark:bg-green-900/30 mb-6">
+                  <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+                  Hesabınız Başarıyla Oluşturuldu
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-6">
+                  Lütfen e-posta adresinize gönderilen doğrulama bağlantısına tıklayarak hesabınızı aktifleştirin.
+                </p>
+                
+                <div className="bg-slate-50 dark:bg-slate-700/30 rounded-lg p-4 mb-6 text-left">
+                  <p className="text-sm text-slate-700 dark:text-slate-300">
+                    <span className="font-medium">Not:</span> Doğrulama e-postası birkaç dakika içinde gelecektir. Spam klasörünüzü de kontrol etmeyi unutmayın.
+                  </p>
+                </div>
+                
+                <button
+                  onClick={handleCloseModal}
+                  className="w-full py-3 px-6 rounded-lg text-base font-semibold text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
+                >
+                  Giriş Sayfasına Git
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </MainLayout>
   );
 }

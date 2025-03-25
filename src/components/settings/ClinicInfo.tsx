@@ -276,7 +276,13 @@ export function ClinicInfo() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setClinicData((prev) => ({ ...prev, [name]: value }));
+    
+    // E-posta alanları için küçük harfe dönüştürme
+    if (name === 'clinic_email' || name === 'contact_email' || name.includes('email')) {
+      setClinicData({ ...clinicData, [name]: value.toLowerCase() });
+    } else {
+      setClinicData({ ...clinicData, [name]: value });
+    }
   };
 
   if (loading) {

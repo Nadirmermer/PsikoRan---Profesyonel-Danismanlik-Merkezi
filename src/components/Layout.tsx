@@ -23,9 +23,24 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const [isDarkMode, setIsDarkMode] = useState(
-    () => localStorage.getItem('darkMode') === 'true'
-  );
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Doğru tema yönetimi:
+    // 1. Kullanıcı tercihi kontrol et (app_theme)
+    // 2. Eğer tercih yoksa veya "system" ise sistem temasını kontrol et
+    const savedTheme = localStorage.getItem('app_theme');
+    
+    if (savedTheme === 'dark') {
+      return true;
+    }
+    
+    if (savedTheme === 'light') {
+      return false;
+    }
+    
+    // Sistem tercihini kontrol et 
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+  
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const { signOut, professional, assistant } = useAuth();
@@ -49,13 +64,30 @@ export function Layout({ children }: LayoutProps) {
     localStorage.setItem('sidebarOpen', isSidebarOpen.toString());
   }, [isSidebarOpen]);
 
+  // Tema değişikliklerini takip et ve uygula
   useEffect(() => {
+    // HTML elementine doğru class'ı ekle/çıkar
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-    localStorage.setItem('darkMode', isDarkMode.toString());
+    
+    // Tema tercihini kaydet
+    localStorage.setItem('app_theme', isDarkMode ? 'dark' : 'light');
+    
+    // Sistem tema değişimini dinle
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      // Sadece tema "system" olarak ayarlanmışsa değişiklik yap
+      const currentTheme = localStorage.getItem('app_theme');
+      if (!currentTheme || currentTheme === 'system') {
+        setIsDarkMode(e.matches);
+      }
+    };
+    
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, [isDarkMode]);
 
   const toggleDarkMode = () => {

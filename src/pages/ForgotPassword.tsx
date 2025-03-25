@@ -16,6 +16,36 @@ export function ForgotPassword() {
     setLoading(true);
 
     try {
+      // Önce e-posta adresinin sistemde kayıtlı olup olmadığını kontrol edelim
+      // Assistants tablosunda kontrol
+      const { data: userExists } = await supabase
+        .from('assistants')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      // Professionals tablosunda kontrol
+      const { data: professionalExists } = await supabase
+        .from('professionals')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      // Supabase Auth sisteminde kontrol
+      const { data: authUser } = await supabase.auth.admin.listUsers({
+        filters: {
+          email: email
+        }
+      });
+
+      // Eğer e-posta adresi sistemde yoksa hata gösterelim
+      if (!userExists && !professionalExists && (!authUser || authUser.users.length === 0)) {
+        setError('Bu e-posta adresi sistemde kayıtlı değil. Lütfen kayıtlı olduğunuz e-posta adresini girin.');
+        setLoading(false);
+        return;
+      }
+
+      // E-posta adresi sistemde kayıtlıysa şifre sıfırlama işlemine devam edelim
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
@@ -66,7 +96,7 @@ export function ForgotPassword() {
                     type="email"
                     required
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value.toLowerCase())}
                     className="pl-12 w-full px-4 py-3 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
                     placeholder="ornek@email.com"
                   />

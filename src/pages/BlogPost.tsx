@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { fetchBlogPostBySlug, formatBlogDate, processProfessionalNames, generateBlogJsonLd } from '../lib/blog';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Helmet } from 'react-helmet';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 // Blog yazısı tipi
 interface BlogPostType {
@@ -137,11 +138,7 @@ export function BlogPost() {
 
   if (loading) {
     return (
-      <MainLayout>
-        <div className="flex justify-center items-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-      </div>
-      </MainLayout>
+      <LoadingSpinner fullPage loadingText="Makale yükleniyor..." />
     );
   }
 
