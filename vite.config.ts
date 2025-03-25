@@ -126,21 +126,30 @@ export default defineConfig({
         ]
       },
       workbox: {
-        // Çakışan önbellek girişlerini önlemek için
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,ttf,woff,woff2}'],
-        // WB_REVISION parametrelerini temizle ve çakışan girişleri önle
-        dontCacheBustURLsMatching: /\.\w{8}\./,
-        // Her asset'i bir kez ekle, revizyon isimleri olmayanları kullan
-        runtimeCaching: [
-          // Favicon gibi sık değişen dosyalar için özel önbellek stratejisi
-          {
-            urlPattern: /\.(ico|png|svg|jpg|jpeg)$/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'images-cache',
-              expiration: {
-                maxEntries: 50, 
-                maxAgeSeconds: 30 * 24 * 60 * 60 // 30 gün
+  maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB olarak ayarla
+  globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,ttf,woff,woff2}'],
+  dontCacheBustURLsMatching: /\.\w{8}\./,
+  runtimeCaching: [
+    {
+      urlPattern: /\.(ico|png|svg|jpg|jpeg)$/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'images-cache',
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 30 * 24 * 60 * 60 // 30 gün
+        }
+      }
+    },
+    {
+      urlPattern: /^https:\/\/.*\.supabase\.co\/.*$/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'api-cache',
+        networkTimeoutSeconds: 10,
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 24 * 60 * 60 // 1 gün
               }
             }
           },
