@@ -126,30 +126,30 @@ export default defineConfig({
         ]
       },
       workbox: {
-  maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB olarak ayarla
-  globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,ttf,woff,woff2}'],
-  dontCacheBustURLsMatching: /\.\w{8}\./,
-  runtimeCaching: [
-    {
-      urlPattern: /\.(ico|png|svg|jpg|jpeg)$/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'images-cache',
-        expiration: {
-          maxEntries: 50,
-          maxAgeSeconds: 30 * 24 * 60 * 60 // 30 gün
-        }
-      }
-    },
-    {
-      urlPattern: /^https:\/\/.*\.supabase\.co\/.*$/i,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'api-cache',
-        networkTimeoutSeconds: 10,
-        expiration: {
-          maxEntries: 100,
-          maxAgeSeconds: 24 * 60 * 60 // 1 gün
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB olarak ayarla
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,ttf,woff,woff2}'],
+        dontCacheBustURLsMatching: /\.\w{8}\./,
+        runtimeCaching: [
+          {
+            urlPattern: /\.(ico|png|svg|jpg|jpeg)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 30 * 24 * 60 * 60 // 30 gün
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*$/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              networkTimeoutSeconds: 10,
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 24 * 60 * 60 // 1 gün
               }
             }
           },
@@ -166,7 +166,7 @@ export default defineConfig({
               }
             }
           }
-        ]
+        ],
         // Çakışan önbellek girişlerini önlemek için ek ayarlar
         skipWaiting: true,
         clientsClaim: true,
