@@ -6,6 +6,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { useAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 // Test kategorileri
 const TEST_CATEGORIES = [
@@ -38,6 +39,18 @@ export const TestsTab: React.FC<TestsTabProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [testInfo, setTestInfo] = useState<any>(null);
 
+  // useNavigate hook'u isteğe bağlı olarak kullanılacak
+  let navigate;
+  try {
+    navigate = useNavigate();
+  } catch (e) {
+    // Router bağlamında değilsek, bir dummy fonksiyon kullan
+    navigate = (path: string) => {
+      console.log('Navigation used outside Router context to: ', path);
+      // Eğer istenirse burada window.location.href = path; ile yönlendirme yapılabilir
+    };
+  }
+
   // Testleri filtrele
   const filteredTests = useMemo(() => {
     return AVAILABLE_TESTS.filter(test => 
@@ -59,6 +72,14 @@ export const TestsTab: React.FC<TestsTabProps> = ({
   const handleShareTest = async (testId: string) => {
     try {
       console.log("Test paylaşımı başlatılıyor...", { testId, clientId, professionalId: professional?.id });
+      
+      // Önceki modallar açıksa kapat
+      setIsShareModalOpen(false);
+      setIsSuccessDialogOpen(false);
+      setIsErrorDialogOpen(false);
+      
+      // Modal arka planını temizle ve overflow'u kontrol et
+      document.body.classList.add('overflow-hidden');
       
       // Professional null kontrolü
       if (!professional) {
@@ -210,8 +231,15 @@ ${professionalTitle} ${professionalName}`;
         },
       ];
 
+      // Modalı aç
       setShareOptions(shareOptions);
-      setIsShareModalOpen(true);
+      
+      // Kısa bir gecikme ekleyerek modalın daha güvenli açılmasını sağla
+      setTimeout(() => {
+        console.log('Modal açılıyor...');
+        setIsShareModalOpen(true);
+      }, 50);
+      
     } catch (error: any) {
       console.error('Error sharing test:', error);
       setErrorMessage(error.message || 'Test paylaşılırken bir hata oluştu.');
@@ -254,8 +282,14 @@ ${professionalTitle} ${professionalName}`;
                       {/* SCID-5-CV ve SCID-5-PD testleri için paylaşım butonu gösterme */}
                       {test.id !== 'scid-5-cv' && test.id !== 'scid-5-pd' && (
                         <button
-                          onClick={async () => {
-                            await handleShareTest(test.id);
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log("Paylaş butonuna tıklandı");
+                            // Modal açılmadan önce kısa bir gecikme ekle
+                            setTimeout(async () => {
+                              await handleShareTest(test.id);
+                            }, 100);
                           }}
                           className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                         >
@@ -293,10 +327,13 @@ ${professionalTitle} ${professionalName}`;
         <Transition appear show={isShareModalOpen} as={Fragment}>
           <Dialog
             as="div"
-            className="fixed inset-0 z-50 overflow-y-auto"
-            onClose={() => setIsShareModalOpen(false)}
+            className="fixed inset-0 z-[9999] overflow-y-auto"
+            onClose={() => {
+              setIsShareModalOpen(false);
+              document.body.classList.remove('overflow-hidden');
+            }}
           >
-            <div className="min-h-screen px-4 text-center">
+            <div className="min-h-screen px-4 text-center" style={{ position: 'relative' }}>
               <Transition.Child
                 as={Fragment}
                 enter="ease-out duration-300"
@@ -306,7 +343,7 @@ ${professionalTitle} ${professionalName}`;
                 leaveFrom="opacity-100"
                 leaveTo="opacity-0"
               >
-                <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm" />
+                <div className="fixed inset-0 bg-black/80 dark:bg-black/90 backdrop-blur-lg" style={{ position: 'fixed', zIndex: 9999 }} />
               </Transition.Child>
 
               <span
@@ -325,7 +362,7 @@ ${professionalTitle} ${professionalName}`;
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <div className="inline-block w-full max-w-md p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+                <div className="inline-block w-full max-w-md p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50" style={{ position: 'relative', zIndex: 10000 }}>
                   {/* Header */}
                   <div className="p-6 pb-2 border-b border-gray-100 dark:border-gray-700">
                     <Dialog.Title className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
@@ -396,7 +433,10 @@ ${professionalTitle} ${professionalName}`;
                   {/* Footer */}
                   <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end">
                     <button
-                      onClick={() => setIsShareModalOpen(false)}
+                      onClick={() => {
+                        setIsShareModalOpen(false);
+                        document.body.classList.remove('overflow-hidden');
+                      }}
                       className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                     >
                       Kapat
@@ -414,10 +454,13 @@ ${professionalTitle} ${professionalName}`;
         <Transition appear show={isSuccessDialogOpen} as={Fragment}>
           <Dialog
             as="div"
-            className="fixed inset-0 z-50 overflow-y-auto"
-            onClose={() => setIsSuccessDialogOpen(false)}
+            className="fixed inset-0 z-[9999] overflow-y-auto"
+            onClose={() => {
+              setIsSuccessDialogOpen(false);
+              document.body.classList.remove('overflow-hidden');
+            }}
           >
-            <div className="min-h-screen px-4 text-center">
+            <div className="min-h-screen px-4 text-center" style={{ position: 'relative' }}>
               <Transition.Child
                 as={Fragment}
                 enter="ease-out duration-300"
@@ -427,7 +470,7 @@ ${professionalTitle} ${professionalName}`;
                 leaveFrom="opacity-100"
                 leaveTo="opacity-0"
               >
-                <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm" />
+                <div className="fixed inset-0 bg-black/80 dark:bg-black/90 backdrop-blur-lg" style={{ position: 'fixed', zIndex: 9999 }} />
               </Transition.Child>
 
               <span
@@ -446,7 +489,7 @@ ${professionalTitle} ${professionalName}`;
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <div className="inline-block w-full max-w-sm p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+                <div className="inline-block w-full max-w-sm p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50" style={{ position: 'relative', zIndex: 10000 }}>
                   {/* Başlık */}
                   <div className="p-6 pb-2 border-b border-gray-100 dark:border-gray-700">
                     <Dialog.Title className="text-xl font-semibold bg-gradient-to-r from-green-500 to-emerald-600 dark:from-green-400 dark:to-emerald-500 bg-clip-text text-transparent">
@@ -469,7 +512,10 @@ ${professionalTitle} ${professionalName}`;
                   {/* Alt kısım */}
                   <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end">
                     <button
-                      onClick={() => setIsSuccessDialogOpen(false)}
+                      onClick={() => {
+                        setIsSuccessDialogOpen(false);
+                        document.body.classList.remove('overflow-hidden');
+                      }}
                       className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-lg transition-colors"
                     >
                       Tamam
@@ -487,10 +533,13 @@ ${professionalTitle} ${professionalName}`;
         <Transition appear show={isErrorDialogOpen} as={Fragment}>
           <Dialog
             as="div"
-            className="fixed inset-0 z-50 overflow-y-auto"
-            onClose={() => setIsErrorDialogOpen(false)}
+            className="fixed inset-0 z-[9999] overflow-y-auto"
+            onClose={() => {
+              setIsErrorDialogOpen(false);
+              document.body.classList.remove('overflow-hidden');
+            }}
           >
-            <div className="min-h-screen px-4 text-center">
+            <div className="min-h-screen px-4 text-center" style={{ position: 'relative' }}>
               <Transition.Child
                 as={Fragment}
                 enter="ease-out duration-300"
@@ -500,7 +549,7 @@ ${professionalTitle} ${professionalName}`;
                 leaveFrom="opacity-100"
                 leaveTo="opacity-0"
               >
-                <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm" />
+                <div className="fixed inset-0 bg-black/80 dark:bg-black/90 backdrop-blur-lg" style={{ position: 'fixed', zIndex: 9999 }} />
               </Transition.Child>
 
               <span
@@ -519,7 +568,7 @@ ${professionalTitle} ${professionalName}`;
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <div className="inline-block w-full max-w-sm p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+                <div className="inline-block w-full max-w-sm p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50" style={{ position: 'relative', zIndex: 10000 }}>
                   {/* Başlık */}
                   <div className="p-6 pb-2 border-b border-gray-100 dark:border-gray-700">
                     <Dialog.Title className="text-xl font-semibold bg-gradient-to-r from-red-500 to-rose-600 dark:from-red-400 dark:to-rose-500 bg-clip-text text-transparent">
@@ -542,7 +591,10 @@ ${professionalTitle} ${professionalName}`;
                   {/* Alt kısım */}
                   <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end">
                     <button
-                      onClick={() => setIsErrorDialogOpen(false)}
+                      onClick={() => {
+                        setIsErrorDialogOpen(false);
+                        document.body.classList.remove('overflow-hidden');
+                      }}
                       className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 rounded-lg transition-colors"
                     >
                       Tamam

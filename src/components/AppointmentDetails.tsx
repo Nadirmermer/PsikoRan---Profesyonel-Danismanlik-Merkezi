@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, BrowserRouter } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ArrowLeft, Calendar, Clock, Users, MapPin, Video, Edit, Trash2, AlertTriangle, Share2, FileText, Printer, Bell, X, ExternalLink, Monitor, Maximize, Phone, Clipboard } from 'react-feather';
 import { useAuth } from '../lib/auth';
@@ -7,6 +7,13 @@ import AppointmentShareModal from './AppointmentShareModal';
 import AppointmentActions from './AppointmentActions';
 import { JitsiMeetingLauncher } from './JitsiMeeting';
 import MeetingTimer from './MeetingTimer';
+
+// Danışan detayları için gerekli komponentleri import et
+import { ClientDetailsTab } from './client-details/ClientDetailsTab';
+import { AppointmentsTab } from './client-details/AppointmentsTab';
+import { SessionNotesTab } from './client-details/SessionNotesTab';
+import { TestsTab } from './client-details/TestsTab';
+import TestResultsTab from './client-details/TestResultsTab';
 
 interface AppointmentDetailsProps {
   id?: string;  // Eğer prop olarak id geçilirse kullanılır, yoksa URL'den alınır
@@ -129,17 +136,193 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
             const [isOpen, setIsOpen] = useState(true);
             const [showIframe, setShowIframe] = useState(false);
             
+            // Client bilgilerini gösterme durumu
+            const [showClientPanel, setShowClientPanel] = useState(false);
+            const [activeClientTab, setActiveClientTab] = useState<'details' | 'appointments' | 'notes' | 'tests' | 'testResults'>('details');
+            
+            // Client data state
+            const [clientData, setClientData] = useState<any>(null);
+            const [sessionNotes, setSessionNotes] = useState<any[]>([]);
+            const [pastAppointments, setPastAppointments] = useState<any[]>([]);
+            const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
+            const [testResults, setTestResults] = useState<any[]>([]);
+            const [loadingClientData, setLoadingClientData] = useState(false);
+            
+            // Danışan verilerini yükle
+            const loadClientData = async () => {
+              if (!appointment?.client?.id) return;
+              
+              setLoadingClientData(true);
+              try {
+                // Danışan bilgilerini yükle
+                const { data: clientData, error: clientError } = await supabase
+                  .from('clients')
+                  .select(`
+                    *,
+                    professional:professionals(
+                      id,
+                      full_name,
+                      title,
+                      email,
+                      phone,
+                      assistant_id
+                    )
+                  `)
+                  .eq('id', appointment.client.id)
+                  .single();
+                
+                if (clientError) throw clientError;
+                setClientData(clientData);
+                
+                const now = new Date().toISOString();
+                
+                // Geçmiş randevuları yükle
+                const { data: pastData, error: pastError } = await supabase
+                  .from('appointments')
+                  .select(`
+                    *,
+                    professional:professionals(full_name),
+                    room:rooms(name)
+                  `)
+                  .eq('client_id', appointment.client.id)
+                  .lt('end_time', now)
+                  .order('start_time', { ascending: false });
+                
+                if (pastError) throw pastError;
+                setPastAppointments(pastData || []);
+                
+                // Gelecek randevuları yükle
+                const { data: upcomingData, error: upcomingError } = await supabase
+                  .from('appointments')
+                  .select(`
+                    *,
+                    professional:professionals(full_name),
+                    room:rooms(name)
+                  `)
+                  .eq('client_id', appointment.client.id)
+                  .gte('end_time', now)
+                  .order('start_time', { ascending: true });
+                
+                if (upcomingError) throw upcomingError;
+                setUpcomingAppointments(upcomingData || []);
+                
+                // Seans notlarını yükle
+                const { data: notesData, error: notesError } = await supabase
+                  .from('session_notes')
+                  .select(`
+                    *,
+                    professional:professionals(full_name)
+                  `)
+                  .eq('client_id', appointment.client.id)
+                  .order('created_at', { ascending: false });
+                
+                if (notesError) throw notesError;
+                setSessionNotes(notesData || []);
+                
+                // Test sonuçlarını yükle
+                const { data: resultsData, error: resultsError } = await supabase
+                  .from('test_results')
+                  .select(`
+                    *,
+                    professional:professionals(full_name)
+                  `)
+                  .eq('client_id', appointment.client.id)
+                  .order('created_at', { ascending: false });
+                
+                if (resultsError) throw resultsError;
+                
+                // Test sonuçlarını formatla
+                const formattedResults = resultsData?.map(result => ({
+                  id: result.id,
+                  client_id: result.client_id,
+                  test_type: result.test_type,
+                  test_id: result.test_type,
+                  test_name: result.test_type,
+                  created_at: result.created_at,
+                  score: result.score,
+                  answers: result.answers || {},
+                  professional_id: result.professional_id,
+                  professional_name: result.professional?.full_name,
+                  notes: result.notes,
+                  encrypted_answers: result.encrypted_answers,
+                  encryption_key: result.encryption_key,
+                  iv: result.iv
+                }));
+                
+                setTestResults(formattedResults || []);
+              } catch (error) {
+                console.error('Danışan bilgileri yüklenirken hata:', error);
+              } finally {
+                setLoadingClientData(false);
+              }
+            };
+            
+            // Client paneli açıldığında verileri yükle
+            useEffect(() => {
+              if (showClientPanel) {
+                loadClientData();
+              }
+            }, [showClientPanel]);
+            
+            // Tab değiştiğinde ekstra render işlemlerini engelle
+            const handleTabChange = React.useCallback((tab: 'details' | 'appointments' | 'notes' | 'tests' | 'testResults') => {
+              setActiveClientTab(tab);
+            }, []);
+            
+            // Önbelleğe alınmış görünür sekmeler
+            const visibleTabs = React.useMemo(() => [
+              { id: 'details', name: 'Danışan Bilgileri' },
+              { id: 'appointments', name: 'Randevular' },
+              { id: 'notes', name: 'Seans Notları' },
+              { id: 'tests', name: 'Testler' },
+              { id: 'testResults', name: 'Test Sonuçları' }
+            ], []);
+            
+            // Sayfa kapanmadan önce temizlik işlemi yap
+            useEffect(() => {
+              // Jitsi API'sini temizle
+              return () => {
+                try {
+                  // Eğer modalContainer hala sayfadaysa ve DOM'da mevcutsa kaldır
+                  if (document.body.contains(modalContainer)) {
+                    document.body.removeChild(modalContainer);
+                  }
+                } catch (e) {
+                  console.error("Modal kapatılırken hata:", e);
+                }
+              };
+            }, []);
+            
             // Modal kapatıldığında container'ı kaldır
             const onClose = () => {
               setIsOpen(false);
+              // İşlemi geciktirerek animasyonun tamamlanmasını bekle
               setTimeout(() => {
-                if (document.body.contains(modalContainer)) {
-                  document.body.removeChild(modalContainer);
+                try {
+                  if (document.body.contains(modalContainer)) {
+                    document.body.removeChild(modalContainer);
+                  }
+                } catch (e) {
+                  console.error("Modal kapatılırken hata:", e);
                 }
               }, 300);
             };
             
             if (!isOpen) return null;
+            
+            // Tab seçim fonksiyonu
+            // const handleTabChange = (tab: 'details' | 'appointments' | 'notes' | 'tests' | 'testResults') => {
+            //   setActiveClientTab(tab);
+            // };
+            
+            // Görünür sekmeleri belirle
+            // const visibleTabs = [
+            //   { id: 'details', name: 'Danışan Bilgileri' },
+            //   { id: 'appointments', name: 'Randevular' },
+            //   { id: 'notes', name: 'Seans Notları' },
+            //   { id: 'tests', name: 'Testler' },
+            //   { id: 'testResults', name: 'Test Sonuçları' }
+            // ];
             
             return (
               <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
@@ -204,14 +387,112 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
                     </>
                   ) : (
                     <div className="flex flex-col h-full">
-                      <div className="flex-1">
+                      <div className="flex-1 relative">
                         <iframe 
                           src={`https://meet.jit.si/${roomName}`} 
                           allow="camera; microphone; fullscreen; display-capture; autoplay" 
                           className="w-full h-full border-none"
                           title="Jitsi Meeting"
                         ></iframe>
+                        
+                        {/* Danışan bilgi paneli */}
+                        {showClientPanel && clientData && (
+                          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex justify-center overflow-auto z-[55]">
+                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-4 m-4 lg:m-8 w-full max-w-4xl max-h-full overflow-auto">
+                              <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{clientData.full_name}</h2>
+                                <button 
+                                  onClick={() => setShowClientPanel(false)}
+                                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                  <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                                </button>
+                              </div>
+                              
+                              {/* Sekmeler */}
+                              <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1 mb-6">
+                                <nav className="-mb-px flex space-x-2 md:space-x-8" aria-label="Tabs">
+                                  {visibleTabs.map((tab) => (
+                                    <button
+                                      key={tab.id}
+                                      onClick={() => handleTabChange(tab.id as any)}
+                                      className={`whitespace-nowrap border-b-2 py-3 px-1 text-xs sm:text-sm font-medium transition-all duration-200 flex-shrink-0 ${
+                                        activeClientTab === tab.id
+                                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                                      }`}
+                                    >
+                                      {tab.name}
+                                    </button>
+                                  ))}
+                                </nav>
+                              </div>
+                              
+                              {/* Tab içerikleri */}
+                              {loadingClientData ? (
+                                <div className="flex justify-center items-center p-12">
+                                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                                </div>
+                              ) : (
+                                <div className="tab-content overflow-auto">
+                                  {activeClientTab === 'details' && (
+                                    <div className="bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg p-4 sm:p-6 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50">
+                                      <BrowserRouter>
+                                        <ClientDetailsTab client={clientData} />
+                                      </BrowserRouter>
+                                    </div>
+                                  )}
+                                  
+                                  {activeClientTab === 'appointments' && (
+                                    <div className="bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg p-4 sm:p-6 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50">
+                                      <AppointmentsTab 
+                                        clientId={clientData.id} 
+                                        appointments={{
+                                          upcoming: upcomingAppointments,
+                                          past: pastAppointments
+                                        }}
+                                        loadAppointments={() => Promise.resolve(true)}
+                                      />
+                                    </div>
+                                  )}
+                                  
+                                  {activeClientTab === 'notes' && (
+                                    <div className="bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg p-4 sm:p-6 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50">
+                                      <SessionNotesTab 
+                                        clientId={clientData.id}
+                                        sessionNotes={sessionNotes}
+                                        loadSessionNotes={() => Promise.resolve(true)}
+                                      />
+                                    </div>
+                                  )}
+                                  
+                                  {activeClientTab === 'tests' && (
+                                    <div className="bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg p-4 sm:p-6 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50">
+                                      <BrowserRouter>
+                                        <TestsTab 
+                                          clientId={clientData.id}
+                                          client={clientData}
+                                        />
+                                      </BrowserRouter>
+                                    </div>
+                                  )}
+                                  
+                                  {activeClientTab === 'testResults' && (
+                                    <div className="bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg p-4 sm:p-6 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50">
+                                      <TestResultsTab 
+                                        clientId={clientData.id}
+                                        testResults={testResults}
+                                        loadTestResults={() => Promise.resolve(true)}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
+                      
                       <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                           <button 
@@ -241,75 +522,28 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
                               </div>
                             </div>
                           </div>
+                          
+                          {/* Danışan bilgileri sekmesi */}
+                          {appointment?.client?.id && (
+                            <div className="ml-3 relative group">
+                              <button
+                                onClick={() => setShowClientPanel(!showClientPanel)}
+                                className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-800/50 text-indigo-800 dark:text-indigo-400 text-sm font-medium flex items-center"
+                              >
+                                <Users className="h-4 w-4 mr-1.5" />
+                                <span>Danışan</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-1 transform transition-transform duration-150 ${showClientPanel ? 'rotate-0' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="hidden md:flex items-center space-x-3">
                           <div className="text-sm text-gray-500 dark:text-gray-400">
                             {appointment?.client?.full_name ? `Görüşme: ${appointment.client.full_name}` : 'Çevrimiçi Görüşme'}
                           </div>
-                          
-                          {appointment?.client?.id && (
-                            <div className="relative group">
-                              <button
-                                className="md:hidden px-2 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-800/50 text-indigo-800 dark:text-indigo-400 text-xs flex items-center"
-                              >
-                                <Users className="h-3 w-3" />
-                              </button>
-                              <div className="absolute right-0 bottom-full mb-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden transform scale-0 group-hover:scale-100 transition-transform origin-bottom-right duration-150 z-20">
-                                <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 font-medium text-sm text-gray-900 dark:text-white">
-                                  {appointment.client.full_name}
-                                </div>
-                                <button
-                                  onClick={() => {
-                                    onClose();
-                                    setTimeout(() => {
-                                      window.location.href = `/clients/${appointment.client.id}`;
-                                    }, 300);
-                                  }}
-                                  className="flex items-center w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
-                                >
-                                  <Users className="h-3.5 w-3.5 mr-2 text-gray-500 dark:text-gray-400" />
-                                  Danışan Bilgileri
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    onClose();
-                                    setTimeout(() => {
-                                      window.location.href = `/clients/${appointment.client.id}?tab=appointments`;
-                                    }, 300);
-                                  }}
-                                  className="flex items-center w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
-                                >
-                                  <Calendar className="h-3.5 w-3.5 mr-2 text-gray-500 dark:text-gray-400" />
-                                  Randevular
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    onClose();
-                                    setTimeout(() => {
-                                      window.location.href = `/clients/${appointment.client.id}?tab=notes`;
-                                    }, 300);
-                                  }}
-                                  className="flex items-center w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
-                                >
-                                  <FileText className="h-3.5 w-3.5 mr-2 text-gray-500 dark:text-gray-400" />
-                                  Seans Notları
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    onClose();
-                                    setTimeout(() => {
-                                      window.location.href = `/clients/${appointment.client.id}?tab=tests`;
-                                    }, 300);
-                                  }}
-                                  className="flex items-center w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
-                                >
-                                  <Clipboard className="h-3.5 w-3.5 mr-2 text-gray-500 dark:text-gray-400" />
-                                  Testler
-                                </button>
-                              </div>
-                            </div>
-                          )}
                         </div>
                         
                         <div className="flex items-center space-x-2">

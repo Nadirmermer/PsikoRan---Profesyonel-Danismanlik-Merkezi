@@ -14,7 +14,18 @@ export const ClientDetailsTab: React.FC<ClientDetailsTabProps> = ({ client, load
   const [formData, setFormData] = useState<Partial<Client>>(client);
   const [loading, setLoading] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const navigate = useNavigate();
+  
+  // useNavigate hook'u isteğe bağlı olarak kullanılacak
+  let navigate;
+  try {
+    navigate = useNavigate();
+  } catch (e) {
+    // Router bağlamında değilsek, bir dummy fonksiyon kullan
+    navigate = (path: string) => {
+      console.log('Navigation used outside Router context to: ', path);
+      // Eğer istenirse burada window.location.href = path; ile yönlendirme yapılabilir
+    };
+  }
 
   async function handleUpdateClient(e: React.FormEvent) {
     e.preventDefault();
@@ -170,7 +181,7 @@ export const ClientDetailsTab: React.FC<ClientDetailsTabProps> = ({ client, load
 
       {/* Düzenleme Modalı */}
       {editMode && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-6 border border-gray-200/50 dark:border-gray-700/50 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
@@ -363,7 +374,7 @@ export const ClientDetailsTab: React.FC<ClientDetailsTabProps> = ({ client, load
 
       {/* Silme Onay Modalı */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[70]">
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-6 border border-gray-200/50 dark:border-gray-700/50">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xl font-bold bg-gradient-to-r from-red-600 to-rose-600 dark:from-red-400 dark:to-rose-400 bg-clip-text text-transparent">
