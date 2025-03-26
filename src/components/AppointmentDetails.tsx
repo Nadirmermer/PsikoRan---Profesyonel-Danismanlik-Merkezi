@@ -316,6 +316,28 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
                 <span>Görüşme Tipi:</span>
                 <span>{appointment.is_online ? 'Çevrimiçi' : 'Yüz Yüze'}</span>
               </div>
+              {appointment.is_online && (
+                <div className="flex justify-between items-center border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                  <span>Görüşme Linki:</span>
+                  {appointment.meeting_url ? (
+                    <button
+                      onClick={joinMeeting}
+                      className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md transition-colors duration-200 text-xs flex items-center"
+                    >
+                      <Video className="h-3 w-3 mr-1" />
+                      <span>Görüşmeye Katıl</span>
+                    </button>
+                  ) : (
+                    <span className="text-amber-600 dark:text-amber-400 text-xs">Görüşme başlamadı</span>
+                  )}
+                </div>
+              )}
+              {appointment.room && !appointment.is_online && (
+                <div className="flex justify-between">
+                  <span>Görüşme Odası:</span>
+                  <span>{appointment.room.name}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

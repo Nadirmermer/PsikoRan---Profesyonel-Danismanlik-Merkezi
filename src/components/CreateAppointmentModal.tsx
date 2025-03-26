@@ -1136,6 +1136,20 @@ export function CreateAppointmentModal({
       
       const endDateTime = new Date(startDateTime.getTime() + parseInt(formData.duration) * 60000);
       
+      // Online görüşme için Jitsi linki oluştur
+      let meetingUrl = null;
+      if (formData.isOnline) {
+        // Benzersiz bir oda adı oluştur
+        const selectedClient = clients.find(c => c.id === formData.clientId);
+        const selectedProfessional = professionals.find(p => p.id === formData.professionalId);
+        
+        // Format: p[professional_id]-c[client_id]-[date_timestamp]
+        const meetingRoomId = `p${formData.professionalId.substring(0, 5)}-c${formData.clientId.substring(0, 5)}-${startDateTime.getTime()}`;
+        
+        // Jitsi Meet URL'i
+        meetingUrl = `https://meet.jit.si/${meetingRoomId}`;
+      }
+      
       // Randevu oluştur
       const { error } = await supabase.from('appointments').insert({
         client_id: formData.clientId,
@@ -1145,7 +1159,8 @@ export function CreateAppointmentModal({
         end_time: endDateTime.toISOString(),
         notes: formData.notes || null,
         status: 'scheduled',
-        is_online: formData.isOnline
+        is_online: formData.isOnline,
+        meeting_url: formData.isOnline ? meetingUrl : null
       });
       
       if (error) throw error;

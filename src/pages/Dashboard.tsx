@@ -1032,25 +1032,33 @@ export function Dashboard() {
   async function loadRooms() {
     try {
       let query = supabase.from('rooms').select('*').order('name');
-
-      if (professional) {
+      
+      if (assistant?.id) {
+        query = query.eq('assistant_id', assistant.id);
+      } else if (professional?.id) {
         const { data: prof } = await supabase
           .from('professionals')
           .select('assistant_id')
           .eq('id', professional.id)
           .single();
-
+          
         if (prof?.assistant_id) {
           query = query.eq('assistant_id', prof.assistant_id);
         }
-      } else if (assistant) {
-        query = query.eq('assistant_id', assistant.id);
       }
-
+      
       const { data, error } = await query;
-
+      
       if (error) throw error;
-      setRooms(data || []);
+      
+      // Online görüşme odası ekle
+      const onlineRoom = {
+        id: 'online',
+        name: 'Çevrimiçi Oda',
+        assistant_id: assistant?.id || professional?.assistant_id || null
+      };
+      
+      setRooms([onlineRoom, ...(data || [])]);
     } catch (error) {
       console.error('Error loading rooms:', error);
     }
@@ -1362,8 +1370,10 @@ export function Dashboard() {
       const appointmentStart = new Date(appointment.start_time);
       const appointmentEnd = new Date(appointment.end_time);
 
+      // Online görüşme kontrolü (is_online=true) ve oda ID'si eşleşmesi
       return (
-        appointment.room_id === roomId &&
+        ((appointment.room_id === roomId) || 
+        (appointment.is_online && roomId === 'online')) &&
         slotTime >= appointmentStart &&
         slotTime < appointmentEnd
       );
@@ -2363,6 +2373,13 @@ export function Dashboard() {
                                         const appointmentStart = new Date(appointment.start_time);
                                         const appointmentHour = appointmentStart.getHours();
                                         const slotHour = parseInt(timeSlot.split(':')[0]);
+                                        
+                                        // Çevrimiçi oda için is_online=true olan randevuları göster
+                                        if (room.id === 'online') {
+                                          return appointmentHour === slotHour && appointment.is_online;
+                                        }
+                                        
+                                        // Normal odalar için room_id eşleşenler
                                         return appointmentHour === slotHour && appointment.room_id === room.id;
                                       })
                                       .map(appointment => {
@@ -2387,11 +2404,13 @@ export function Dashboard() {
                                             {professional ? (
                                               <div className="font-medium text-sm truncate">
                                                 {appointment.client?.full_name}
+                                                {appointment.is_online && <span className="ml-1 text-xs">(Çevrimiçi)</span>}
                                               </div>
                                             ) : (
                                               <>
                                                 <div className="font-medium text-sm truncate">
                                                   {appointment.professional?.full_name}
+                                                  {appointment.is_online && <span className="ml-1 text-xs">(Çevrimiçi)</span>}
                                                 </div>
                                                 <div className="text-xs truncate opacity-90">
                                                   {appointment.client?.full_name}
@@ -2494,13 +2513,16 @@ export function Dashboard() {
                                             className={`text-xs p-2 rounded truncate ${
                                               appointment.room_id 
                                                 ? ROOM_COLORS[rooms.findIndex(r => r.id === appointment.room_id) % ROOM_COLORS.length]
-                                                : 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300'
+                                                : appointment.is_online
+                                                  ? ROOM_COLORS[0] // İlk renk online randevular için
+                                                  : 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300'
                                             }`}
                                           >
                                             <div className="flex items-center">
                                               <span className="mr-1">{format(new Date(appointment.start_time), 'HH:mm')}</span>
                                               <span className="truncate font-medium">
                                                 {professional ? appointment.client?.full_name : appointment.professional?.full_name}
+                                                {appointment.is_online && <span className="ml-1">(Çevrimiçi)</span>}
                                               </span>
                                             </div>
                                           </div>
@@ -2620,10 +2642,13 @@ export function Dashboard() {
                                               className={`text-xs p-0.5 rounded truncate ${
                                                 appointment.room_id 
                                                   ? ROOM_COLORS[rooms.findIndex(r => r.id === appointment.room_id) % ROOM_COLORS.length]
-                                                  : 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300'
+                                                  : appointment.is_online
+                                                    ? ROOM_COLORS[0] // İlk renk online randevular için
+                                                    : 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300'
                                               }`}
                                             >
                                               {format(new Date(appointment.start_time), 'HH:mm')} {professional ? appointment.client?.full_name.split(' ')[0] : appointment.professional?.full_name.split(' ')[0]}
+                                              {appointment.is_online && <span className="ml-1">(Ç)</span>}
                                             </div>
                                           ))
                                         }
