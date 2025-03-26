@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Calendar, Clock, Users, MapPin, Video, Edit, Trash2, AlertTriangle, Share2, FileText, Printer, Bell } from 'react-feather';
+import { ArrowLeft, Calendar, Clock, Users, MapPin, Video, Edit, Trash2, AlertTriangle, Share2, FileText, Printer, Bell, X, ExternalLink, Monitor, Maximize, Phone, Clipboard } from 'react-feather';
 import { useAuth } from '../lib/auth';
-import OnlineMeetingModal from './OnlineMeetingModal';
 import AppointmentShareModal from './AppointmentShareModal';
 import AppointmentActions from './AppointmentActions';
+import { JitsiMeetingLauncher } from './JitsiMeeting';
+import MeetingTimer from './MeetingTimer';
 
 interface AppointmentDetailsProps {
   id?: string;  // Eğer prop olarak id geçilirse kullanılır, yoksa URL'den alınır
@@ -81,10 +82,293 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
     });
   };
 
-  // Görüşmeye katıl - yeni sekmede açar
+  // Görüşmeye katıl - doğrudan mod seçim ekranını gösterir
   const joinMeeting = () => {
-    if (appointment?.meeting_url) {
-      window.open(appointment.meeting_url, '_blank');
+    if (appointment?.is_online && appointment?.meeting_url) {
+      // Meeting URL'den room name'i çıkar
+      const extractRoomName = (url?: string): string => {
+        if (!url) return '';
+        
+        try {
+          // URL formatında ise
+          if (url.startsWith('http')) {
+            const urlObj = new URL(url);
+            // Son path segment'ı al (örn: https://meet.jit.si/odaismi -> odaismi)
+            const pathParts = urlObj.pathname.split('/').filter(Boolean);
+            return pathParts[pathParts.length - 1] || '';
+          } 
+          // Direkt oda ismi ise
+          return url;
+        } catch (error) {
+          console.error('Meeting URL çözümlenirken hata:', error);
+          return url;
+        }
+      };
+
+      const roomName = extractRoomName(appointment.meeting_url);
+      
+      if (roomName) {
+        // Modal içeriğini doğrudan render edecek bir div oluştur
+        const modalContainer = document.createElement('div');
+        modalContainer.id = 'jitsi-selection-modal';
+        modalContainer.style.position = 'fixed';
+        modalContainer.style.top = '0';
+        modalContainer.style.left = '0';
+        modalContainer.style.width = '100%';
+        modalContainer.style.height = '100%';
+        modalContainer.style.zIndex = '9999';
+        document.body.appendChild(modalContainer);
+        
+        // React modüllerini yükle ve render et
+        import('react-dom/client').then(({ createRoot }) => {
+          const root = createRoot(modalContainer);
+          
+          // Özel bir Wrapper bileşeni oluştur
+          // Bu bileşen, JitsiMeetingLauncher'ın showModeSelection durumunu force eder
+          const ModalWrapper = () => {
+            const [isOpen, setIsOpen] = useState(true);
+            const [showIframe, setShowIframe] = useState(false);
+            
+            // Modal kapatıldığında container'ı kaldır
+            const onClose = () => {
+              setIsOpen(false);
+              setTimeout(() => {
+                if (document.body.contains(modalContainer)) {
+                  document.body.removeChild(modalContainer);
+                }
+              }, 300);
+            };
+            
+            if (!isOpen) return null;
+            
+            return (
+              <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className={showIframe ? 
+                  "w-full h-full max-w-full max-h-full flex flex-col bg-white dark:bg-gray-800" : 
+                  "bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 max-w-md w-full"
+                }>
+                  {!showIframe ? (
+                    <>
+                      <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Görüşme Katılım Seçenekleri</h2>
+                        <button 
+                          onClick={onClose}
+                          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div 
+                          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:shadow-md cursor-pointer transition-all duration-300"
+                          onClick={() => {
+                            // Bu pencerede katıl - iframe içinde göster
+                            setShowIframe(true);
+                          }}
+                        >
+                          <div className="flex items-center">
+                            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                              <Video className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Bu Pencerede Katıl</h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">Görüşme bu sayfada açılır</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div 
+                          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:shadow-md cursor-pointer transition-all duration-300"
+                          onClick={() => {
+                            // Yeni sekmede katıl
+                            window.open(`https://meet.jit.si/${roomName}`, '_blank');
+                            onClose();
+                          }}
+                        >
+                          <div className="flex items-center">
+                            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                              <ExternalLink className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Yeni Sekmede Katıl</h3>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">Görüşme yeni bir browser sekmesinde açılır</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-6 text-xs bg-amber-50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-300 p-3 rounded-lg border border-amber-100 dark:border-amber-800/20">
+                        <p>Not: Tarayıcı güvenlik ayarlarınız nedeniyle açılır pencere engellenirse, "Yeni Sekmede Katıl" seçeneğini kullanın.</p>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col h-full">
+                      <div className="flex-1">
+                        <iframe 
+                          src={`https://meet.jit.si/${roomName}`} 
+                          allow="camera; microphone; fullscreen; display-capture; autoplay" 
+                          className="w-full h-full border-none"
+                          title="Jitsi Meeting"
+                        ></iframe>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <button 
+                            onClick={() => {
+                              if (document.fullscreenElement) {
+                                document.exitFullscreen();
+                              } else {
+                                document.documentElement.requestFullscreen();
+                              }
+                            }}
+                            className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors flex items-center"
+                            title="Tam ekran"
+                          >
+                            <Maximize className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          </button>
+                          <div className="flex items-center space-x-3">
+                            <div className="flex items-center bg-gray-100 dark:bg-gray-700/50 rounded-lg px-3 py-1.5">
+                              <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400 mr-2" />
+                              <span className="text-xs text-gray-600 dark:text-gray-300">
+                                {new Date().toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'})}
+                              </span>
+                            </div>
+                            <div className="flex items-center bg-green-100 dark:bg-green-900/30 rounded-lg px-3 py-1.5">
+                              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse mr-2"></div>
+                              <div className="font-mono text-xs text-green-800 dark:text-green-300">
+                                <MeetingTimer startTime={new Date(appointment.start_time)} />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="hidden md:flex items-center space-x-3">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {appointment?.client?.full_name ? `Görüşme: ${appointment.client.full_name}` : 'Çevrimiçi Görüşme'}
+                          </div>
+                          
+                          {appointment?.client?.id && (
+                            <div className="relative group">
+                              <button
+                                className="md:hidden px-2 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-800/50 text-indigo-800 dark:text-indigo-400 text-xs flex items-center"
+                              >
+                                <Users className="h-3 w-3" />
+                              </button>
+                              <div className="absolute right-0 bottom-full mb-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden transform scale-0 group-hover:scale-100 transition-transform origin-bottom-right duration-150 z-20">
+                                <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 font-medium text-sm text-gray-900 dark:text-white">
+                                  {appointment.client.full_name}
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    onClose();
+                                    setTimeout(() => {
+                                      window.location.href = `/clients/${appointment.client.id}`;
+                                    }, 300);
+                                  }}
+                                  className="flex items-center w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
+                                >
+                                  <Users className="h-3.5 w-3.5 mr-2 text-gray-500 dark:text-gray-400" />
+                                  Danışan Bilgileri
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    onClose();
+                                    setTimeout(() => {
+                                      window.location.href = `/clients/${appointment.client.id}?tab=appointments`;
+                                    }, 300);
+                                  }}
+                                  className="flex items-center w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
+                                >
+                                  <Calendar className="h-3.5 w-3.5 mr-2 text-gray-500 dark:text-gray-400" />
+                                  Randevular
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    onClose();
+                                    setTimeout(() => {
+                                      window.location.href = `/clients/${appointment.client.id}?tab=notes`;
+                                    }, 300);
+                                  }}
+                                  className="flex items-center w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
+                                >
+                                  <FileText className="h-3.5 w-3.5 mr-2 text-gray-500 dark:text-gray-400" />
+                                  Seans Notları
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    onClose();
+                                    setTimeout(() => {
+                                      window.location.href = `/clients/${appointment.client.id}?tab=tests`;
+                                    }, 300);
+                                  }}
+                                  className="flex items-center w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200"
+                                >
+                                  <Clipboard className="h-3.5 w-3.5 mr-2 text-gray-500 dark:text-gray-400" />
+                                  Testler
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          {appointment?.client?.id && (
+                            <button
+                              onClick={() => {
+                                // Özel sonlandırma pop-up'ı oluştur
+                                const confirmDialog = document.createElement('div');
+                                confirmDialog.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]';
+                                confirmDialog.innerHTML = `
+                                  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-5 max-w-sm w-full">
+                                    <div class="flex items-center mb-4">
+                                      <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-full mr-3">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600 dark:text-red-400 transform rotate-135"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                                      </div>
+                                      <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Görüşmeyi Sonlandır</h3>
+                                    </div>
+                                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-5">Görüşmeyi sonlandırmak istediğinizden emin misiniz? Bu işlem geri alınamaz.</p>
+                                    <div class="flex space-x-3 justify-end">
+                                      <button id="cancel-btn" class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">İptal</button>
+                                      <button id="confirm-btn" class="px-3 py-1.5 text-sm rounded-md text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 transition-colors">Sonlandır</button>
+                                    </div>
+                                  </div>
+                                `;
+                                document.body.appendChild(confirmDialog);
+                                
+                                // Butonlara event listener ekle
+                                const cancelBtn = confirmDialog.querySelector('#cancel-btn');
+                                const confirmBtn = confirmDialog.querySelector('#confirm-btn');
+                                
+                                cancelBtn?.addEventListener('click', () => {
+                                  document.body.removeChild(confirmDialog);
+                                });
+                                
+                                confirmBtn?.addEventListener('click', () => {
+                                  document.body.removeChild(confirmDialog);
+                                  onClose();
+                                });
+                              }}
+                              className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 rounded-md hover:bg-red-200 dark:hover:bg-red-800/50 text-red-800 dark:text-red-400 text-sm font-medium flex items-center"
+                            >
+                              <Phone className="h-4 w-4 mr-1.5 transform rotate-135" />
+                              <span>Görüşmeyi Sonlandır</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          };
+          
+          root.render(<ModalWrapper />);
+        }).catch(err => {
+          console.error("Modal render edilirken hata oluştu:", err);
+        });
+      }
     }
   };
 
@@ -190,6 +474,7 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
           <AppointmentActions 
             appointment={appointment} 
             onAddNote={handleAddNote}
+            onJoinMeeting={joinMeeting}
           />
             
           {/* Danışan Bilgileri */}

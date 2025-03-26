@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.jitsi.net https://*.jitsi.org; img-src 'self' data: blob: https://www.facebook.com https://images.unsplash.com https://via.placeholder.com https://*.jitsi.net https://*.jitsi.org https://meet.jit.si https://*.supabase.co; font-src 'self' https://fonts.gstatic.com https://*.jitsi.net https://*.jitsi.org; connect-src 'self' https://*.psikoran.com https://*.supabase.co https://meet.jit.si https://*.jitsi.net https://*.jitsi.org wss://*.meet.jit.si; manifest-src 'self'; worker-src 'self' blob:; frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; media-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; child-src 'self' https://meet.jit.si;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.jitsi.net https://*.jitsi.org; img-src 'self' data: blob: https://www.facebook.com https://images.unsplash.com https://via.placeholder.com https://*.jitsi.net https://*.jitsi.org https://meet.jit.si https://*.supabase.co; font-src 'self' https://fonts.gstatic.com https://*.jitsi.net https://*.jitsi.org; connect-src 'self' https://*.psikoran.com https://*.supabase.co https://meet.jit.si https://*.jitsi.net https://*.jitsi.org wss://*.meet.jit.si; frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; media-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; child-src 'self' https://meet.jit.si;">
   <meta http-equiv="X-Content-Security-Policy" content="frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org;">
   <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-5M6V976WY8"></script>
@@ -32,15 +32,12 @@
   /></noscript>
   <!-- End Facebook Pixel Code -->
   
-  <!-- Favicon ve PWA ikonları -->
+  <!-- Favicon -->
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="assets/favicons/favicon-16x16.png" />
-  <link rel="apple-touch-icon" href="assets/pwa/logo_2-192x192.png" />
-  <link rel="manifest" href="/manifest.json" />
   
   <!-- SEO Meta Etiketleri -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#4f46e5" />
   <meta name="description" content="PsikoRan - Psikologlar ve Danışanlar için Profesyonel Danışmanlık ve Randevu Yönetim Sistemi" />
   <meta name="keywords" content="psikolog, danışmanlık, terapi, randevu sistemi, psikoterapi, online terapi, online randevu, psikolojik danışmanlık, ruh sağlığı" />
   <meta name="author" content="PsikoRan" />
@@ -53,7 +50,7 @@
   <meta property="og:url" content="https://psikoran.com" />
   <meta property="og:title" content="PsikoRan - Profesyonel Danışmanlık Merkezi" />
   <meta property="og:description" content="Psikologlar ve danışanlar için profesyonel danışmanlık ve randevu yönetim sistemi" />
-  <meta property="og:image" content="https://psikoran.com/assets/pwa/logo_2-512x512.png" />
+  <meta property="og:image" content="https://psikoran.com/assets/meta/og-image.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:locale" content="tr_TR" />
@@ -64,7 +61,7 @@
   <meta property="twitter:url" content="https://psikoran.com" />
   <meta property="twitter:title" content="PsikoRan - Profesyonel Danışmanlık Merkezi" />
   <meta property="twitter:description" content="Psikologlar ve danışanlar için profesyonel danışmanlık ve randevu yönetim sistemi" />
-  <meta property="twitter:image" content="https://psikoran.com/assets/pwa/logo_2-512x512.png" />
+  <meta property="twitter:image" content="https://psikoran.com/assets/meta/og-image.jpg" />
   
   <!-- Robots -->
   <meta name="robots" content="index, follow" />
@@ -73,71 +70,10 @@
   <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
   <link rel="sitemap-html" type="text/html" href="/assets/pages/sitemap.html" />
   
-  <!-- Apple PWA Meta -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="PsikoRan" />
-  <meta name="application-name" content="PsikoRan" />
-  <meta name="msapplication-TileColor" content="#4f46e5" />
-  <meta name="msapplication-config" content="assets/meta/config/browserconfig.xml" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="format-detection" content="telephone=no" />
-  
   <title>PsikoRan - Profesyonel Danışmanlık ve Randevu Yönetim Sistemi</title>
-  
-  <!-- Servis worker cache temizleme -->
-  <script src="/clear-cache.js"></script>
   
   <!-- Otomatik tarayıcı yönlendirmesi -->
   <script>
-    // Servis worker kayıt işlemini kontrollü yapma
-    if ('serviceWorker' in navigator) {
-      // Sayfa tam yüklendikten sonra kaydet
-      window.addEventListener('load', async function() {
-        try {
-          // Service worker'ı kaydet
-          const registration = await navigator.serviceWorker.register('/assets/pwa/sw.js', { 
-            scope: '/',
-            updateViaCache: 'none' // Cache'den güncelleme yapılmasını engelle
-          });
-          console.log('ServiceWorker kayıt başarılı: ', registration.scope);
-        } catch (err) {
-          console.error('ServiceWorker kayıt başarısız: ', err);
-        }
-      });
-    }
-
-    // Çevrimdışı/çevrimiçi durumu değiştiğinde kullanıcıya bilgi ver
-    window.addEventListener('online', function() {
-      console.log('Çevrimiçi oldunuz!');
-      if (document.getElementById('offlineAlert')) {
-        document.getElementById('offlineAlert').style.display = 'none';
-      }
-    });
-
-    window.addEventListener('offline', function() {
-      console.log('Çevrimdışı oldunuz!');
-      // Çevrimdışı olduğunda gösterilen bildirimi oluştur
-      if (!document.getElementById('offlineAlert')) {
-        var offlineDiv = document.createElement('div');
-        offlineDiv.id = 'offlineAlert';
-        offlineDiv.style.position = 'fixed';
-        offlineDiv.style.bottom = '20px';
-        offlineDiv.style.left = '50%';
-        offlineDiv.style.transform = 'translateX(-50%)';
-        offlineDiv.style.backgroundColor = '#ef4444';
-        offlineDiv.style.color = 'white';
-        offlineDiv.style.padding = '10px 20px';
-        offlineDiv.style.borderRadius = '8px';
-        offlineDiv.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-        offlineDiv.style.zIndex = '9999';
-        offlineDiv.textContent = 'Çevrimdışı moddasınız. Bazı özellikler sınırlı olabilir.';
-        document.body.appendChild(offlineDiv);
-      } else {
-        document.getElementById('offlineAlert').style.display = 'block';
-      }
-    });
-
     // Google Analytics veya harici kaynaklardan gelen kullanıcıları yönlendirme
     window.addEventListener('DOMContentLoaded', function() {
       const isFromGoogleSearch = document.referrer.includes('google.com') || 

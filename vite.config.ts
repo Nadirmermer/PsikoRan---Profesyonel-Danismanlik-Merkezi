@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { VitePWA } from 'vite-plugin-pwa';
 import { resolve } from 'path';
 import fs from 'fs';
 import { execSync } from 'child_process';
@@ -21,12 +20,6 @@ const copyAssetsPlugin = () => {
     closeBundle: () => {
       // public klasöründen dist klasörüne dosyaları kopyala
       try {
-        // clear-cache.js dosyasını kopyala
-        if (fs.existsSync('public/clear-cache.js')) {
-          fs.copyFileSync('public/clear-cache.js', 'dist/clear-cache.js');
-          console.log('clear-cache.js dosyası dist klasörüne kopyalandı');
-        }
-
         // assets klasörünü kopyala (varsa)
         if (fs.existsSync('public/assets')) {
           copyRecursiveSync('public/assets', 'dist/assets');
@@ -75,106 +68,6 @@ export default defineConfig({
   base: '/',
   plugins: [
     react(),
-    VitePWA({ 
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
-      manifest: {
-        name: 'PsikoRan - Profesyonel Danışmanlık Merkezi',
-        short_name: 'PsikoRan',
-        description: 'Psikologlar ve danışanlar için profesyonel danışmanlık yönetim sistemi.',
-        theme_color: '#4f46e5',
-        background_color: '#ffffff',
-        display: 'standalone',
-        icons: [
-          {
-            src: 'assets/pwa/logo_2-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'assets/pwa/logo_2-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: 'assets/pwa/logo_2-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'maskable'
-          },
-          {
-            src: 'assets/pwa/logo_2-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable'
-          }
-        ],
-        start_url: '.',
-        orientation: 'portrait',
-        categories: ['business', 'health', 'productivity'],
-        screenshots: [
-          {
-            src: 'assets/screenshots/1.jpg',
-            sizes: '1080x1920',
-            type: 'image/jpeg'
-          },
-          {
-            src: 'assets/screenshots/2.jpg',
-            sizes: '1080x1920',
-            type: 'image/jpeg'
-          }
-        ]
-      },
-      workbox: {
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB olarak ayarla
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,ttf,woff,woff2}'],
-        dontCacheBustURLsMatching: /\.\w{8}\./,
-        runtimeCaching: [
-          {
-            urlPattern: /\.(ico|png|svg|jpg|jpeg)$/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'images-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 30 * 24 * 60 * 60 // 30 gün
-              }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*$/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              networkTimeoutSeconds: 10,
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 24 * 60 * 60 // 1 gün
-              }
-            }
-          },
-          // API çağrıları için ayrı önbellek stratejisi
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*$/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              networkTimeoutSeconds: 10,
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 24 * 60 * 60 // 1 gün
-              }
-            }
-          }
-        ],
-        // Çakışan önbellek girişlerini önlemek için ek ayarlar
-        skipWaiting: true,
-        clientsClaim: true,
-        cleanupOutdatedCaches: true,
-        // Sadece HTML sayfalarını önceden önbelleğe alma
-        navigationPreload: true
-      }
-    }),
     copyAssetsPlugin() // Dosya kopyalama eklentisini ekle
   ],
   server: {

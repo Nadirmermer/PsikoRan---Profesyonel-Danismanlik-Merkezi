@@ -14,13 +14,10 @@ import { Layout } from './components/Layout';
 import { ThemeProvider } from './lib/theme';
 import { AnimatePresence } from 'framer-motion';
 import { AppLoader } from './components/AppLoader';
-import { OfflineIndicator } from './components/OfflineIndicator';
-import { PWAPrompts } from './components/PWAPrompts';
 import { CookieBanner } from './components/CookieBanner';
 import { checkUpcomingAppointments } from './utils/notificationUtils';
 import { useAuth } from './lib/auth';
 import { useTheme } from './lib/theme';
-import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { SubscriptionProvider } from './components/payment/SubscriptionContext';
 
 // React Router v7 için future flag'leri
@@ -72,21 +69,24 @@ function AnimatedRoutes() {
   useEffect(() => {
     if (!user) return;
 
+    // Randevu kontrolü yapmak için yardımcı fonksiyon
+    const checkAppointments = () => {
+      try {
+        if (professional) {
+          checkUpcomingAppointments(professional.id, 'professional');
+        } else if (assistant) {
+          checkUpcomingAppointments(assistant.id, 'assistant');
+        }
+      } catch (error) {
+        console.error('Randevu kontrolü sırasında hata oluştu:', error);
+      }
+    };
+
     // İlk kontrolü yap
-    if (professional) {
-      checkUpcomingAppointments(professional.id, 'professional');
-    } else if (assistant) {
-      checkUpcomingAppointments(assistant.id, 'assistant');
-    }
+    checkAppointments();
 
     // Her 15 dakikada bir kontrol et
-    const checkInterval = setInterval(() => {
-      if (professional) {
-        checkUpcomingAppointments(professional.id, 'professional');
-      } else if (assistant) {
-        checkUpcomingAppointments(assistant.id, 'assistant');
-      }
-    }, 15 * 60 * 1000); // 15 dakika
+    const checkInterval = setInterval(checkAppointments, 15 * 60 * 1000); // 15 dakika
 
     return () => {
       clearInterval(checkInterval);
@@ -215,7 +215,6 @@ export function App() {
   const { user } = useAuth();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [pwaInstallReady, setPwaInstallReady] = useState(false);
 
   // Uygulama başlatma
   useEffect(() => {
@@ -244,19 +243,12 @@ export function App() {
         setIsInitialLoading(false);
         // Global loading state'ini de kapat
         setTimeout(() => setIsLoading(false), 800);
-
-        // PWA kurulum durumunu kontrol et
-        const standalone = window.matchMedia('(display-mode: standalone)').matches;
-        // PWA yüklü değilse ve kullanıcı daha önce hatırlatıcıyı kapatmadıysa
-        if (!standalone && localStorage.getItem('pwa_install_dismissed') !== 'true') {
-          // PWA yükleme hatırlatıcısı gösterme zamanını ayarla
-          setTimeout(() => setPwaInstallReady(true), 5000);
-        }
       }
     };
 
+    // Uygulamayı başlat
     initApp();
-  }, [initializeTheme]);
+  }, []);
 
   // Kullanıcı oturum açtığında temayı yeniden başlat
   useEffect(() => {
@@ -268,24 +260,20 @@ export function App() {
 
   return (
     <SubscriptionProvider>
-      <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
-        <Router future={{ v7_startTransition, v7_relativeSplatPath }}>
-          {isInitialLoading ? (
-            <AppLoader />
-          ) : (
-            <>
-              {isLoading && <AppLoader />}
-              <OfflineIndicator />
-              <PWAPrompts />
-              <CookieBanner />
-              <Suspense>
+      <Router>
+        <ThemeProvider>
+          <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
+            {isInitialLoading ? (
+              <AppLoader />
+            ) : (
+              <>
                 <AnimatedRoutes />
-              </Suspense>
-              {pwaInstallReady && <PWAInstallPrompt />}
-            </>
-          )}
-        </Router>
-      </LoadingContext.Provider>
+                <CookieBanner />
+              </>
+            )}
+          </LoadingContext.Provider>
+        </ThemeProvider>
+      </Router>
     </SubscriptionProvider>
   );
 }

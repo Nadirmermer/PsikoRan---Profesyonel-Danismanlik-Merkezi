@@ -23,7 +23,6 @@ Disallow: /api/
 
 # Özel dosya ve dizinler
 Disallow: /*.json$
-Disallow: /assets/pwa/sw.js
 Disallow: /*.js.map$
 Disallow: /*.css.map$
 

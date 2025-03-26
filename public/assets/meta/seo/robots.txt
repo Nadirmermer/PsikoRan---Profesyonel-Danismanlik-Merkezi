@@ -6,8 +6,6 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 Disallow: /*.json$
-Disallow: /assets/pwa/sw.js
-Disallow: /assets/pages/offline.html
 
 # Sitemap URL
 Sitemap: https://psikoran.com/sitemap.xml

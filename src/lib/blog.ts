@@ -196,7 +196,7 @@ export function generateBlogJsonLd(post: BlogPost, baseUrl: string = 'https://ps
       "name": "PsikoRan",
       "logo": {
         "@type": "ImageObject",
-        "url": `${baseUrl}/assets/pwa/logo_2-192x192.png`
+        "url": `${baseUrl}/assets/meta/logo.png`
       }
     },
     "url": `${baseUrl}/blog/${post.slug}`,

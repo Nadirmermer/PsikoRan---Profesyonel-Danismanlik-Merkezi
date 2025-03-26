@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node -e \"require('fs').copyFileSync('public/_redirects', 'dist/_redirects'); require('fs').copyFileSync('public/assets/meta/seo/robots.txt', 'dist/robots.txt'); require('fs').copyFileSync('public/manifest.json', 'dist/manifest.json'); require('fs').mkdirSync('dist/assets/pages', { recursive: true }); require('fs').copyFileSync('public/assets/pages/sitemap.html', 'dist/assets/pages/sitemap.html');\"",
+    "build": "vite build && node -e \"require('fs').copyFileSync('public/_redirects', 'dist/_redirects'); require('fs').copyFileSync('public/assets/meta/seo/robots.txt', 'dist/robots.txt'); require('fs').mkdirSync('dist/assets/pages', { recursive: true }); require('fs').copyFileSync('public/assets/pages/sitemap.html', 'dist/assets/pages/sitemap.html');\"",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -77,23 +77,28 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
+    "@fullhuman/postcss-purgecss": "^7.0.2",
     "@types/node": "^22.13.10",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.21",
+    "cssnano": "^7.0.6",
     "eslint": "^9.9.1",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.11",
     "globals": "^15.9.0",
+    "imagemin-webp": "^8.0.0",
     "postcss": "^8.4.35",
     "postcss-preset-env": "^10.1.5",
+    "rollup-plugin-visualizer": "^5.14.0",
+    "sharp": "^0.33.5",
     "supabase": "^2.19.7",
     "tailwindcss": "^3.4.17",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.3.0",
     "vite": "^6.2.1",
-    "vite-plugin-pwa": "^0.21.1"
+    "webp-converter": "^2.3.3"
   }
 }

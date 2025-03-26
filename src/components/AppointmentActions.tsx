@@ -27,9 +27,10 @@ interface AppointmentActionsProps {
     status: string;
   };
   onAddNote?: () => void;
+  onJoinMeeting?: () => void;
 }
 
-const AppointmentActions: React.FC<AppointmentActionsProps> = ({ appointment, onAddNote }) => {
+const AppointmentActions: React.FC<AppointmentActionsProps> = ({ appointment, onAddNote, onJoinMeeting }) => {
   const [showShareModal, setShowShareModal] = useState(false);
 
   // Format date to human readable format
@@ -52,9 +53,12 @@ const AppointmentActions: React.FC<AppointmentActionsProps> = ({ appointment, on
     });
   };
 
-  // Görüşmeye katıl - doğrudan yeni sekmede açar
-  const joinMeeting = () => {
-    if (appointment.meeting_url) {
+  // Görüşmeye katıl - dışarıdan gelen callback'i çağırır veya yoksa yeni sekmede açar
+  const handleJoinMeeting = () => {
+    if (onJoinMeeting) {
+      onJoinMeeting();
+    } else if (appointment.meeting_url) {
+      // Fallback olarak yeni sekmede aç
       window.open(appointment.meeting_url, '_blank');
     }
   };
@@ -130,7 +134,7 @@ const AppointmentActions: React.FC<AppointmentActionsProps> = ({ appointment, on
         <div className="mt-6 flex flex-wrap gap-3">
           {canJoinOnline && (
             <button
-              onClick={joinMeeting}
+              onClick={handleJoinMeeting}
               className="flex-1 py-2.5 px-4 flex items-center justify-center space-x-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors duration-200"
             >
               <Video className="h-4 w-4" />
