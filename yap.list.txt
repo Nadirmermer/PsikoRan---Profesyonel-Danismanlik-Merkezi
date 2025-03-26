@@ -11,3 +11,4 @@
 
 online görüşmelerde oda seçimi olursa @dashboard da hangi oda seçildi ise o odada görülmeli ama parantez içinde online olduğu yzmalı. eğer online oda seçimi sonrası oda seçilmediyse yine de @dashboard da görelim ama oda 1, oda 2, oda3, Çevrimiçi oda seklinde olsun
 
+görüşme detayları kısmını düzenlemeliyiz eğer Çevrimiçi görüşme ise orada link falan da olmalı görüşmenin.

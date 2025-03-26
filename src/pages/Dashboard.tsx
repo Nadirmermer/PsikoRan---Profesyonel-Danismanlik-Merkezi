@@ -2654,36 +2654,38 @@ export function Dashboard() {
             </motion.div>
 
             {/* Bugün ve Aylık istatistikler */}
-            <motion.div
+            <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6"
+              className="grid grid-cols-1 md:grid-cols-1 gap-6 mt-6"
             >
-              {/* Gelir grafiği */}
-              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-6">
-                  <LineChart className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
-                  <span>Kasa İstatistikleri</span>
-                </h2>
-                <div className="h-[280px] w-full flex items-center justify-center px-2 pt-1 pb-3">
-                  {revenueChartData ? (
-                    <Line data={revenueChartData} options={lineChartOptions} />
-                  ) : (
-                    <LoadingData />
-                  )}
+              {/* Gelir grafiği - SADECE ASISTANLAR İÇİN */}
+              {assistant && (
+                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-6">
+                    <LineChart className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
+                    <span>Kasa İstatistikleri</span>
+                  </h2>
+                  <div className="h-[280px] w-full flex items-center justify-center px-2 pt-1 pb-3">
+                    {revenueChartData ? (
+                      <Line data={revenueChartData} options={lineChartOptions} />
+                    ) : (
+                      <LoadingData />
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Profesyonel Kazanç İstatistikleri - sadece ruh sağlığı uzmanları için */}
               {professional && (
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
+                <div className="w-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-4">
                     <TurkLiraIcon className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
                     <span>Net Kazanç İstatistikleri</span>
                   </h2>
                   
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
                       <div className="text-sm text-gray-500 dark:text-gray-400">Haftalık Kazanç</div>
                       <div className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
