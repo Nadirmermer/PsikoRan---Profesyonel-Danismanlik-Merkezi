@@ -68,11 +68,6 @@ self.addEventListener('fetch', (event) => {
   if (event.request.url.includes('supabase.co')) {
     return;
   }
-  
-  // Chrome extension isteklerini atlayalım
-  if (event.request.url.startsWith('chrome-extension://')) {
-    return;
-  }
 
   // Görseller için Cache First stratejisi
   if (
@@ -90,10 +85,7 @@ self.addEventListener('fetch', (event) => {
             .then((fetchResponse) => {
               return caches.open(CACHE_NAME)
                 .then((cache) => {
-                  // Sadece HTTP/HTTPS isteklerini önbelleğe alalım
-                  if (event.request.url.startsWith('http')) {
-                    cache.put(event.request, fetchResponse.clone());
-                  }
+                  cache.put(event.request, fetchResponse.clone());
                   return fetchResponse;
                 });
             })
@@ -113,10 +105,7 @@ self.addEventListener('fetch', (event) => {
         const responseToCache = fetchResponse.clone();
         caches.open(CACHE_NAME)
           .then((cache) => {
-            // Sadece HTTP/HTTPS isteklerini önbelleğe alalım
-            if (event.request.url.startsWith('http')) {
-              cache.put(event.request, responseToCache);
-            }
+            cache.put(event.request, responseToCache);
           });
         return fetchResponse;
       })

@@ -11,7 +11,7 @@
     <!-- End Google Tag Manager -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.google-analytics.com https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.emailjs.com https://*.googleapis.com https://*.google-analytics.com https://meet.jit.si wss://meet.jit.si; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://meet.jit.si; font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https://*.supabase.co https://*.amazonaws.com https://*.googleusercontent.com https://meet.jit.si https://*.jitsi.net; frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.google-analytics.com https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.emailjs.com https://*.googleapis.com https://*.google-analytics.com https://meet.jit.si wss://meet.jit.si; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://meet.jit.si; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.supabase.co https://*.amazonaws.com https://*.googleusercontent.com https://meet.jit.si https://*.jitsi.net; frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org;">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -20,7 +20,6 @@
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#4f46e5" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PsikoRan" />
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-152x152.png" sizes="152x152" />
@@ -90,7 +89,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
     <!-- Font yüklemelerini optimize et -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="preload" as="font" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    
+    <!-- Fallback font yüklemesi için -->
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+    </noscript>
     
     <!-- Inline kritik CSS -->
     <style>
