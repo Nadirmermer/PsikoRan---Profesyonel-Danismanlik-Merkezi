@@ -1,6 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { useEffect, useState, Suspense, lazy } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import {
+  Login, Register, Dashboard, CreateAssistant, Professionals, Clients,
+  ClientDetails, Appointments, Payments, Settings, ForgotPassword,
+  ResetPassword, Privacy, Terms, KVKK, Contact, Help, Test, TestCompleted, Home,
+  Blog, BlogAdmin, Features, Pricing, Demo
+} from './pages';
+import { BlogPost } from './pages/BlogPost';
+import AppointmentDetails from './components/AppointmentDetails';
 import { AuthGuard } from './components/AuthGuard';
 import { Layout } from './components/Layout';
 import { ThemeProvider } from './lib/theme';
@@ -13,35 +21,6 @@ import { useAuth } from './lib/auth';
 import { useTheme } from './lib/theme';
 import { SubscriptionProvider } from './components/payment/SubscriptionContext';
 import { listenForNetworkChanges, listenForInstallPrompt, getDisplayMode } from './utils/pwa';
-
-// Tüm sayfaları lazy loading ile yükle
-const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
-const Register = lazy(() => import('./pages/CreateAssistant').then(m => ({ default: m.Register })));
-const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
-const CreateAssistant = lazy(() => import('./pages/CreateAssistant').then(m => ({ default: m.CreateAssistant })));
-const Professionals = lazy(() => import('./pages/Professionals').then(m => ({ default: m.Professionals })));
-const Clients = lazy(() => import('./pages/Clients').then(m => ({ default: m.Clients })));
-const ClientDetails = lazy(() => import('./pages/ClientDetails').then(m => ({ default: m.ClientDetails })));
-const Appointments = lazy(() => import('./pages/Appointments').then(m => ({ default: m.Appointments })));
-const Payments = lazy(() => import('./pages/Payments').then(m => ({ default: m.Payments })));
-const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.default })));
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
-const ResetPassword = lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })));
-const Privacy = lazy(() => import('./pages/Privacy').then(m => ({ default: m.Privacy })));
-const Terms = lazy(() => import('./pages/Terms').then(m => ({ default: m.Terms })));
-const KVKK = lazy(() => import('./pages/KVKK').then(m => ({ default: m.KVKK })));
-const Contact = lazy(() => import('./pages/Contact').then(m => ({ default: m.Contact })));
-const Help = lazy(() => import('./pages/Help').then(m => ({ default: m.Help })));
-const Test = lazy(() => import('./pages/Test').then(m => ({ default: m.Test })));
-const TestCompleted = lazy(() => import('./pages/TestCompleted').then(m => ({ default: m.TestCompleted })));
-const Home = lazy(() => import('./pages/Home').then(m => ({ default: m.Home })));
-const Blog = lazy(() => import('./pages/Blog').then(m => ({ default: m.Blog })));
-const BlogPost = lazy(() => import('./pages/BlogPost').then(m => ({ default: m.BlogPost })));
-const BlogAdmin = lazy(() => import('./pages/BlogAdmin').then(m => ({ default: m.BlogAdmin })));
-const Features = lazy(() => import('./pages/Features').then(m => ({ default: m.Features })));
-const Pricing = lazy(() => import('./pages/Pricing').then(m => ({ default: m.Pricing })));
-const Demo = lazy(() => import('./pages/Demo').then(m => ({ default: m.Demo })));
-const AppointmentDetails = lazy(() => import('./components/AppointmentDetails'));
 
 // React Router v7 için future flag'leri
 const v7_startTransition = true;
@@ -60,9 +39,6 @@ export const PWAContext = React.createContext({
   isInstallPromptShown: false,
   setIsInstallPromptShown: (shown: boolean) => {}
 });
-
-// Basit yükleme göstergesi komponenti
-const PageLoader = () => <div className="loading-spinner" />;
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -130,69 +106,23 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
-        <Route path="/login" element={
-          <Suspense fallback={<PageLoader />}>
-            <Login />
-          </Suspense>
-        } />
-        <Route path="/register" element={
-          <Suspense fallback={<PageLoader />}>
-            <Register />
-          </Suspense>
-        } />
-        <Route path="/create-assistant" element={
-          <Suspense fallback={<PageLoader />}>
-            <CreateAssistant />
-          </Suspense>
-        } />
-        <Route path="/forgot-password" element={
-          <Suspense fallback={<PageLoader />}>
-            <ForgotPassword />
-          </Suspense>
-        } />
-        <Route path="/reset-password" element={
-          <Suspense fallback={<PageLoader />}>
-            <ResetPassword />
-          </Suspense>
-        } />
-        <Route path="/" element={
-          <Suspense fallback={<PageLoader />}>
-            <Home />
-          </Suspense>
-        } />
-        <Route path="/features" element={
-          <Suspense fallback={<PageLoader />}>
-            <Features />
-          </Suspense>
-        } />
-        <Route path="/pricing" element={
-          <Suspense fallback={<PageLoader />}>
-            <Pricing />
-          </Suspense>
-        } />
-        <Route path="/demo" element={
-          <Suspense fallback={<PageLoader />}>
-            <Demo />
-          </Suspense>
-        } />
-        <Route path="/blog" element={
-          <Suspense fallback={<PageLoader />}>
-            <Blog />
-          </Suspense>
-        } />
-        <Route path="/blog/:slug" element={
-          <Suspense fallback={<PageLoader />}>
-            <BlogPost />
-          </Suspense>
-        } />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/create-assistant" element={<CreateAssistant />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/features" element={<Features />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/demo" element={<Demo />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/blog/:slug" element={<BlogPost />} />
         <Route
           path="/dashboard"
           element={
             <AuthGuard>
               <Layout>
-                <Suspense fallback={<PageLoader />}>
-                  <Dashboard />
-                </Suspense>
+                <Dashboard />
               </Layout>
             </AuthGuard>
           }
@@ -202,9 +132,7 @@ function AnimatedRoutes() {
           element={
             <AuthGuard requireAssistant>
               <Layout>
-                <Suspense fallback={<PageLoader />}>
-                  <Professionals />
-                </Suspense>
+                <Professionals />
               </Layout>
             </AuthGuard>
           }
@@ -214,9 +142,7 @@ function AnimatedRoutes() {
           element={
             <AuthGuard>
               <Layout>
-                <Suspense fallback={<PageLoader />}>
-                  <Clients />
-                </Suspense>
+                <Clients />
               </Layout>
             </AuthGuard>
           }
@@ -226,9 +152,7 @@ function AnimatedRoutes() {
           element={
             <AuthGuard>
               <Layout>
-                <Suspense fallback={<PageLoader />}>
-                  <ClientDetails />
-                </Suspense>
+                <ClientDetails />
               </Layout>
             </AuthGuard>
           }
@@ -238,9 +162,7 @@ function AnimatedRoutes() {
           element={
             <AuthGuard>
               <Layout>
-                <Suspense fallback={<PageLoader />}>
-                  <Appointments />
-                </Suspense>
+                <Appointments />
               </Layout>
             </AuthGuard>
           }
@@ -250,9 +172,7 @@ function AnimatedRoutes() {
           element={
             <AuthGuard>
               <Layout>
-                <Suspense fallback={<PageLoader />}>
-                  <AppointmentDetails />
-                </Suspense>
+                <AppointmentDetails />
               </Layout>
             </AuthGuard>
           }
@@ -262,9 +182,7 @@ function AnimatedRoutes() {
           element={
             <AuthGuard>
               <Layout>
-                <Suspense fallback={<PageLoader />}>
-                  <Payments />
-                </Suspense>
+                <Payments />
               </Layout>
             </AuthGuard>
           }
@@ -274,9 +192,7 @@ function AnimatedRoutes() {
           element={
             <AuthGuard>
               <Layout>
-                <Suspense fallback={<PageLoader />}>
-                  <Settings />
-                </Suspense>
+                <Settings />
               </Layout>
             </AuthGuard>
           }
@@ -286,53 +202,19 @@ function AnimatedRoutes() {
           element={
             <AuthGuard>
               <Layout>
-                <Suspense fallback={<PageLoader />}>
-                  <BlogAdmin />
-                </Suspense>
+                <BlogAdmin />
               </Layout>
             </AuthGuard>
           }
         />
-        <Route path="/test/:testId/:clientId" element={
-          <Suspense fallback={<PageLoader />}>
-            <Test />
-          </Suspense>
-        } />
-        <Route path="/public-test/:token" element={
-          <Suspense fallback={<PageLoader />}>
-            <Test />
-          </Suspense>
-        } />
-        <Route path="/test-completed" element={
-          <Suspense fallback={<PageLoader />}>
-            <TestCompleted />
-          </Suspense>
-        } />
-        <Route path="/privacy" element={
-          <Suspense fallback={<PageLoader />}>
-            <Privacy />
-          </Suspense>
-        } />
-        <Route path="/terms" element={
-          <Suspense fallback={<PageLoader />}>
-            <Terms />
-          </Suspense>
-        } />
-        <Route path="/kvkk" element={
-          <Suspense fallback={<PageLoader />}>
-            <KVKK />
-          </Suspense>
-        } />
-        <Route path="/contact" element={
-          <Suspense fallback={<PageLoader />}>
-            <Contact />
-          </Suspense>
-        } />
-        <Route path="/help" element={
-          <Suspense fallback={<PageLoader />}>
-            <Help />
-          </Suspense>
-        } />
+        <Route path="/test/:testId/:clientId" element={<Test />} />
+        <Route path="/public-test/:token" element={<Test />} />
+        <Route path="/test-completed" element={<TestCompleted />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/kvkk" element={<KVKK />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/help" element={<Help />} />
       </Routes>
     </AnimatePresence>
   );
@@ -362,43 +244,88 @@ export function App() {
         
         // PWA yükleme olayını dinlemeye başla
         listenForInstallPrompt();
+
+        // Google aramalarından gelen ziyaretçileri ana sayfaya yönlendir
+        const isFromExternalSource = document.referrer && 
+          (document.referrer.includes('google.com') || 
+           document.referrer.includes('google.com.tr') ||
+           document.referrer.includes('bing.com') ||
+           document.referrer.includes('yandex.com') ||
+           !document.referrer.includes(window.location.hostname));
         
-        // Çevrimiçi durumu dinle
-        listenForNetworkChanges(setIsOnline);
+        const isLoginPage = window.location.pathname === '/login';
         
-        // Sonunda yüklemeyi tamamla
-        setIsInitialLoading(false);
+        if (isLoginPage && isFromExternalSource) {
+          window.history.replaceState({}, '', '/');
+        }
       } catch (error) {
-        console.error('Uygulama başlatılırken bir hata oluştu:', error);
+        console.error('Tema başlatılamadı:', error);
+      } finally {
+        // Yükleme durumlarını güncelle
         setIsInitialLoading(false);
+        // Global loading state'ini de kapat
+        setTimeout(() => setIsLoading(false), 800);
       }
     };
 
+    // Uygulamayı başlat
     initApp();
-  }, [initializeTheme]);
+    
+    // Çevrimiçi/Çevrimdışı dinleyicileri
+    const cleanup = listenForNetworkChanges(
+      () => {
+        setIsOnline(true);
+        console.log('Çevrimiçi duruma geçildi');
+      },
+      () => {
+        setIsOnline(false);
+        console.log('Çevrimdışı duruma geçildi');
+      }
+    );
+
+    return () => cleanup();
+  }, []);
+
+  // Kullanıcı oturum açtığında temayı yeniden başlat
+  useEffect(() => {
+    if (user) {
+      // Kullanıcı giriş yaptığında tema tercihlerini yeniden uygula
+      initializeTheme();
+    }
+  }, [user, initializeTheme]);
 
   return (
-    <ThemeProvider>
-      <SubscriptionProvider>
-        <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
-          <PWAContext.Provider value={{ 
-            isOnline, 
-            isPWA, 
-            isInstallPromptShown, 
-            setIsInstallPromptShown
-          }}>
-            <Router>
-              {isInitialLoading ? <AppLoader /> : (
+    <SubscriptionProvider>
+      <Router>
+        <ThemeProvider>
+          <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
+            <PWAContext.Provider 
+              value={{ 
+                isOnline, 
+                isPWA, 
+                isInstallPromptShown, 
+                setIsInstallPromptShown 
+              }}
+            >
+              {isInitialLoading ? (
+                <AppLoader />
+              ) : (
                 <>
                   <AnimatedRoutes />
+                  {!isInstallPromptShown && !isPWA && (
+                    <div className="fixed bottom-0 left-0 right-0 z-50">
+                      <PWAInstallPrompt 
+                        className="m-4" 
+                      />
+                    </div>
+                  )}
                   <CookieBanner />
-                  {!isPWA && <PWAInstallPrompt />}
                 </>
               )}
-            </Router>
-          </PWAContext.Provider>
-        </LoadingContext.Provider>
-      </SubscriptionProvider>
-    </ThemeProvider>
+            </PWAContext.Provider>
+          </LoadingContext.Provider>
+        </ThemeProvider>
+      </Router>
+    </SubscriptionProvider>
   );
 }

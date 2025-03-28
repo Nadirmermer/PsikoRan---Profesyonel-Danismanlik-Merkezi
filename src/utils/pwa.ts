@@ -115,14 +115,15 @@ export const isOnline = (): boolean => {
  * Ağ durumu değişikliklerini takip et
  */
 export const listenForNetworkChanges = (
-  setIsOnline: (isOnline: boolean) => void
+  onOnline: () => void, 
+  onOffline: () => void
 ): () => void => {
   const handleOnline = () => {
-    setIsOnline(true);
+    onOnline();
   };
   
   const handleOffline = () => {
-    setIsOnline(false);
+    onOffline();
   };
   
   window.addEventListener('online', handleOnline);

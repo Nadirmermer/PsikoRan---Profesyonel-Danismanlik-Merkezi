@@ -360,36 +360,42 @@ export async function sendNotification(
 }
 
 // Yaklaşan randevuları kontrol et ve bildirim gönder
-export async function checkUpcomingAppointments() {
+export async function checkUpcomingAppointments(userId?: string, userType?: 'professional' | 'assistant' | 'client') {
   try {
-    // Kullanıcı oturum açmış mı kontrol et
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      console.log('Oturum açılmamış, randevu kontrolü yapılmıyor.');
-      return;
-    }
+    // Parametrelerle verilmemişse, oturum açmış kullanıcı bilgilerini kullan
+    let currentUserId = userId;
+    let currentUserType = userType;
 
-    const userId = session.user.id;
-    
-    // Kullanıcı bilgilerini al
-    const { data: userData, error: userError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    if (!currentUserId || !currentUserType) {
+      // Kullanıcı oturum açmış mı kontrol et
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('Oturum açılmamış, randevu kontrolü yapılmıyor.');
+        return;
+      }
+
+      currentUserId = session.user.id;
       
-    if (userError) {
-      console.error('Kullanıcı bilgileri alınırken hata:', userError);
-      return;
+      // Kullanıcı bilgilerini al
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUserId)
+        .single();
+        
+      if (userError) {
+        console.error('Kullanıcı bilgileri alınırken hata:', userError);
+        return;
+      }
+      
+      currentUserType = userData.user_type;
     }
-    
-    const userType = userData.user_type;
     
     // Bildirim tercihlerini al
     const { data: prefData, error: prefError } = await supabase
       .from('notification_preferences')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', currentUserId)
       .single();
       
     if (prefError && prefError.code !== 'PGRST116') {
@@ -420,16 +426,16 @@ export async function checkUpcomingAppointments() {
         client:client_id (name, surname)
       `);
       
-    if (userType === 'professional') {
-      query = query.eq('professional_id', userId);
-    } else if (userType === 'client') {
-      query = query.eq('client_id', userId);
-    } else if (userType === 'assistant') {
+    if (currentUserType === 'professional') {
+      query = query.eq('professional_id', currentUserId);
+    } else if (currentUserType === 'client') {
+      query = query.eq('client_id', currentUserId);
+    } else if (currentUserType === 'assistant') {
       // Asistanlar için ilgili profesyonel randevularını kontrol et
       const { data: assistantData } = await supabase
         .from('assistants')
         .select('professional_id')
-        .eq('id', userId)
+        .eq('id', currentUserId)
         .single();
         
       if (assistantData) {
@@ -459,16 +465,16 @@ export async function checkUpcomingAppointments() {
       ) {
         const notificationData = createAppointmentNotification(
           appointment, 
-          userType, 
+          currentUserType, 
           '30 dakika'
         );
         
         await sendNotification(
-          userId,
+          currentUserId,
           notificationData.title,
           notificationData.body,
           { url: `/appointments/${appointment.id}`, appointmentId: appointment.id },
-          userType
+          currentUserType
         );
       }
       
@@ -480,16 +486,16 @@ export async function checkUpcomingAppointments() {
       ) {
         const notificationData = createAppointmentNotification(
           appointment, 
-          userType, 
+          currentUserType, 
           '1 saat'
         );
         
         await sendNotification(
-          userId,
+          currentUserId,
           notificationData.title,
           notificationData.body,
           { url: `/appointments/${appointment.id}`, appointmentId: appointment.id },
-          userType
+          currentUserType
         );
       }
       
@@ -501,16 +507,16 @@ export async function checkUpcomingAppointments() {
       ) {
         const notificationData = createAppointmentNotification(
           appointment, 
-          userType, 
+          currentUserType, 
           '1 gün'
         );
         
         await sendNotification(
-          userId,
+          currentUserId,
           notificationData.title,
           notificationData.body,
           { url: `/appointments/${appointment.id}`, appointmentId: appointment.id },
-          userType
+          currentUserType
         );
       }
     }
@@ -524,7 +530,7 @@ export async function checkUpcomingAppointments() {
 // Bildirim içeriği oluştur
 function createAppointmentNotification(
   appointment: any,
-  userType: string,
+  userType: string | undefined,
   timeFrame: string
 ) {
   const appointmentDate = format(

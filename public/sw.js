@@ -25,6 +25,19 @@ const FILES_TO_CACHE = [
   '/assets/icons/apple-touch-icon-180x180.png'
 ];
 
+// Desteklenen URL şemaları
+const SUPPORTED_SCHEMES = ['http', 'https'];
+
+// URL şemasını kontrol et
+function isValidScheme(url) {
+  try {
+    const urlObj = new URL(url);
+    return SUPPORTED_SCHEMES.includes(urlObj.protocol.replace(':', ''));
+  } catch (e) {
+    return false;
+  }
+}
+
 // Service Worker kurulumu
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -59,6 +72,11 @@ self.addEventListener('activate', (event) => {
 
 // Fetch olayı - önbellek stratejisi
 self.addEventListener('fetch', (event) => {
+  // URL şeması desteklenmiyorsa işlemi pas geç
+  if (!isValidScheme(event.request.url)) {
+    return;
+  }
+
   // API isteklerini atlayalım
   if (event.request.url.includes('/api/')) {
     return;
@@ -67,6 +85,19 @@ self.addEventListener('fetch', (event) => {
   // Supabase isteklerini atlayalım
   if (event.request.url.includes('supabase.co')) {
     return;
+  }
+
+  // Navigation preload'ı beklemek için waitUntil kullanımı
+  if (event.request.mode === 'navigate' && event.preloadResponse) {
+    event.waitUntil(
+      event.preloadResponse.then((preloadResponse) => {
+        if (preloadResponse) {
+          return preloadResponse;
+        }
+      }).catch((error) => {
+        console.error('Preload response error:', error);
+      })
+    );
   }
 
   // Görseller için Cache First stratejisi
@@ -83,11 +114,15 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           return response || fetch(event.request)
             .then((fetchResponse) => {
-              return caches.open(CACHE_NAME)
-                .then((cache) => {
-                  cache.put(event.request, fetchResponse.clone());
-                  return fetchResponse;
-                });
+              // Sadece geçerli şemalar için cache.put işlemi yap
+              if (isValidScheme(event.request.url)) {
+                return caches.open(CACHE_NAME)
+                  .then((cache) => {
+                    cache.put(event.request, fetchResponse.clone());
+                    return fetchResponse;
+                  });
+              }
+              return fetchResponse;
             })
             .catch(() => {
               return caches.match('/offline.html');
@@ -101,12 +136,14 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((fetchResponse) => {
-        // Başarılı yanıtı önbelleğe alalım
-        const responseToCache = fetchResponse.clone();
-        caches.open(CACHE_NAME)
-          .then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+        // Başarılı yanıtı önbelleğe alalım (sadece geçerli şemalar için)
+        if (isValidScheme(event.request.url)) {
+          const responseToCache = fetchResponse.clone();
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+        }
         return fetchResponse;
       })
       .catch(() => {

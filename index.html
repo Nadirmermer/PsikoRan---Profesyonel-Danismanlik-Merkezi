@@ -11,7 +11,7 @@
     <!-- End Google Tag Manager -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.google-analytics.com https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.emailjs.com https://*.googleapis.com https://*.google-analytics.com https://meet.jit.si wss://meet.jit.si; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://meet.jit.si; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.supabase.co https://*.amazonaws.com https://*.googleusercontent.com https://meet.jit.si https://*.jitsi.net; frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.google-analytics.com https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.emailjs.com https://*.googleapis.com https://*.google-analytics.com https://meet.jit.si wss://meet.jit.si; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://meet.jit.si; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://*.supabase.co https://*.amazonaws.com https://*.googleusercontent.com https://meet.jit.si https://*.jitsi.net; frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org;">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -20,6 +20,7 @@
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#4f46e5" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PsikoRan" />
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-152x152.png" sizes="152x152" />
@@ -121,6 +122,34 @@
         top: 0;
         left: 0;
         z-index: 9999;
+        opacity: 1;
+        transition: opacity 0.5s ease-in-out;
+      }
+      .loading-indicator.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .loading-indicator::after {
+        content: "";
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e5e7eb;
+        border-top: 3px solid #4f46e5;
+        border-radius: 50%;
+        animation: spinner 1s linear infinite;
+      }
+      @keyframes spinner {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @media (prefers-color-scheme: dark) {
+        .loading-indicator {
+          background-color: #1f2937;
+        }
+        .loading-indicator::after {
+          border-color: #374151;
+          border-top-color: #6366f1;
+        }
       }
     </style>
   </head>
@@ -131,8 +160,8 @@
     <!-- End Google Tag Manager (noscript) -->
     <div id="root">
       <!-- İlk yükleme göstergesi -->
-      <div class="loading-indicator">
-        <p>Yükleniyor...</p>
+      <div id="initialLoadingIndicator" class="loading-indicator">
+        <!-- Yükleme spinner'ı CSS ile oluşturuluyor -->
       </div>
     </div>
     
@@ -166,6 +195,21 @@
           document.getElementById('offline-message').style.display = 'block';
         });
       }
+      
+      // React uygulaması yüklendiğinde başlangıç yükleme göstergesini kaldır
+      window.addEventListener('load', () => {
+        // React uygulaması yüklendikten sonra göstergeyi kaldırmak için timeout ekleyelim
+        setTimeout(() => {
+          const loadingIndicator = document.getElementById('initialLoadingIndicator');
+          if (loadingIndicator) {
+            loadingIndicator.classList.add('hidden');
+            // Animasyon bittikten sonra tamamen kaldır
+            setTimeout(() => {
+              loadingIndicator.remove();
+            }, 500);
+          }
+        }, 1000); // 1 saniye beklet, React'ın yüklenmesi için yeterli olacaktır
+      });
     </script>
   </body>
 </html>

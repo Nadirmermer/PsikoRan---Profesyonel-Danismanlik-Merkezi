@@ -3,19 +3,47 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import ErrorBoundary from './components/ErrorBoundary';
 
-// Rotalara göre lazy loading ile yükle, ana uygulama daha küçük parçalara bölünsün
-const App = lazy(() => import('./App').then(module => ({ 
-  default: module.App 
-})));
+// Ana uygulamayı lazy loading ile yükle
+const App = lazy(() => import('./App').then(module => ({ default: module.App })));
 
-// Daha minimal yükleme göstergesi
-const LoadingFallback = () => <div className="loading-spinner" />;
+// Yükleme göstergesi için basit komponent
+const LoadingFallback = () => <div style={{ 
+  display: 'flex', 
+  justifyContent: 'center', 
+  alignItems: 'center', 
+  height: '100vh',
+  fontFamily: 'system-ui, sans-serif',
+}}>Yükleniyor...</div>;
 
-// Daha basit hata mesajı
+// Hata mesajı için fallback komponent
 const ErrorFallback = () => (
-  <div className="error-container">
-    <h2>Bir şeyler yanlış gitti</h2>
-    <button onClick={() => window.location.reload()}>Sayfayı Yenile</button>
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh',
+    fontFamily: 'system-ui, sans-serif',
+    color: '#e53e3e',
+    textAlign: 'center',
+    padding: '2rem',
+  }}>
+    <h2 style={{ marginBottom: '1rem', fontSize: '1.5rem' }}>Üzgünüz, bir şeyler yanlış gitti</h2>
+    <p style={{ marginBottom: '2rem', color: '#555' }}>Lütfen sayfayı yenileyin veya daha sonra tekrar deneyin.</p>
+    <button 
+      onClick={() => window.location.reload()}
+      style={{
+        backgroundColor: '#4f46e5',
+        color: 'white',
+        border: 'none',
+        padding: '0.75rem 1.5rem',
+        borderRadius: '0.375rem',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+      }}
+    >
+      Sayfayı Yenile
+    </button>
   </div>
 );
 
