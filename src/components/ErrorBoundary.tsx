@@ -24,13 +24,8 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Hata detaylarını loglayabilir veya bir hata izleme servisine gönderebilirsiniz
+    // Hata detaylarını loglayabilirsiniz
     console.error('ErrorBoundary hatayı yakaladı:', error, errorInfo);
-    
-    // Eğer Sentry kuruluysa (ki kurulu), hatayı Sentry'ye de gönderebilirsiniz
-    if (typeof window !== 'undefined' && window.Sentry) {
-      window.Sentry.captureException(error);
-    }
   }
 
   render(): ReactNode {
@@ -66,15 +61,6 @@ class ErrorBoundary extends Component<Props, State> {
     }
 
     return this.props.children; 
-  }
-}
-
-// Global window tipi tanımını genişletelim
-declare global {
-  interface Window {
-    Sentry?: {
-      captureException: (error: Error) => void;
-    };
   }
 }
 
