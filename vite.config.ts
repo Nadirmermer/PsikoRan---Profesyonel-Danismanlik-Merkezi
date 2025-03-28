@@ -66,12 +66,8 @@ export default defineConfig(({ mode }) => {
     base: '/',
     plugins: [
       react({
-        // Veri sayfası daha küçük olması için babel ayarları
-        babel: {
-          plugins: isProd ? [
-            ['transform-remove-console', { exclude: ['error', 'warn'] }]
-          ] : []
-        }
+        // Babel yapılandırmasını kaldırdık çünkü babel-plugin-transform-remove-console paketi eksik
+        // Sadece terser kullanarak console.log'ları kaldıracağız
       }),
       copyAssetsPlugin()
     ],
