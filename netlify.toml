@@ -89,10 +89,13 @@
   package = "netlify-plugin-minify-html"
 
   [plugins.inputs]
-    # Offline sayfasını ve diğer özel sayfaları minify etmeden atla
-    exclude = [
-      "offline.html"
-    ]
+    # Hangi bağlamlar için geçerli olacağını belirt
+    contexts = ["production", "branch-deploy", "deploy-preview"]
+    # HTML minify seçenekleri
+    [plugins.inputs.minifierOptions]
+      removeComments = true
+      collapseWhitespace = true
+      conservativeCollapse = true
 
 [[headers]]
   for = "/images/*"
