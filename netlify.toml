@@ -115,4 +115,11 @@
 [[headers]]
   for = "/service-worker.js"
     [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate" 
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# netlify-plugin-image-optim'i devre dışı bırak
+[[plugins]]
+  package = "netlify-plugin-image-optim"
+  [plugins.inputs]
+    # Devre dışı bırakmak için
+    enabled = false 
