@@ -65,10 +65,34 @@
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.netlify.app https://api.netlify.com; manifest-src 'self'; worker-src 'self'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https: https://www.facebook.com https://www.google-analytics.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.netlify.app https://*.netlify.com https://api.netlify.com https://www.google-analytics.com https://*.supabase.co https://*.psikoran.com; manifest-src 'self'; worker-src 'self' blob:; frame-src 'self' https://meet.jit.si"
 
+[build.processing]
+  skip_processing = false
+  
 [build.processing.html]
   pretty_urls = true
+  
+[build.processing.css]
+  bundle = true
+  minify = true
+  
+[build.processing.js]
+  bundle = true
+  minify = true
+  
+[build.processing.images]
+  compress = true
+
+# HTML Minify Eklentisi için Ayarlar
+[[plugins]]
+  package = "netlify-plugin-minify-html"
+
+  [plugins.inputs]
+    # Offline sayfasını ve diğer özel sayfaları minify etmeden atla
+    exclude = [
+      "offline.html"
+    ]
 
 [[headers]]
   for = "/images/*"

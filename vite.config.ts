@@ -59,55 +59,134 @@ function copyRecursiveSync(src: string, dest: string): void {
 }
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  base: '/',
-  plugins: [
-    react(),
-    copyAssetsPlugin()
-  ],
-  server: {
-    port: 3000,
-    host: true,
-    open: true,
-  },
-  build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-    sourcemap: false,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info', 'console.debug'],
-      },
-      format: {
-        comments: false,
-      }
+export default defineConfig(({ mode }) => {
+  const isProd = mode === 'production';
+  
+  return {
+    base: '/',
+    plugins: [
+      react({
+        // Veri sayfası daha küçük olması için babel ayarları
+        babel: {
+          plugins: isProd ? [
+            ['transform-remove-console', { exclude: ['error', 'warn'] }]
+          ] : []
+        }
+      }),
+      copyAssetsPlugin()
+    ],
+    server: {
+      port: 3000,
+      host: true,
+      open: true,
     },
-    rollupOptions: {
-      output: {
-        // Basit chunk stratejisi
-        manualChunks: {
-          'vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui': ['framer-motion', '@headlessui/react', '@mantine/core', '@mantine/hooks'],
-          'charts': ['chart.js', 'react-chartjs-2'],
-          'editor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-color', '@tiptap/extension-text-style'],
-          'utils': ['date-fns', 'dayjs', 'crypto-js']
+    build: {
+      outDir: 'dist',
+      assetsDir: 'assets',
+      // Production modunda source map'leri etkinleştiriyoruz
+      // Bu, tarayıcı devtools'ta hata ayıklama yapılmasını kolaylaştırır
+      // source map'ler, minifiye edilmiş kodları orijinal kodla eşleştirir
+      sourcemap: isProd ? true : false,
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: isProd ? true : false,
+          drop_debugger: isProd ? true : false,
+          pure_funcs: isProd ? ['console.log', 'console.info', 'console.debug'] : [],
         },
-        entryFileNames: 'assets/[name]-[hash:8].js',
-        chunkFileNames: 'assets/[name]-[hash:8].js',
-        assetFileNames: 'assets/[name]-[hash:8].[ext]'
+        format: {
+          comments: false,
+        }
+      },
+      rollupOptions: {
+        output: {
+          // Daha iyi kod bölme için geliştirilmiş chunk stratejisi
+          manualChunks: (id) => {
+            // Temel node_modules için
+            if (id.includes('node_modules')) {
+              // React ve React DOM tek bir parçada olsun
+              if (id.includes('react/') || id.includes('react-dom/')) {
+                return 'vendor-react';
+              }
+              // Router ayrı bir parçada olsun
+              if (id.includes('react-router-dom/')) {
+                return 'vendor-router';
+              }
+              // UI kütüphaneleri kendi parçalarında olsun
+              if (
+                id.includes('framer-motion') || 
+                id.includes('@headlessui') || 
+                id.includes('@mantine') ||
+                id.includes('@emotion')
+              ) {
+                return 'vendor-ui';
+              }
+              // Editör bileşenlerini ayrı bir parçaya koy
+              if (
+                id.includes('@tiptap/') || 
+                id.includes('prosemirror-') ||
+                id.includes('tinymce') ||
+                id.includes('ckeditor')
+              ) {
+                return 'vendor-editor';
+              }
+              // Grafik ve görselleştirme
+              if (id.includes('chart.js') || id.includes('react-chartjs-2')) {
+                return 'vendor-charts';
+              }
+              // Yardımcı kütüphaneler
+              if (
+                id.includes('date-fns') || 
+                id.includes('dayjs') || 
+                id.includes('crypto-js') ||
+                id.includes('axios')
+              ) {
+                return 'vendor-utils';
+              }
+              // Diğer tüm node_modules
+              return 'vendor-others';
+            }
+            
+            // Özel kodumuz için kategori bazlı bölme
+            if (id.includes('/src/components/')) {
+              return 'components';
+            }
+            if (id.includes('/src/pages/')) {
+              return 'pages';
+            }
+            if (id.includes('/src/lib/') || id.includes('/src/utils/')) {
+              return 'lib';
+            }
+          },
+          // Daha küçük JS dosyaları için modern çıktı formatı ayarları
+          entryFileNames: 'assets/[name]-[hash:8].js',
+          chunkFileNames: 'assets/[name]-[hash:8].js',
+          assetFileNames: 'assets/[name]-[hash:8].[ext]'
+        },
+        // Daha iyi kod bölme için harici modülleri belirt
+        external: [],
+      },
+      chunkSizeWarningLimit: 2500,
+      // Ağ trafiğini azaltmak için agresif optimizasyonlar
+      target: 'es2015',
+      modulePreload: true,
+      reportCompressedSize: false, // Derleme süresini hızlandırmak için
+    },
+    resolve: {
+      alias: {
+        '@': resolve(__dirname, 'src'),
+      },
+    },
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'react-router-dom'],
+      esbuildOptions: {
+        target: 'es2020',
       }
     },
-    chunkSizeWarningLimit: 2500
-  },
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
-    },
-  },
-  optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom'],
-  }
+    // Code splitting ve lazy loading için ek ayarlar
+    esbuild: {
+      target: 'es2020',
+      legalComments: 'none', // Lisans yorumlarını çıktıdan kaldır
+    }
+  };
 });

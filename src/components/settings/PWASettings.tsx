@@ -236,7 +236,7 @@ const PWASettings = () => {
       );
     }
     
-    if (canInstall && !isPWA) {
+    if (!isPWA) {
       return (
         <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
           <div className="flex items-start">
@@ -437,7 +437,7 @@ const PWASettings = () => {
       </div>
       
       {/* Ana Kurulum Butonu - PWA değilse ve kurulabiliyorsa göster */}
-      {!isPWA && canInstall && (
+      {!isPWA && (
         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 flex items-center justify-between">
           <div className="flex items-center">
             <div className="flex-shrink-0 bg-blue-100 dark:bg-blue-800/30 p-2 rounded-full">
@@ -558,13 +558,24 @@ const PWASettings = () => {
           <div className="px-4 py-5 sm:p-6">
             <h3 className="text-base font-medium text-slate-900 dark:text-white mb-4 flex items-center">
               <Bell className="h-5 w-5 mr-2 text-primary-500 dark:text-primary-400" />
-              Bildirim Ayarları
+              Bildirim Ayarları {!isPWA && <span className="ml-2 text-xs font-normal px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">PWA Kurulabilir</span>}
             </h3>
             
             <div className="mb-4">
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 PsikoRan'dan randevu hatırlatıcıları, mesajlar ve diğer önemli bilgileri alabilmeniz için bildirim izinlerini etkinleştirin.
               </p>
+              
+              {!isPWA && (
+                <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-100 dark:border-blue-800/30">
+                  <p className="text-xs flex items-start text-blue-700 dark:text-blue-400">
+                    <Info className="h-3.5 w-3.5 mr-1.5 mt-0.5 flex-shrink-0" />
+                    <span>
+                      <strong>İpucu:</strong> Uygulamayı ana ekranınıza eklerseniz, bildirimler daha güvenilir çalışır ve internet bağlantınız olmasa bile uygulamayı kullanabilirsiniz.
+                    </span>
+                  </p>
+                </div>
+              )}
             </div>
             
             <div className="bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 flex items-center justify-between">
@@ -611,22 +622,71 @@ const PWASettings = () => {
                 </div>
               </div>
               
-              {notificationPermission !== 'granted' && (
-                <button
-                  onClick={notificationPermission === 'denied' ? openBrowserSettings : handleRequestNotifications}
-                  className={`ml-4 px-4 py-2 rounded-md text-white text-sm font-medium flex items-center ${
-                    notificationPermission === 'denied'
-                      ? 'bg-slate-500 hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-700'
-                      : 'bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 focus:ring-primary-500'
-                  } focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800`}
-                >
-                  <Bell className="mr-1.5 h-4 w-4" />
-                  {notificationPermission === 'denied' ? 'Tarayıcı Ayarlarına Git' : 'İzin Ver'}
-                </button>
-              )}
+              <div className="flex items-center">
+                {notificationPermission !== 'granted' && (
+                  <button
+                    onClick={notificationPermission === 'denied' ? openBrowserSettings : handleRequestNotifications}
+                    className={`px-4 py-2 rounded-md text-white text-sm font-medium flex items-center ${
+                      notificationPermission === 'denied'
+                        ? 'bg-slate-500 hover:bg-slate-600 dark:bg-slate-600 dark:hover:bg-slate-700'
+                        : 'bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 focus:ring-primary-500'
+                    } focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800`}
+                  >
+                    <Bell className="mr-1.5 h-4 w-4" />
+                    {notificationPermission === 'denied' ? 'Tarayıcı Ayarlarına Git' : 'İzin Ver'}
+                  </button>
+                )}
+                
+                {!isPWA && (
+                  <button
+                    onClick={handleInstallApp}
+                    className={`${notificationPermission !== 'granted' ? 'ml-3' : ''} px-4 py-2 rounded-md text-white text-sm font-medium flex items-center bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-slate-800`}
+                  >
+                    <Download className="mr-1.5 h-4 w-4" />
+                    Uygulamayı İndir
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
+        
+        {/* PWA ve Bildirimler Bilgi Kartı */}
+        {!isPWA && (
+          <div className="mt-4 bg-white dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-base font-medium text-slate-900 dark:text-white mb-3 flex items-center">
+                <Download className="h-5 w-5 mr-2 text-primary-500 dark:text-primary-400" />
+                Daha İyi Bildirimler İçin Uygulama Kurulumu
+              </h3>
+              
+              <div className="flex items-start bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+                <div className="flex-shrink-0 mt-0.5">
+                  <Info className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                </div>
+                <div className="ml-3">
+                  <h4 className="text-sm font-medium text-slate-900 dark:text-white">Neden Uygulamayı Yüklemelisiniz?</h4>
+                  <ul className="mt-2 text-sm text-slate-600 dark:text-slate-400 space-y-1.5 list-disc pl-5">
+                    <li>Bildirimler, PWA olarak kurulan uygulamalarda daha güvenilir çalışır</li>
+                    <li>İnternet bağlantınız olmadığında bile uygulamayı kullanabilirsiniz</li>
+                    <li>Ana ekrandan hızlıca erişebilirsiniz</li>
+                    <li>Randevu hatırlatıcıları daha güvenilir şekilde çalışır</li>
+                    <li>Tarayıcı kapalı olsa bile bildirimler alabilirsiniz</li>
+                  </ul>
+                  <div className="mt-4">
+                    <button
+                      onClick={handleInstallApp}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-slate-800"
+                    >
+                      <Download className="mr-1.5 h-4 w-4" />
+                      Uygulamayı Yükle
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* PWA Kurulum Talimatları */}
         {renderInstallInstructions()}
@@ -643,11 +703,7 @@ const PWASettings = () => {
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm text-slate-700 dark:text-slate-300">
-                    <span className="font-medium">İnternetsiz Çalışma</span> - İnternet bağlantınız olmadığında bile uygulamayı kullanabilirsiniz
-                  </p>
-                </div>
+                
               </div>
               
               <div className="flex">
