@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../lib/theme';
-import logo2 from '../assets/logos/logo_2.png';
+import logo1 from '../assets/logos/logo_1.webp';
 import { Logo } from './Logo';
 
 export const AppLoader: React.FC = () => {

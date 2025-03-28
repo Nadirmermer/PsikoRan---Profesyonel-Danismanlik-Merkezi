@@ -19,7 +19,7 @@ import { tr } from 'date-fns/locale';
 import { useAuth } from '../lib/auth';
 import { CreateAppointmentModal } from '../components/CreateAppointmentModal';
 import { requestNotificationPermission } from '../utils/notificationUtils';
-import logo2 from '../assets/logos/logo_2.png';
+import logo1 from '../assets/logos/logo_1.webp';
 import AppointmentShareModal from '../components/AppointmentShareModal';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 

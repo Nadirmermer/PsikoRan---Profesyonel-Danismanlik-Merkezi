@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 import { MainLayout } from '../components/layout/MainLayout';
-import logo2 from '../assets/logos/logo_2.png';
+import logo1 from '../assets/logos/logo_1.webp';
 
 export function Demo() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

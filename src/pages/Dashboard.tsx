@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import {
@@ -50,42 +50,28 @@ import {
   CalendarOff
 } from 'lucide-react';
 import { TurkLiraIcon } from '../components/icons/TurkLiraIcon';
-import { CreateAppointmentModal } from '../components/CreateAppointmentModal';
 import { Appointment, Client, Professional, Room, Payment } from '../types/database';
 import { motion, AnimatePresence } from 'framer-motion';
 import React from 'react';
-import { 
-  Chart as ChartJS, 
-  CategoryScale, 
-  LinearScale, 
-  PointElement, 
-  LineElement, 
-  BarElement,
-  ArcElement,
-  Title, 
-  Tooltip, 
-  Legend, 
-  Filler 
-} from 'chart.js';
-import { Line, Bar, Pie, Doughnut } from 'react-chartjs-2';
-import { Chart } from 'react-chartjs-2';
-import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Logo } from '../components/Logo';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
-// Chart.js bileşenlerini kaydet
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
+// Lazy-loaded components
+const Line = lazy(() => import('react-chartjs-2').then(module => ({ default: module.Line })));
+const Bar = lazy(() => import('react-chartjs-2').then(module => ({ default: module.Bar })));
+const Pie = lazy(() => import('react-chartjs-2').then(module => ({ default: module.Pie })));
+const Doughnut = lazy(() => import('react-chartjs-2').then(module => ({ default: module.Doughnut })));
+const CreateAppointmentModal = lazy(() => 
+  import('../components/CreateAppointmentModal').then(module => ({ default: module.CreateAppointmentModal }))
+);
+const DatePicker = lazy(() => import('react-datepicker'));
+
+// Chart komponentleri için loading fallback
+const ChartLoadingFallback = () => (
+  <div className="bg-gray-100 rounded-md animate-pulse h-64 w-full flex items-center justify-center">
+    <p className="text-gray-500">Grafik yükleniyor...</p>
+  </div>
 );
 
 interface AppointmentWithRelations extends Appointment {
@@ -734,14 +720,33 @@ export function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // Initialize charts with lazy loading
+  const initializeCharts = async () => {
+    try {
+      // ChartJS modülünü dinamik olarak yükle
+      const { Chart, registerables } = await import('chart.js');
+      // Tüm gerekli bileşenleri kaydet
+      Chart.register(...registerables);
+      return true;
+    } catch (error) {
+      console.error('Chart.js yüklenirken hata oluştu:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     const initializeData = async () => {
       try {
         setLoading(true);
         
+        // Chart.js'yi asenkron olarak yükle
+        initializeCharts();
+        
         // Öncelikli veriler - sayfanın gösterilmesi için kritik olanlar
-        await loadClinicHours();
-        await loadRooms();
+        await Promise.all([
+          loadClinicHours(),
+          loadRooms()
+        ]);
         
         if (professional) {
           await loadProfessionalWorkingHours();
@@ -756,14 +761,16 @@ export function Dashboard() {
         setLoading(false);
         
         // İkincil veriler - arka planda yüklenmeye devam edebilir
-        await loadClinicBreaks();
-        await loadClinicVacations();
-        
-        if (professional) {
-          await loadProfessionalBreaks();
-          await loadProfessionalVacations();
-          await loadClients();
-        }
+        Promise.all([
+          loadClinicBreaks(),
+          loadClinicVacations(),
+          professional ? loadProfessionalBreaks() : Promise.resolve(),
+          professional ? loadProfessionalVacations() : Promise.resolve(),
+          professional ? loadClients() : Promise.resolve()
+        ]).catch(error => {
+          // İkincil verilerin yüklenmesinde hata olursa ana performansı etkilemesin
+          console.error("İkincil veriler yüklenirken hata oluştu:", error);
+        });
       } catch (error) {
         console.error("Veri yüklenirken hata oluştu:", error);
         setLoading(false);
@@ -1935,6 +1942,19 @@ export function Dashboard() {
     }
   }
 
+  // Chart bileşenlerini renderla
+  const renderLineChart = (data: any, options: any) => (
+    <Suspense fallback={<ChartLoadingFallback />}>
+      <Line data={data} options={options} />
+    </Suspense>
+  );
+
+  const renderBarChart = (data: any, options: any) => (
+    <Suspense fallback={<ChartLoadingFallback />}>
+      <Bar data={data} options={options} />
+    </Suspense>
+  );
+
   return (
     <>
       {loading ? (
@@ -2092,7 +2112,7 @@ export function Dashboard() {
                 </div>
                 <div className="h-[280px] w-full flex items-center justify-center px-2 pt-1 pb-3">
                   {appointmentChartData ? (
-                    <Line data={appointmentChartData} options={lineChartOptions} />
+                    renderLineChart(appointmentChartData, lineChartOptions)
                   ) : (
                     <LoadingData />
                   )}
@@ -2694,7 +2714,7 @@ export function Dashboard() {
                   </h2>
                   <div className="h-[280px] w-full flex items-center justify-center px-2 pt-1 pb-3">
                     {revenueChartData ? (
-                      <Line data={revenueChartData} options={lineChartOptions} />
+                      renderLineChart(revenueChartData, lineChartOptions)
                     ) : (
                       <LoadingData />
                     )}
@@ -2788,19 +2808,21 @@ export function Dashboard() {
             </motion.div>
 
             {showCreateModal && (
-              <CreateAppointmentModal
-                isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
-                onSuccess={() => {
-                  if (professional) {
-                    loadProfessionalData();
-                  } else if (assistant) {
-                    loadAssistantData();
-                  }
-                }}
-                professionalId={professional?.id}
-                assistantId={assistant?.id}
-              />
+              <Suspense fallback={<LoadingSpinner fullPage size="medium" loadingText="Randevu oluşturuluyor..." showLoadingText={true} />}>
+                <CreateAppointmentModal
+                  isOpen={showCreateModal}
+                  onClose={() => setShowCreateModal(false)}
+                  onSuccess={() => {
+                    if (professional) {
+                      loadProfessionalData();
+                    } else if (assistant) {
+                      loadAssistantData();
+                    }
+                  }}
+                  professionalId={professional?.id}
+                  assistantId={assistant?.id}
+                />
+              </Suspense>
             )}
           </div>
         </div>

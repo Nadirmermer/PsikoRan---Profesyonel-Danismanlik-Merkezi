@@ -22,7 +22,7 @@ import {
   Menu,
   X
 } from 'lucide-react';
-import logo2 from '../assets/logos/logo_2.png';
+import logo1 from '../assets/logos/logo_1.webp';
 import { MainLayout } from '../components/layout/MainLayout';
 
 export function Features() {

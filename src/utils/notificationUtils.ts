@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { addDays, addHours, addMinutes, format, isAfter, isBefore } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import logo2 from '../assets/logos/logo_2.png';
+import logo1 from '../assets/logos/logo_1.webp';
 
 // Bildirimleri kaydetmek için bir fonksiyon
 export async function saveNotificationSubscription(

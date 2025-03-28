@@ -68,7 +68,7 @@ export default defineConfig({
   base: '/',
   plugins: [
     react(),
-    copyAssetsPlugin() // Dosya kopyalama eklentisini ekle
+    copyAssetsPlugin()
   ],
   server: {
     port: 3000,
@@ -79,39 +79,40 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false,
-    // JavaScript dosyalarının optimizasyonu için ek ayarlar
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true,  // console.log ifadelerini kaldır
-        drop_debugger: true, // debugger ifadelerini kaldır
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug'],
       },
       format: {
-        comments: false,     // yorum satırlarını kaldır
-      },
+        comments: false,
+      }
     },
     rollupOptions: {
       output: {
-        // Daha iyi chunk stratejisi uygula
+        // Basit chunk stratejisi
         manualChunks: {
           'vendor': ['react', 'react-dom', 'react-router-dom'],
           'ui': ['framer-motion', '@headlessui/react', '@mantine/core', '@mantine/hooks'],
           'charts': ['chart.js', 'react-chartjs-2'],
           'editor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-color', '@tiptap/extension-text-style'],
-          'form': ['react-hook-form'],
           'utils': ['date-fns', 'dayjs', 'crypto-js']
         },
-        // Dosya adları için hash uzunluğunu azalt
         entryFileNames: 'assets/[name]-[hash:8].js',
         chunkFileNames: 'assets/[name]-[hash:8].js',
         assetFileNames: 'assets/[name]-[hash:8].[ext]'
       }
     },
-    chunkSizeWarningLimit: 2500 // Chunk boyutu uyarı limitini 2.5 MB'a artır
+    chunkSizeWarningLimit: 2500
   },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
     },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom'],
   }
 });

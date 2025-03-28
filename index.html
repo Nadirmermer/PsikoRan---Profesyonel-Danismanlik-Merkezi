@@ -9,7 +9,7 @@
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','GTM-PQ2BMSFH');</script>
     <!-- End Google Tag Manager -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://*.google-analytics.com https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.emailjs.com https://*.googleapis.com https://*.google-analytics.com https://meet.jit.si wss://meet.jit.si; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://meet.jit.si; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.supabase.co https://*.amazonaws.com https://*.googleusercontent.com https://meet.jit.si https://*.jitsi.net; frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org;">
     <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -64,13 +64,60 @@
         ]
       }
     </script>
+    
+    <!-- Preconnect kritik domainler -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Font yüklemelerini optimize et -->
+    <link rel="preload" as="font" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    
+    <!-- Fallback font yüklemesi için -->
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
+    </noscript>
+    
+    <!-- Inline kritik CSS -->
+    <style>
+      /* Kritik render path için gereken temel stiller */
+      html, body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      #root {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .loading-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        width: 100%;
+        background-color: #f9fafb;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 9999;
+      }
+    </style>
   </head>
   <body>
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PQ2BMSFH"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div id="root">
+      <!-- İlk yükleme göstergesi -->
+      <div class="loading-indicator">
+        <p>Yükleniyor...</p>
+      </div>
+    </div>
+    
+    <!-- Javascript kodunu defer ile yükle -->
+    <script type="module" src="/src/main.tsx" defer></script>
   </body>
 </html>

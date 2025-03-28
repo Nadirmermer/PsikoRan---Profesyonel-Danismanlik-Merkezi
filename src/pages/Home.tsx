@@ -4,7 +4,7 @@ import { Shield, Calendar, Clipboard, Users, Clock, MessageSquare, BarChart, Awa
 import { motion } from 'framer-motion';
 import { fetchBlogPosts, formatBlogDate } from '../lib/blog';
 import { MainLayout } from '../components/layout/MainLayout';
-import logo2 from '../assets/logos/logo_2.png';
+import logo1 from '../assets/logos/logo_1.webp';
 import { TurkLiraIcon } from '../components/icons/TurkLiraIcon';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -199,7 +199,7 @@ export function Home() {
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center space-x-2">
                         <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center">
-                          <img src={logo2} alt="PsikoRan Logo" className="h-6 w-6 md:h-8 md:w-8 object-contain" />
+                          <img src={logo1} alt="PsikoRan Logo" className="h-6 w-6 md:h-8 md:w-8 object-contain" />
                         </div>
                         <div>
                           <div className="text-base md:text-lg font-bold text-slate-900 dark:text-white">PsikoRan Dashboard</div>
@@ -347,12 +347,7 @@ export function Home() {
                     loading="lazy"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src = '/assets/images/blog-placeholder.jpg';
-                      // Eğer yerel görsel de yüklenmezse logo_2.png'yi kullan
-                      target.onerror = () => {
-                        target.src = '/assets/images/logo_2.png';
-                        target.onerror = null;
-                      };
+                      target.src = '/assets/images/logo_1.png';
                     }}
                   />
                 </Link>

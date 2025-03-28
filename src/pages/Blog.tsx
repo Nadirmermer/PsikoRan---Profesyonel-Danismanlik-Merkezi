@@ -241,9 +241,9 @@ export function Blog() {
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.src = '/assets/images/blog-placeholder.jpg';
-                        // Eğer yerel görsel de yüklenmezse logo_2.png'yi kullan
+                        // Eğer yerel görsel de yüklenmezse logo_1.png'yi kullan
                         target.onerror = () => {
-                          target.src = '/assets/images/logo_2.png';
+                          target.src = '/assets/images/logo_1.png';
                           target.onerror = null;
                         };
                       }}

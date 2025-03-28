@@ -248,9 +248,9 @@ export function BlogPost() {
                 loading="lazy"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = '/assets/images/blog-placeholder.jpg';
+                  target.src = '/assets/images/logo_1.png';
                   target.onerror = () => {
-                    target.src = '/assets/images/logo_2.png';
+                    target.src = '/assets/images/logo_1.png';
                     target.onerror = null;
                   };
                 }}

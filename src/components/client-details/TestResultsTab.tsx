@@ -162,75 +162,51 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
       let testInfo = AVAILABLE_TESTS.find(test => test.id === result.test_type);
 
       try {
-        // Test modülünü direkt TEST_MAP'ten al (bu en güvenilir yöntem)
-        try {
-          // data/tests/index.ts içindeki TEST_MAP'i import et
-          const testMapModule = await import('../../data/tests') as any;
-          
-          if (testMapModule.TEST_MAP && testMapModule.TEST_MAP[result.test_type]) {
-            testModule = testMapModule.TEST_MAP[result.test_type];
-            console.log(`TEST_MAP'ten modül alındı: ${testModule.name}, Soru sayısı: ${testModule.questions?.length || 0}`);
-          } else {
-            // TEST_MAP'te yoksa, spesifik dosyayı import etmeyi dene
-            console.log(`TEST_MAP'te ${result.test_type} bulunamadı, dosya import edilecek`);
+        // TEST_MAP'i doğrudan import et ve kullan
+        const testMapModule = await import('../../data/tests') as any;
+        
+        if (testMapModule && testMapModule.TEST_MAP && result.test_type) {
+          try {
+            // Maplenen test modülünü almaya çalış
+            const testPromise = testMapModule.TEST_MAP[result.test_type];
+            if (testPromise) {
+              testModule = await testPromise;
+            }
+          } catch (error) {
+            // Promise çözümleme hatası
           }
-        } catch (mapError) {
-          console.warn('TEST_MAP import hatası:', mapError);
         }
         
-        // Eğer TEST_MAP'ten alamadıysak, özel import denemeleri yap
+        // Eğer TEST_MAP'ten alamadıysak, TEST_META'dan al
+        if (!testModule && testMapModule.TEST_META && result.test_type) {
+          const meta = testMapModule.TEST_META[result.test_type];
+          if (meta) {
+            testInfo = meta;
+          }
+        }
+        
+        // Eğer hala alamadıysak, birinci fallback: Dosyayı direkt import et
         if (!testModule) {
-          // Test adı formatını düzelt ve farklı varyasyonlar oluştur
-          const testIdVariations = [
-            result.test_type,                              // Orijinal: beck-depression
-            result.test_type.replace(/\-/g, ''),           // Trait çıkarılmış: beckdepression
-            result.test_type.replace(/\-/g, '_'),          // Trait _ ile değiştirilmiş: beck_depression
-            result.test_type.split('-').join('')           // Trait silinmiş: beckdepression
-          ];
-          
-          // Dosya adı varyasyonları oluştur
-          const fileNameVariations = [
-            ...testIdVariations,
-            result.test_type.split('-')[0],                // İlk parça: beck
-            result.test_type.split('-')[1]                 // İkinci parça: depression
-          ];
-          
-          // Tüm olası dosya adlarını dene
-          let imported = false;
-          
-          for (const fileName of fileNameVariations) {
-            if (imported || !fileName) continue;
+          try {
+            const directImport = await import(/* @vite-ignore */ `../../data/tests/${result.test_type}.js`);
             
-            try {
-              console.log(`Dosya import ediliyor: ../../data/tests/${fileName}`);
-              const moduleImport = await import(/* @vite-ignore */ `../../data/tests/${fileName}.js`);
-              
-              // Test objesi içeren değişkeni bul
-              const testKey = Object.keys(moduleImport).find(key => 
-                (key.toLowerCase().includes('test') || key.toLowerCase().includes(result.test_type.split('-')[0]))
-                && typeof moduleImport[key] === 'object'
-              );
-              
-              if (testKey) {
-                testModule = moduleImport[testKey];
-                console.log(`Import başarılı: ${testModule.name}, Soru sayısı: ${testModule.questions?.length || 0}`);
-                imported = true;
+            // Test modülünü bul
+            for (const key in directImport) {
+              if (typeof directImport[key] === 'object' && directImport[key]?.questions) {
+                testModule = directImport[key];
                 break;
-              } else {
-                console.warn(`${fileName} modülünde test objesi bulunamadı`);
               }
-            } catch (variationError) {
-              console.warn(`${fileName} import edilemedi:`, variationError);
             }
+          } catch (directError) {
+            // Direkt import hatası, devam et
           }
         }
       } catch (importError) {
-        console.warn(`Test modülü import edilemedi (${result.test_type}):`, importError);
+        // Import hatası, devam et
       }
       
-      // Eğer dinamik import başarısız olduysa AVAILABLE_TESTS'ten al
+      // Fallback: AVAILABLE_TESTS'ten al
       if (!testModule && testInfo) {
-        console.log(`Yedek test bilgisi kullanılıyor: ${testInfo.name}`);
         testModule = testInfo;
       }
       

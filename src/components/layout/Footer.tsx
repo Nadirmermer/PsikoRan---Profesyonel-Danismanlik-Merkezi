@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import logo2 from '../../assets/logos/logo_2.png';
+import logo1 from '../../assets/logos/logo_1.webp';
 
 export function Footer() {
   return (
@@ -12,7 +12,7 @@ export function Footer() {
               <div className="flex items-center space-x-2">
                 <div className="relative h-10 w-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-400 dark:to-primary-500 p-0.5 shadow-lg">
                   <div className="absolute inset-0 rounded-xl bg-white dark:bg-slate-900 p-1">
-                    <img src={logo2} alt="PsikoRan Logo" className="h-full w-full object-contain" />
+                    <img src={logo1} alt="PsikoRan Logo" className="h-full w-full object-contain" />
                   </div>
                 </div>
                 <span className="text-xl font-bold text-slate-900 dark:text-white">PsikoRan</span>

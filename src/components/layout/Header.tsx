@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { LogIn, Sun, Moon, Menu, X, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-import logo2 from '../../assets/logos/logo_2.png';
+import { useTheme } from '../../hooks/useTheme';
+import logo1 from '../../assets/logos/logo_1.webp';
 
 interface HeaderProps {
   toggleDarkMode: () => void;
@@ -27,7 +27,7 @@ export function Header({ toggleDarkMode, isDarkMode }: HeaderProps) {
                 className="relative h-9 w-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 dark:from-primary-400 dark:to-primary-500 p-0.5 shadow-lg group-hover:shadow-primary-500/25 transition-all duration-300"
               >
                 <div className="absolute inset-0 rounded-xl bg-white dark:bg-slate-900 p-1">
-                  <img src={logo2} alt="PsikoRan Logo" className="h-full w-full object-contain" />
+                  <img src={logo1} alt="PsikoRan Logo" className="h-full w-full object-contain" />
                 </div>
               </motion.div>
               <motion.span 
