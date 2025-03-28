@@ -18,7 +18,7 @@ import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, end
 import { tr } from 'date-fns/locale';
 import { useAuth } from '../lib/auth';
 import { CreateAppointmentModal } from '../components/CreateAppointmentModal';
-import { requestNotificationPermission } from '../utils/notificationUtils';
+import { requestNotificationPermission, checkUpcomingAppointments } from '../utils/notificationUtils';
 import logo1 from '../assets/logos/logo_1.webp';
 import AppointmentShareModal from '../components/AppointmentShareModal';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
@@ -57,12 +57,14 @@ export function Appointments() {
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [existingAppointments, setExistingAppointments] = useState<any[]>([]);
-  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState<boolean>(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+  const [checkingNotifications, setCheckingNotifications] = useState<boolean>(false);
+  const [lastNotificationCheck, setLastNotificationCheck] = useState<Date | null>(null);
 
   const navigate = useNavigate();
-  const { professional, assistant } = useAuth();
+  const { professional, assistant, client } = useAuth();
 
   useEffect(() => {
     loadAppointments();
@@ -630,26 +632,96 @@ export function Appointments() {
     setSelectedDate(newDate);
   }
 
-  // Bildirim izni isteyen fonksiyon
+  // Randevu bildirimlerini kontrol et
+  const checkAppointmentNotifications = async () => {
+    if (!professional && !assistant && !client) {
+      return; // Oturum açılmamışsa kontrol yapma
+    }
+    
+    if (checkingNotifications) {
+      return; // Zaten kontrol yapılıyorsa tekrar yapma
+    }
+    
+    if (Notification.permission !== 'granted') {
+      return; // Bildirim izni yoksa kontrol yapma
+    }
+    
+    try {
+      setCheckingNotifications(true);
+      
+      let userType: 'professional' | 'assistant' | 'client' = 'client';
+      let userId = '';
+      
+      if (professional) {
+        userType = 'professional';
+        userId = professional.id;
+      } else if (assistant) {
+        userType = 'assistant';
+        userId = assistant.id;
+      } else if (client) {
+        userType = 'client';
+        userId = client.id;
+      }
+      
+      // Yaklaşan randevuları kontrol et ve bildirim gönder
+      const result = await checkUpcomingAppointments(userId, userType);
+      
+      // Kontrol tamamlandı
+      setLastNotificationCheck(new Date());
+      
+      if (result.sentNotifications && result.sentNotifications.length > 0) {
+        console.log(`${result.sentNotifications.length} adet randevu bildirimi gönderildi.`);
+      }
+    } catch (error) {
+      console.error('Randevu bildirimleri kontrol edilirken hata oluştu:', error);
+    } finally {
+      setCheckingNotifications(false);
+    }
+  };
+  
+  // Sayfa yüklendiğinde ve her 15 dakikada bir randevu bildirimlerini kontrol et
+  useEffect(() => {
+    // Sayfa ilk yüklendiğinde bildirim kontrolü yap
+    checkAppointmentNotifications();
+    
+    // Her 15 dakikada bir otomatik kontrol yapacak zamanlayıcı
+    const notificationTimer = setInterval(() => {
+      checkAppointmentNotifications();
+    }, 15 * 60 * 1000); // 15 dakika
+    
+    // Temizleme fonksiyonu
+    return () => {
+      clearInterval(notificationTimer);
+    };
+  }, [professional, assistant, client]); // Kullanıcı değiştiğinde tekrar çalıştır
+
   const handleRequestNotifications = async () => {
     try {
-      if (!professional && !assistant) {
+      if (!professional && !assistant && !client) {
         alert('Bildirim izni istemek için giriş yapmalısınız');
         return;
       }
 
       let userType: 'professional' | 'assistant' | 'client' = 'client';
+      let userId = '';
       
       if (professional) {
         userType = 'professional';
+        userId = professional.id;
       } else if (assistant) {
         userType = 'assistant';
+        userId = assistant.id;
+      } else if (client) {
+        userType = 'client';
+        userId = client.id;
       }
 
-      const success = await requestNotificationPermission(professional?.id || assistant?.id, userType);
+      const success = await requestNotificationPermission(userId, userType);
       
       if (success) {
         alert('Bildirim izni başarıyla alındı. Artık randevu hatırlatmaları alacaksınız.');
+        // İzin alındıktan hemen sonra bildirimleri kontrol et
+        checkAppointmentNotifications();
       } else {
         alert('Bildirim izni alınamadı veya reddedildi.');
       }

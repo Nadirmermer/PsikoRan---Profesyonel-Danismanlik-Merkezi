@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Çevrimdışı - PsikoRan</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1f2937;
+      background-color: #f9fafb;
+    }
+    
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100%;
+      padding: 0 20px;
+    }
+    
+    .logo {
+      width: 120px;
+      height: auto;
+      margin-bottom: 24px;
+    }
+    
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #4f46e5;
+    }
+    
+    p {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+      max-width: 500px;
+    }
+    
+    .button {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #4f46e5;
+      color: #ffffff;
+      font-weight: 500;
+      text-decoration: none;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+    }
+    
+    .button:hover {
+      background-color: #4338ca;
+    }
+    
+    .offline-icon {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      fill: #4f46e5;
+    }
+
+    .feature-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 24px;
+      margin: 32px 0;
+      max-width: 800px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .feature-item {
+      background-color: white;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      text-align: left;
+      flex: 1 1 200px;
+      max-width: 300px;
+    }
+
+    .feature-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #4f46e5;
+    }
+
+    .feature-desc {
+      font-size: 14px;
+      color: #6b7280;
+      margin: 0;
+    }
+    
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 24px;
+      }
+      
+      p {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <svg class="offline-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <path d="M1.584 13.007a8 8 0 0 1 14.873-5.908 1 1 0 0 1-1.762.95A6 6 0 0 0 3.39 12.61l-.243.468a1 1 0 1 1-1.798-.866l.234-.485zM15.232 7.7a1 1 0 0 1 1.767-.95A8 8 0 0 1 6.246 13.1a1 1 0 0 1 1.798-.866 6 6 0 0 0 7.188-4.535zM12 15a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/>
+    </svg>
+    <h1>Çevrimdışı Modu</h1>
+    <p>
+      İnternet bağlantınız şu anda kullanılamıyor. PsikoRan'ın bazı özellikleri çevrimdışı modda sınırlıdır, ancak önceden yüklenmiş verilerinize hala erişebilirsiniz.
+    </p>
+    <a href="/" class="button">Yeniden Dene</a>
+
+    <ul class="feature-list">
+      <li class="feature-item">
+        <h3 class="feature-title">Önceden Görüntülenen Sayfalar</h3>
+        <p class="feature-desc">Daha önce ziyaret ettiğiniz sayfalara çevrimdışı modda erişebilirsiniz.</p>
+      </li>
+      <li class="feature-item">
+        <h3 class="feature-title">Çevrimdışı Randevular</h3>
+        <p class="feature-desc">Önceden senkronize edilmiş randevularınızı görüntüleyebilirsiniz.</p>
+      </li>
+      <li class="feature-item">
+        <h3 class="feature-title">Otomatik Senkronizasyon</h3>
+        <p class="feature-desc">Çevrimiçi olduğunuzda, çevrimdışı yapılan değişiklikler otomatik olarak senkronize edilecektir.</p>
+      </li>
+    </ul>
+
+    <p>
+      İnternet bağlantınız geri geldiğinde, otomatik olarak normal moda geçiş yapılacaktır.
+    </p>
+  </div>
+
+  <script>
+    // Çevrimiçi durumunu kontrol et
+    window.addEventListener('online', () => {
+      window.location.reload();
+    });
+    
+    // Yeniden Dene düğmesine tıklandığında sayfayı yenile
+    document.querySelector('.button').addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.reload();
+    });
+  </script>
+</body>
+</html> 

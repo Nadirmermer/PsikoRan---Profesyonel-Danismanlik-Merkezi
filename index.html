@@ -16,6 +16,25 @@
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
     
+    <!-- PWA Meta Etiketleri -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#4f46e5" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PsikoRan" />
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-152x152.png" sizes="152x152" />
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-180x180.png" sizes="180x180" />
+    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-167x167.png" sizes="167x167" />
+    
+    <!-- Apple Splash Screen -->
+    <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-2048-2732.jpg" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-1668-2388.jpg" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-1536-2048.jpg" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-1125-2436.jpg" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-1242-2688.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-750-1334.jpg" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-640-1136.jpg" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+    
     <!-- SEO Meta Etiketleri -->
     <title>PsikoRan - Psikolog Randevu ve Danışan Yönetim Sistemi</title>
     <meta name="description" content="PsikoRan, psikologlar ve danışanlar için geliştirilmiş profesyonel bir randevu ve danışan yönetim sistemidir. Online terapi seansları, test uygulamaları ve danışan takibi için ideal çözüm." />
@@ -117,7 +136,36 @@
       </div>
     </div>
     
+    <!-- Offline sayfa uyarısı -->
+    <div id="offline-message" style="display: none; position: fixed; bottom: 20px; right: 20px; background: #4f46e5; color: white; padding: 16px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000;">
+      Çevrimdışı modasınız. Bazı özellikler sınırlı olabilir.
+    </div>
+    
     <!-- Javascript kodunu defer ile yükle -->
     <script type="module" src="/src/main.tsx" defer></script>
+    
+    <!-- Service Worker Kaydı -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('Service Worker kaydı başarılı:', registration.scope);
+            })
+            .catch(error => {
+              console.log('Service Worker kaydı başarısız:', error);
+            });
+        });
+        
+        // Çevrimdışı durumu kontrolü
+        window.addEventListener('online', () => {
+          document.getElementById('offline-message').style.display = 'none';
+        });
+        
+        window.addEventListener('offline', () => {
+          document.getElementById('offline-message').style.display = 'block';
+        });
+      }
+    </script>
   </body>
 </html>

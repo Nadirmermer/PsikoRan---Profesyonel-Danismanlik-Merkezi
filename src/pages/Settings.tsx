@@ -10,9 +10,10 @@ import {
   PrivacySettings, 
   CookieSettings, 
   AccountDeletion, 
-  RoomManagement 
+  RoomManagement,
+  PWASettings
 } from '../components/settings';
-import { User, UserCircle2, Building2, Bell, Shield, ChevronRight } from 'lucide-react';
+import { User, UserCircle2, Building2, Bell, Shield, ChevronRight, Smartphone } from 'lucide-react';
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
@@ -67,6 +68,7 @@ const Settings = () => {
         { id: 'clinic', label: 'Klinik Bilgileri', icon: <Building2 className="h-5 w-5" /> },
         { id: 'security', label: 'Güvenlik', icon: <Shield className="h-5 w-5" /> },
         { id: 'notifications', label: 'Bildirimler', icon: <Bell className="h-5 w-5" /> },
+        { id: 'pwa', label: 'PWA Yönetimi', icon: <Smartphone className="h-5 w-5" /> }
       ];
         } else if (assistant) {
       return [
@@ -74,6 +76,7 @@ const Settings = () => {
         { id: 'clinic', label: 'Klinik Yönetimi', icon: <Building2 className="h-5 w-5" /> },
         { id: 'security', label: 'Güvenlik', icon: <Shield className="h-5 w-5" /> },
         { id: 'notifications', label: 'Bildirimler', icon: <Bell className="h-5 w-5" /> },
+        { id: 'pwa', label: 'PWA Yönetimi', icon: <Smartphone className="h-5 w-5" /> }
       ];
     }
     return [];
@@ -201,6 +204,10 @@ const Settings = () => {
     );
         case 'notifications':
           return <NotificationSettings />;
+          
+        case 'pwa':
+          return <PWASettings />;
+          
         default:
           return null;
   }
@@ -271,6 +278,10 @@ const Settings = () => {
           );
         case 'notifications':
           return <NotificationSettings />;
+          
+        case 'pwa':
+          return <PWASettings />;
+          
         default:
           return null;
       }

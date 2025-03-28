@@ -15,10 +15,12 @@ import { ThemeProvider } from './lib/theme';
 import { AnimatePresence } from 'framer-motion';
 import { AppLoader } from './components/AppLoader';
 import { CookieBanner } from './components/CookieBanner';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { checkUpcomingAppointments } from './utils/notificationUtils';
 import { useAuth } from './lib/auth';
 import { useTheme } from './lib/theme';
 import { SubscriptionProvider } from './components/payment/SubscriptionContext';
+import { listenForNetworkChanges, listenForInstallPrompt, getDisplayMode } from './utils/pwa';
 
 // React Router v7 için future flag'leri
 const v7_startTransition = true;
@@ -28,6 +30,14 @@ const v7_relativeSplatPath = true;
 export const LoadingContext = React.createContext({
   isLoading: false,
   setIsLoading: (loading: boolean) => {},
+});
+
+// PWA durumu için context oluştur
+export const PWAContext = React.createContext({
+  isOnline: true, 
+  isPWA: false,
+  isInstallPromptShown: false,
+  setIsInstallPromptShown: (shown: boolean) => {}
 });
 
 function AnimatedRoutes() {
@@ -215,6 +225,11 @@ export function App() {
   const { user } = useAuth();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // PWA Durumu
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [isPWA, setIsPWA] = useState<boolean>(false);
+  const [isInstallPromptShown, setIsInstallPromptShown] = useState<boolean>(false);
 
   // Uygulama başlatma
   useEffect(() => {
@@ -222,6 +237,13 @@ export function App() {
       try {
         // Tema başlatma
         await initializeTheme();
+
+        // PWA durumunu kontrol et
+        const displayMode = getDisplayMode();
+        setIsPWA(displayMode === 'standalone' || displayMode === 'standalone-ios');
+        
+        // PWA yükleme olayını dinlemeye başla
+        listenForInstallPrompt();
 
         // Google aramalarından gelen ziyaretçileri ana sayfaya yönlendir
         const isFromExternalSource = document.referrer && 
@@ -248,6 +270,20 @@ export function App() {
 
     // Uygulamayı başlat
     initApp();
+    
+    // Çevrimiçi/Çevrimdışı dinleyicileri
+    const cleanup = listenForNetworkChanges(
+      () => {
+        setIsOnline(true);
+        console.log('Çevrimiçi duruma geçildi');
+      },
+      () => {
+        setIsOnline(false);
+        console.log('Çevrimdışı duruma geçildi');
+      }
+    );
+
+    return () => cleanup();
   }, []);
 
   // Kullanıcı oturum açtığında temayı yeniden başlat
@@ -263,14 +299,30 @@ export function App() {
       <Router>
         <ThemeProvider>
           <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
-            {isInitialLoading ? (
-              <AppLoader />
-            ) : (
-              <>
-                <AnimatedRoutes />
-                <CookieBanner />
-              </>
-            )}
+            <PWAContext.Provider 
+              value={{ 
+                isOnline, 
+                isPWA, 
+                isInstallPromptShown, 
+                setIsInstallPromptShown 
+              }}
+            >
+              {isInitialLoading ? (
+                <AppLoader />
+              ) : (
+                <>
+                  <AnimatedRoutes />
+                  {!isInstallPromptShown && !isPWA && (
+                    <div className="fixed bottom-0 left-0 right-0 z-50">
+                      <PWAInstallPrompt 
+                        className="m-4" 
+                      />
+                    </div>
+                  )}
+                  <CookieBanner />
+                </>
+              )}
+            </PWAContext.Provider>
           </LoadingContext.Provider>
         </ThemeProvider>
       </Router>

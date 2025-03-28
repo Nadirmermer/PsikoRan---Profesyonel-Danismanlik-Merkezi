@@ -7,4 +7,5 @@ export { NotificationSettings } from './NotificationSettings';
 export { PrivacySettings } from './PrivacySettings';
 export { CookieSettings } from './CookieSettings';
 export { AccountDeletion } from './AccountDeletion';
-export { RoomManagement } from './RoomManagement'; 
+export { RoomManagement } from './RoomManagement';
+export { default as PWASettings } from './PWASettings'; 
