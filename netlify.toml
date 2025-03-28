@@ -117,9 +117,4 @@
     [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
-# netlify-plugin-image-optim'i devre dışı bırak
-[[plugins]]
-  package = "netlify-plugin-image-optim"
-  [plugins.inputs]
-    # Devre dışı bırakmak için
-    enabled = false 
+# Eklenti yapılandırması artık UI tarafından yönetiliyor, `netlify-plugin-image-optim` eklentisini tamamen kaldırıyoruz 
