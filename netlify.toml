@@ -84,19 +84,6 @@
 [build.processing.images]
   compress = true
 
-# HTML Minify Eklentisi için Ayarlar
-[[plugins]]
-  package = "netlify-plugin-minify-html"
-
-  [plugins.inputs]
-    # Hangi bağlamlar için geçerli olacağını belirt
-    contexts = ["production", "branch-deploy", "deploy-preview"]
-    # HTML minify seçenekleri
-    [plugins.inputs.minifierOptions]
-      removeComments = true
-      collapseWhitespace = true
-      conservativeCollapse = true
-
 [[headers]]
   for = "/images/*"
     [headers.values]
