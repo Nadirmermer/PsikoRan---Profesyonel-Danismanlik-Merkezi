@@ -65,7 +65,7 @@
     X-Content-Type-Options = "nosniff"
     X-Frame-Options = "DENY"
     X-XSS-Protection = "1; mode=block"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https: https://www.facebook.com https://www.google-analytics.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.netlify.app https://*.netlify.com https://api.netlify.com https://www.google-analytics.com https://*.supabase.co https://*.psikoran.com; manifest-src 'self'; worker-src 'self' blob:; frame-src 'self' https://meet.jit.si"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https: https://www.facebook.com https://www.google-analytics.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.netlify.app https://*.netlify.com https://api.netlify.com https://www.google-analytics.com https://*.supabase.co https://*.psikoran.com https://fonts.googleapis.com; manifest-src 'self'; worker-src 'self' blob:; frame-src 'self' https://meet.jit.si"
 
 [build.processing]
   skip_processing = false
@@ -117,4 +117,3 @@
     [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
-# Eklenti yapılandırması artık UI tarafından yönetiliyor, `netlify-plugin-image-optim` eklentisini tamamen kaldırıyoruz 
