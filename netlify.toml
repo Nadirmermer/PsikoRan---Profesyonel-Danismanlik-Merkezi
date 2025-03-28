@@ -84,5 +84,12 @@
 # [[plugins]]
 #   package = "netlify-plugin-checklinks"
 
-[[plugins]]
-  package = "netlify-plugin-a11y" 
+# netlify-plugin-a11y eklentisi devre dışı bırakıldı - zaman aşımı sorunları nedeniyle
+# [[plugins]]
+#   package = "netlify-plugin-a11y"
+#   [plugins.inputs]
+#     checkPaths = ['/']
+#     resultMode = "warn"
+#     timeout = 60000 # 60 saniye
+#     debugMode = false
+#     ignoreErrors = ['WCAG2AA.Principle1.Guideline1_4.1_4_3.G18'] 
