@@ -1,9 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { AVAILABLE_TESTS } from '../data/tests/index';
 import { useAuth } from '../lib/auth';
-import { generateEncryptionKey, generateIV, encryptData } from '../utils/encryption';
+import { 
+  generateEncryptionKey, 
+  generateIV, 
+  encryptData, 
+  encryptWithPublicKey, 
+  initializeKeyPair
+} from '../utils/encryption';
 import type { Module, Test as TestType } from '../data/tests/types';
 
 // ============================================================================
@@ -493,13 +499,27 @@ export function Test() {
       
       const score = selectedTest.calculateScore(finalAnswers);
       
-      // Şifreleme anahtarları oluştur
-      const key = generateEncryptionKey();
-      const iv = generateIV();
-
-      // Test cevaplarını şifrele
-      const encryptedAnswers = await encryptData(finalAnswers, key, iv);
-
+      // Şifreleme için anahtar çifti oluştur/getir
+      const { publicKey, privateKey } = await initializeKeyPair('test_results');
+      
+      if (!publicKey || !privateKey) {
+        setError('Şifreleme anahtarları oluşturulamadı. Lütfen sayfayı yenileyin ve tekrar deneyin.');
+        setLoading(false);
+        return;
+      }
+      
+      // Test bilgilerini ve cevapları şifrele
+      const testData = {
+        answers: finalAnswers,
+        score: score,
+        test_id: selectedTest.id,
+        notes: testNotes,
+        selected_modules: selectedTest.isModular ? selectedModules : []
+      };
+      
+      // Veriyi şifrele
+      const { encryptedData, encryptedKey } = await encryptWithPublicKey(testData, publicKey);
+      
       // Professional ID'yi belirle
       let professionalId = professional?.id;
       
@@ -524,19 +544,15 @@ export function Test() {
         professional_id: professionalId,
         test_type: selectedTest.id,
         score,
-        answers: finalAnswers,
-        encrypted_answers: encryptedAnswers,
-        encryption_key: key,
-        iv: iv,
+        answers: finalAnswers,  // Şifrelenmemiş cevaplar (legacy destek)
+        encrypted_answers: encryptedData,
+        client_public_key: encryptedKey,
         notes: testNotes || null,
         duration_seconds: testDuration,
         started_at: startTime?.toISOString(),
         completed_at: endTime?.toISOString(),
         // Token ile çözüldüyse is_public_access = true
-        is_public_access: !!token,
-        // selected_modules alanı veritabanında olmadığı için kaldırıldı
-        // Veritabanına bu sütun eklendiğinde aşağıdaki satır aktif edilebilir
-        // selected_modules: selectedTest.isModular ? selectedModules : null
+        is_public_access: !!token
       };
       
       // Test verilerini state'e kaydet

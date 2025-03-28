@@ -65,7 +65,6 @@ export const listenForInstallPrompt = (): void => {
     
     // PWA kurulum koşulları kontrol için olay tetikle
     window.dispatchEvent(new Event('pwaInstallable'));
-    console.log('PWA kurulabilir durumda');
   });
   
   // Uygulama yüklendikten sonra
@@ -73,7 +72,6 @@ export const listenForInstallPrompt = (): void => {
     // Yüklendi olarak işaretle
     window.deferredPrompt = null;
     deferredPrompt = null;
-    console.log('PWA başarıyla yüklendi');
     
     // Analytics için olay tetikle
     if (typeof window.gtag === 'function') {
@@ -205,7 +203,6 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
     const permission = await Notification.requestPermission();
     return permission === 'granted';
   } catch (error) {
-    console.error('Bildirim izni istenirken hata oluştu:', error);
     return false;
   }
 };
@@ -252,7 +249,6 @@ export const subscribeToPushNotifications = async (): Promise<PushSubscription |
     
     return newSubscription;
   } catch (error) {
-    console.error('Push bildirimlerine abone olurken hata oluştu:', error);
     return null;
   }
 };
@@ -276,7 +272,6 @@ export const registerBackgroundSync = async (tag: string): Promise<boolean> => {
     
     return false;
   } catch (error) {
-    console.error('Background sync kaydedilirken hata oluştu:', error);
     return false;
   }
 };
@@ -299,7 +294,6 @@ export const activateUpdate = async (): Promise<boolean> => {
     const registration = await navigator.serviceWorker.ready;
     
     if (!registration.waiting) {
-      console.log('Bekleyen bir Service Worker yok');
       return false;
     }
     
@@ -309,7 +303,6 @@ export const activateUpdate = async (): Promise<boolean> => {
     // Sayfa yenileneceği için true döndür
     return true;
   } catch (error) {
-    console.error('Service Worker aktivasyonu sırasında hata oluştu:', error);
     return false;
   }
 };
@@ -330,7 +323,6 @@ export const checkForUpdates = async (registration: ServiceWorkerRegistration): 
 
     return false;
   } catch (error) {
-    console.error('Güncelleme kontrolü sırasında hata oluştu:', error);
     return false;
   }
 };
@@ -372,7 +364,6 @@ export const listenForUpdates = (onUpdateFound: () => void): () => void => {
       // İlk kontrol
       await registration.update();
     } catch (error) {
-      console.error('Service worker güncelleme dinleyicisi ayarlanırken hata oluştu:', error);
     }
   };
 

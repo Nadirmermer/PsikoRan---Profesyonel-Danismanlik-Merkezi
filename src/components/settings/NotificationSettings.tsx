@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Trash2, Clock, Calendar, Mail, CheckCircle2 } from 'lucide-react';
+import { Bell, Trash2, Clock, Calendar, Mail, CheckCircle2, BellRing } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
-import { requestNotificationPermission } from '../../utils/notificationUtils';
+import { requestNotificationPermission, sendNotification } from '../../utils/notificationUtils';
 
 interface NotificationSubscription {
   id: string;
@@ -39,6 +39,8 @@ export function NotificationSettings() {
   const [isLoadingSubscriptions, setIsLoadingSubscriptions] = useState(false);
   const [isLoadingPreferences, setIsLoadingPreferences] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [testingNotification, setTestingNotification] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     // Bildirim durumunu kontrol et
@@ -66,7 +68,7 @@ export function NotificationSettings() {
       if (error) throw error;
       setSubscriptions(data || []);
     } catch (error) {
-      console.error('Bildirim abonelikleri yüklenirken hata:', error);
+      // console.error('Bildirim abonelikleri yüklenirken hata:', error);
     } finally {
       setIsLoadingSubscriptions(false);
     }
@@ -103,7 +105,7 @@ export function NotificationSettings() {
         setPreferences(filteredData);
       }
     } catch (error) {
-      console.error('Bildirim tercihleri yüklenirken hata:', error);
+      // console.error('Bildirim tercihleri yüklenirken hata:', error);
       setPreferences(defaultPreferences);
     } finally {
       setIsLoadingPreferences(false);
@@ -135,7 +137,7 @@ export function NotificationSettings() {
         await saveNotificationPreferences(preferences);
       }
     } catch (error) {
-      console.error('Bildirim izni istenirken hata:', error);
+      // console.error('Bildirim izni istenirken hata:', error);
     } finally {
       setLoading(false);
     }
@@ -152,7 +154,7 @@ export function NotificationSettings() {
       
       setSubscriptions(prev => prev.filter(sub => sub.id !== subscriptionId));
     } catch (error) {
-      console.error('Abonelik silinirken hata:', error);
+      // console.error('Abonelik silinirken hata:', error);
     }
   };
   
@@ -186,7 +188,7 @@ export function NotificationSettings() {
       
       return true;
     } catch (error) {
-      console.error('Bildirim tercihleri kaydedilirken hata:', error);
+      // console.error('Bildirim tercihleri kaydedilirken hata:', error);
       return false;
     } finally {
       setSavingPreferences(false);
@@ -219,6 +221,51 @@ export function NotificationSettings() {
     }
   };
 
+  // Bildirim test fonksiyonu
+  const handleTestNotification = async () => {
+    if (!user) return;
+    
+    setTestingNotification(true);
+    setTestResult(null);
+    
+    try {
+      let userType: 'professional' | 'assistant' | 'client' = 'client';
+      if (professional) {
+        userType = 'professional';
+      } else if (assistant) {
+        userType = 'assistant';
+      }
+      
+      const success = await sendNotification(
+        user.id,
+        'Test Bildirimi',
+        'Bu bir test bildirimidir. Bildirimler başarıyla çalışıyor!',
+        { url: '/settings', action: 'test' },
+        userType
+      );
+      
+      if (success) {
+        setTestResult({ 
+          success: true, 
+          message: 'Bildirim başarıyla gönderildi! Eğer göremediyseniz, tarayıcı izinlerinizi kontrol edin.' 
+        });
+      } else {
+        setTestResult({ 
+          success: false, 
+          message: 'Bildirim gönderilemedi. Lütfen tarayıcı izinlerinizi kontrol edin.' 
+        });
+      }
+    } catch (error) {
+      // console.error('Bildirim testi sırasında hata:', error);
+      setTestResult({ 
+        success: false, 
+        message: 'Bildirim gönderilirken bir hata oluştu.' 
+      });
+    } finally {
+      setTestingNotification(false);
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm p-4 sm:p-6">
       <div className="flex items-center justify-between mb-4">
@@ -240,6 +287,20 @@ export function NotificationSettings() {
         </div>
       )}
 
+      {/* Test sonuç mesajı */}
+      {testResult && (
+        <div className={`mb-4 p-3 ${testResult.success ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-900/30' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30'} border rounded-md flex items-center`}>
+          {testResult.success ? (
+            <CheckCircle2 className="h-5 w-5 text-green-500 dark:text-green-400 mr-2" />
+          ) : (
+            <Bell className="h-5 w-5 text-red-500 dark:text-red-400 mr-2" />
+          )}
+          <span className={`text-sm ${testResult.success ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+            {testResult.message}
+          </span>
+        </div>
+      )}
+
       <div className="space-y-6">
         {/* Bildirim İzni */}
         <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
@@ -248,39 +309,56 @@ export function NotificationSettings() {
               <p className="text-sm font-medium text-slate-900 dark:text-white">
                 Bildirim Durumu
               </p>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 {getStatusText(notificationStatus)}
               </p>
             </div>
-
-            {notificationStatus !== 'denied' && (
-              <button
-                onClick={handleEnableNotifications}
-                disabled={loading || notificationStatus === 'granted'}
-                className={`inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm ${
-                  notificationStatus === 'granted'
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 cursor-default'
-                    : 'text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600'
-                } focus:outline-none transition-colors`}
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    İşleniyor...
-                  </>
-                ) : notificationStatus === 'granted' ? (
-                  'Bildirimler Etkin'
-                ) : (
-                  'Bildirimleri Etkinleştir'
-                )}
-              </button>
-            )}
+            <button
+              onClick={handleEnableNotifications}
+              disabled={loading || notificationStatus === 'denied'}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+                notificationStatus === 'granted'
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : notificationStatus === 'denied'
+                  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 cursor-not-allowed'
+                  : 'bg-primary-100 text-primary-700 hover:bg-primary-200 dark:bg-primary-900/30 dark:text-primary-400 dark:hover:bg-primary-900/50'
+              }`}
+            >
+              {loading ? 'İşleniyor...' : notificationStatus === 'granted' ? 'Bildirimler Etkin' : 'Bildirimlere İzin Ver'}
+            </button>
           </div>
         </div>
         
+        {/* Bildirim Test Butonu */}
+        {notificationStatus === 'granted' && (
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">
+                  Bildirim Testi
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Bildirimlerin düzgün çalışıp çalışmadığını test edin
+                </p>
+              </div>
+              <button
+                onClick={handleTestNotification}
+                disabled={testingNotification}
+                className="px-3 py-1.5 text-sm font-medium rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 flex items-center space-x-1"
+              >
+                {testingNotification ? (
+                  'Test Ediliyor...'
+                ) : (
+                  <>
+                    <BellRing className="h-4 w-4 mr-1" />
+                    <span>Test Et</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Bildirim Tercihleri */}
         {notificationStatus === 'granted' && (
           <div className="space-y-4">

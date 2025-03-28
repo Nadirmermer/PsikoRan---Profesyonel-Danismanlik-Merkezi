@@ -4,8 +4,16 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-import { generateEncryptionKey, generateIV, encryptData, decryptData } from '../utils/encryption';
+import { 
+  generateEncryptionKey, 
+  generateIV, 
+  encryptData, 
+  decryptData, 
+  decryptWithPrivateKey, 
+  retrieveKeyPair 
+} from '../utils/encryption';
 import { generateTestPDF } from '../utils/generateTestPDF';
+import { AVAILABLE_TESTS } from '../data/tests';
 import '@fontsource/roboto';
 
 // Yeni oluşturulan bileşenleri import et
@@ -25,13 +33,13 @@ interface SessionNote {
   title: string;
   content: string;
   encrypted_content: string;
-  encryption_key: string;
-  iv: string;
+  client_public_key?: string;
   professional_id: string;
   client_id: string;
   professional?: {
     full_name: string;
   };
+  attachments?: string[];
 }
 
 interface TestResult {
@@ -227,18 +235,37 @@ export function ClientDetails() {
 
       if (error) throw error;
 
+      // Anahtarları getir
+      const { privateKey } = retrieveKeyPair('session_notes');
+      
+      if (!privateKey) {
+        // Anahtarlar yoksa şifrelenmiş veriyi çözemeyiz, ama yine de notları gösterebiliriz
+        console.warn('Şifreleme anahtarları bulunamadı. Notlar şifrelenmiş formatta kalacak.');
+        setSessionNotes(data);
+        return true;
+      }
+
       // Notları deşifre et
       const decryptedNotes = await Promise.all(
         data.map(async (note) => {
-            if (note.encrypted_content && note.encryption_key && note.iv) {
+          if (note.encrypted_content && note.client_public_key) {
             try {
-              const decryptedContent = await decryptData(
+              const decryptedContent = await decryptWithPrivateKey(
                 note.encrypted_content,
-                note.encryption_key,
-                note.iv
+                note.client_public_key,
+                privateKey
               );
-              return { ...note, content: decryptedContent };
+              
+              if (decryptedContent) {
+                return { 
+                  ...note, 
+                  content: decryptedContent.content,
+                  title: decryptedContent.title || note.title,
+                  // attachmentKeys alanı note içinde saklanıyor ancak dışarı yansıtılmıyor
+                };
+              }
             } catch (e) {
+              console.error('Not deşifre edilemedi:', e);
               return { ...note, content: 'Not içeriği deşifre edilemedi.' };
             }
           }
@@ -308,22 +335,34 @@ export function ClientDetails() {
 
       if (error) throw error;
 
+      // Anahtarları getir
+      const { privateKey } = retrieveKeyPair('test_results');
+
       // Test sonuçlarını formatla
-      const formattedResults = data.map(result => ({
-        id: result.id,
-        client_id: result.client_id,
-        test_type: result.test_type,
-        test_id: result.test_type,
-        test_name: result.test_type, // Bu alanı daha sonra AVAILABLE_TESTS'ten alacağız
-        created_at: result.created_at,
-        score: result.score,
-        answers: result.answers || {},
-        professional_id: result.professional_id,
-        professional_name: result.professional?.full_name,
-        notes: result.notes,
-        encrypted_answers: result.encrypted_answers,
-        encryption_key: result.encryption_key,
-        iv: result.iv
+      const formattedResults = await Promise.all(data.map(async result => {
+        // Eğer şifrelenmiş veri varsa ve anahtarlar mevcutsa deşifre et
+        let decryptedData = null;
+        
+        if (privateKey && result.encrypted_answers && result.client_public_key) {
+          try {
+            decryptedData = await decryptWithPrivateKey(
+              result.encrypted_answers,
+              result.client_public_key,
+              privateKey
+            );
+          } catch (e) {
+            console.error('Test sonucu deşifre edilemedi:', e);
+          }
+        }
+        
+        // Test adını bul
+        const testInfo = AVAILABLE_TESTS.find(test => test.id === result.test_type);
+        
+        return {
+          ...result,
+          decryptedAnswers: decryptedData?.answers || null,
+          test_name: testInfo?.name || 'Bilinmeyen Test'
+        };
       }));
 
       setTestResults(formattedResults);

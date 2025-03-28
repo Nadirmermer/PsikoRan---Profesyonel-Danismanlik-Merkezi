@@ -32,11 +32,29 @@ import {
   Image as ImageIcon,
   FileText,
   X,
-  Paperclip
+  Paperclip,
+  Download,
+  Eye,
+  FileText as FilePdf,
+  File as FileIcon
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
-import { generateEncryptionKey, generateIV, encryptData } from '../../utils/encryption';
+import { 
+  generateEncryptionKey, 
+  generateIV, 
+  encryptData, 
+  decryptWithPrivateKey, 
+  encryptWithPublicKey, 
+  initializeKeyPair,
+  encryptFile,
+  decryptFile,
+  retrieveKeyPair
+} from '../../utils/encryption';
+// import Image from 'next/image'; // Eğer kullanmıyorsak kaldıralım
+// import { Button } from '../ui/button'; // Eğer kullanmıyorsak kaldıralım
+// import CircularProgress from '../circular-progress'; // Eğer kullanmıyorsak kaldıralım
+// import { toast } from 'react-toastify'; // toast yerine alert kullanacağız
 
 // MenuBar bileşenini genişletelim
 interface MenuBarProps {
@@ -439,18 +457,17 @@ const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
 
 interface SessionNote {
   id: string;
-  created_at: string;
   title: string;
   content: string;
   encrypted_content: string;
-  encryption_key: string;
-  iv: string;
+  client_public_key?: string;
   professional_id: string;
-  client_id: string;
-  attachments?: string[];
   professional?: {
     full_name: string;
   };
+  client_id: string;
+  attachments?: string[];
+  created_at: string;
 }
 
 interface SessionNotesTabProps {
@@ -475,12 +492,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
   const [isErrorDialogOpen, setIsErrorDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
-  const [newAttachments, setNewAttachments] = useState<File[]>([]);
-  const [editAttachments, setEditAttachments] = useState<File[]>([]);
-  const [uploadingFiles, setUploadingFiles] = useState(false);
-  const [previewAttachments, setPreviewAttachments] = useState<string[]>([]);
-  const [editPreviewAttachments, setEditPreviewAttachments] = useState<string[]>([]);
-  const [removedAttachments, setRemovedAttachments] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -582,96 +593,53 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
     }
   }, [editingNote, editNoteEditor, isEditDialogOpen]);
 
-  async function uploadFilesToSupabase(files: File[]): Promise<string[]> {
-    const uploadedUrls: string[] = [];
-
-    for (const file of files) {
-      try {
-        const fileName = `${Date.now()}_${file.name}`;
-        
-        // Dosya boyutu kontrolü (5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          throw new Error(`Dosya boyutu çok büyük: ${file.name}. Maksimum 5MB olmalıdır.`);
-        }
-
-        // Dosyayı yükle
-        const { data, error } = await supabase.storage
-          .from('session-attachments')
-          .upload(fileName, file, {
-            cacheControl: '0',
-            upsert: true
-          });
-
-        if (error) throw error;
-
-        // Public URL al
-        const { data: urlData } = await supabase.storage
-          .from('session-attachments')
-          .getPublicUrl(fileName);
-
-        if (!urlData?.publicUrl) {
-          throw new Error('Dosya URL\'i alınamadı');
-        }
-
-        uploadedUrls.push(urlData.publicUrl);
-      } catch (error: any) {
-        console.error('Dosya yükleme hatası:', error);
-        throw new Error(`${file.name} yüklenirken hata oluştu: ${error.message}`);
-      }
-    }
-
-    return uploadedUrls;
-  }
-
-  async function deleteFileFromSupabase(fileUrl: string) {
-    try {
-      // URL'den dosya adını çıkar
-      const fileName = fileUrl.split('/').pop();
-      if (!fileName) throw new Error('Geçersiz dosya URL\'i');
-
-      const { error } = await supabase.storage
-        .from('session-attachments')
-        .remove([fileName]);
-
-      if (error) throw error;
-    } catch (error: any) {
-      console.error('Dosya silme hatası:', error);
-      throw new Error(`Dosya silinirken hata oluştu: ${error.message}`);
-    }
-  }
-
   async function handleAddNote(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-
+    
+    if (!professional) {
+      setErrorMessage('Oturum bilgileriniz bulunamadı. Lütfen tekrar giriş yapın.');
+      setIsErrorDialogOpen(true);
+      return;
+    }
+    
+    if (!newNoteEditor || !newNoteEditor.getHTML() || newNoteEditor.getHTML() === '<p></p>') {
+      setErrorMessage('Not içeriği boş olamaz.');
+      setIsErrorDialogOpen(true);
+      return;
+    }
+    
     try {
-      // Dosyaları yükle
-      let attachmentUrls: string[] = [];
-      if (newAttachments.length > 0) {
-        attachmentUrls = await uploadFilesToSupabase(newAttachments);
+      setLoading(true);
+      
+      // Anahtar çiftini başlat/getir
+      const { publicKey } = await initializeKeyPair('session_notes');
+      
+      if (!publicKey) {
+        throw new Error('Şifreleme anahtarları bulunamadı');
       }
       
-      // Şifreleme anahtarları oluştur
-      const encryptionKey = await generateEncryptionKey();
-      const iv = await generateIV();
+      // Not içeriğini şifrele
+      const noteContent = {
+        title: newNoteTitle,
+        content: newNoteEditor?.getHTML() || '',
+        attachmentKeys: {} // Boş bir obje gönder
+      };
       
       // İçeriği şifrele
-      const encryptedContent = await encryptData(newNoteTitle, encryptionKey, iv);
+      const { encryptedData, encryptedKey } = await encryptWithPublicKey(noteContent, publicKey);
       
       // Notu veritabanına ekle
       const { error } = await supabase.from('session_notes').insert({
         title: newNoteTitle,
-        content: encryptedContent,
-        encrypted_content: encryptedContent,
-        encryption_key: encryptionKey,
-        iv: iv,
+        encrypted_content: encryptedData,
+        client_public_key: encryptedKey,
         professional_id: professional?.id,
         client_id: clientId,
-        attachments: attachmentUrls.length > 0 ? attachmentUrls : null,
+        attachments: null, // Dosya ekleme devre dışı
       });
-
+      
       if (error) throw error;
-
+      
       // Başarılı mesajı göster
       setSuccessMessage('Not başarıyla eklendi.');
       setIsSuccessDialogOpen(true);
@@ -679,7 +647,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
       // Formu temizle
       setNewNoteTitle('');
       newNoteEditor?.commands.clearContent();
-      setNewAttachments([]);
       
       // Notları yeniden yükle
       await loadSessionNotes();
@@ -700,7 +667,7 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
       setIsErrorDialogOpen(true);
       return;
     }
-
+    
     if (!editingNote) return;
     
     if (!editedNoteContent || editedNoteContent === '<p></p>') {
@@ -708,77 +675,53 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
       setIsErrorDialogOpen(true);
       return;
     }
-
+    
     try {
       setLoading(true);
       
-      let attachmentUrls: string[] = [];
+      // Anahtar çiftini başlat/getir
+      const { publicKey, privateKey } = await initializeKeyPair('session_notes');
       
-      // Mevcut dosyaları getir
-      if (editingNote.attachments) {
-        attachmentUrls = [...editingNote.attachments];
-      }
-
-      // Yeni dosyalar varsa yükle
-      if (editAttachments.length > 0) {
-        const newUrls = await uploadFilesToSupabase(editAttachments);
-        attachmentUrls = [...attachmentUrls, ...newUrls];
+      if (!publicKey || !privateKey) {
+        throw new Error('Şifreleme anahtarları bulunamadı');
       }
       
-      // Silinen dosyaları Supabase'den kaldır
-      if (removedAttachments.length > 0) {
-        for (const url of removedAttachments) {
-          await deleteFileFromSupabase(url);
-        }
-      }
-
-      // Şifreleme anahtarları oluştur
-      const encryptionKey = await generateEncryptionKey();
-      const iv = await generateIV();
-
-      // İçeriği şifrele
-      const encryptedContent = await encryptData(editedNoteContent, encryptionKey, iv);
-      
-      // Güncellenmiş notu saklayalım
-      const updatedNote = {
-        ...editingNote,
+      // Not içeriğini şifrele
+      const noteContent = {
+        title: editingNote.title,
         content: editedNoteContent,
-        encrypted_content: encryptedContent,
-        encryption_key: encryptionKey,
-        iv: iv,
-        attachments: attachmentUrls.length > 0 ? attachmentUrls : null
+        attachmentKeys: {} // Boş bir obje gönder
       };
-
+      
+      // İçeriği şifrele
+      const { encryptedData, encryptedKey } = await encryptWithPublicKey(noteContent, publicKey);
+      
       // Notu güncelle
       const { error } = await supabase
         .from('session_notes')
         .update({
           title: editingNote.title,
-          content: editedNoteContent,
-          encrypted_content: encryptedContent,
-          encryption_key: encryptionKey,
-          iv: iv,
-          attachments: attachmentUrls.length > 0 ? attachmentUrls : null
+          encrypted_content: encryptedData,
+          client_public_key: encryptedKey,
+          attachments: null // Dosya ekleme devre dışı
         })
         .eq('id', editingNote.id);
-
+      
       if (error) throw error;
-
-      // Modalı kapat
-      setIsEditDialogOpen(false);
       
       // Başarılı mesajı göster
       setSuccessMessage('Not başarıyla güncellendi.');
       setIsSuccessDialogOpen(true);
       
-      // Notları yeniden yükle (kısa bir gecikme ile)
+      // Modalı kapat
+      setIsEditDialogOpen(false);
+      
+      // Notları yeniden yükle ve düzenleme durumunu temizle
       setTimeout(async () => {
         await loadSessionNotes();
         // Düzenleme durumunu temizle
         setEditingNote(null);
         setEditedNoteContent('');
-        setEditAttachments([]);
-        setRemovedAttachments([]);
       }, 300);
       
     } catch (error: any) {
@@ -796,21 +739,7 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
     try {
       setLoading(true);
       
-      // Not silinmeden önce ilişkili tüm dosya eklerini de sil
-      const { data: noteData, error: fetchError } = await supabase
-        .from('session_notes')
-        .select('attachments')
-        .eq('id', noteToDelete)
-        .single();
-        
-      if (fetchError) throw fetchError;
-      
-      if (noteData && noteData.attachments && noteData.attachments.length > 0) {
-        for (const url of noteData.attachments) {
-          await deleteFileFromSupabase(url);
-        }
-      }
-      
+      // Not veritabanından siliniyor
       const { error } = await supabase
         .from('session_notes')
         .delete()
@@ -836,93 +765,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
       setIsErrorDialogOpen(true);
     } finally {
       setLoading(false);
-    }
-  }
-
-  // Dosya yükleme işlevi
-  async function handleFileUpload(
-    files: FileList,
-    isEditing: boolean = false
-  ) {
-    if (!files) return;
-
-    const validFiles: File[] = [];
-    
-    // Dosya sayısı kontrolü
-    const maxFiles = 5;
-    const existingFilesCount = isEditing 
-      ? (editingNote?.attachments?.length || 0) + editAttachments.length
-      : files.length;
-    
-    // Toplam dosya sayısı kontrol ediliyor
-    if (existingFilesCount + files.length > maxFiles) {
-      setErrorMessage(`En fazla ${maxFiles} dosya ekleyebilirsiniz.`);
-      setIsErrorDialogOpen(true);
-      return;
-    }
-    
-    // Tüm dosyaları kontrol et
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      
-      // Dosya boyutu kontrolü (5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrorMessage('Dosya boyutu en fazla 5MB olabilir.');
-        setIsErrorDialogOpen(true);
-        continue;
-      }
-      
-      // Dosya tipi kontrolü
-      if (file.type.match('image/jpeg') || file.type.match('image/png') || file.type.match('image/gif') || file.type.match('application/pdf')) {
-        validFiles.push(file);
-        
-        // Önizleme URL'i oluştur
-        const url = URL.createObjectURL(file);
-        if (isEditing) {
-          setEditPreviewAttachments(prev => [...prev, url]);
-        } else {
-          setPreviewAttachments(prev => [...prev, url]);
-        }
-      } else {
-        setErrorMessage('Sadece resim (JPEG, PNG, GIF) ve PDF dosyaları ekleyebilirsiniz.');
-        setIsErrorDialogOpen(true);
-      }
-    }
-
-    // Dosyaları state'e ekle
-    if (isEditing) {
-      setEditAttachments(prev => [...prev, ...validFiles]);
-    } else {
-      setNewAttachments(prev => [...prev, ...validFiles]);
-    }
-  }
-
-  // Dosya silme işlevi
-  function handleRemoveFile(index: number, isEditing: boolean = false) {
-    if (isEditing) {
-      const newFiles = [...editAttachments];
-      const newPreviews = [...editPreviewAttachments];
-      
-      // Önizleme URL'ini temizle
-      URL.revokeObjectURL(newPreviews[index]);
-      
-      newFiles.splice(index, 1);
-      newPreviews.splice(index, 1);
-      
-      setEditAttachments(newFiles);
-      setEditPreviewAttachments(newPreviews);
-    } else {
-      const newFiles = [...newAttachments];
-      const newPreviews = [...previewAttachments];
-      
-      // Önizleme URL'ini temizle
-      URL.revokeObjectURL(newPreviews[index]);
-      
-      newFiles.splice(index, 1);
-      newPreviews.splice(index, 1);
-      
-      setNewAttachments(newFiles);
-      setPreviewAttachments(newPreviews);
     }
   }
 
@@ -966,88 +808,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
           
           <MenuBar editor={newNoteEditor} />
           <EditorContent editor={newNoteEditor} />
-        </div>
-        
-        {/* Dosya yükleme alanı */}
-        <div className="mt-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Dosya Ekle (Opsiyonel)
-            </label>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              En fazla 5 dosya, her dosya en fazla 5MB
-            </span>
-          </div>
-          
-          <div className="flex items-center justify-center w-full">
-            <label
-              className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                  handleFileUpload(e.dataTransfer.files, false);
-                }
-              }}
-            >
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <svg className="w-8 h-8 mb-2 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                </svg>
-                <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
-                  <span className="font-semibold">Dosya yüklemek için tıklayın</span> veya sürükleyip bırakın
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  PNG, JPG, GIF veya PDF
-                </p>
-              </div>
-              <input 
-                type="file" 
-                className="hidden" 
-                onChange={(e) => {
-                  if (e.target.files) {
-                    handleFileUpload(e.target.files, false);
-                    // Dosya seçildikten sonra input'u temizle ki aynı dosya tekrar seçilebilsin
-                    e.target.value = '';
-                  }
-                }}
-                accept="image/jpeg,image/png,image/gif,application/pdf" 
-                multiple
-              />
-            </label>
-          </div>
-          
-          {/* Yüklenen dosyaların önizlemesi */}
-          {previewAttachments.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-3">
-              {previewAttachments.map((url, index) => (
-                <div key={index} className="relative group">
-                  <div className="relative h-20 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
-                    {url.includes('.pdf') ? (
-                      <div className="flex items-center justify-center h-full w-full bg-red-50 dark:bg-red-900/20">
-                        <span className="text-red-600 dark:text-red-400 text-sm font-medium">PDF</span>
-                      </div>
-                    ) : (
-                      <img
-                        src={url}
-                        alt={`Attachment ${index + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveFile(index)}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
         
         <div className="flex justify-end">
@@ -1153,153 +913,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
                     
                     <MenuBar editor={editNoteEditor} />
                     <EditorContent editor={editNoteEditor} />
-                  </div>
-
-                  {/* Dosya yükleme alanı - Düzenleme Formu */}
-                  <div className="mt-3 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Dosya Ekle (Opsiyonel)
-                      </label>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        En fazla 5 dosya, her dosya en fazla 5MB
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-center w-full">
-                      <label
-                        className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-200"
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                            handleFileUpload(e.dataTransfer.files, true);
-                          }
-                        }}
-                      >
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <svg className="w-8 h-8 mb-2 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                          </svg>
-                          <p className="mb-1 text-sm text-gray-500 dark:text-gray-400">
-                            <span className="font-semibold">Dosya yüklemek için tıklayın</span> veya sürükleyip bırakın
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            PNG, JPG, GIF veya PDF
-                          </p>
-                        </div>
-                        <input 
-                          type="file" 
-                          className="hidden" 
-                          onChange={(e) => {
-                            if (e.target.files) {
-                              handleFileUpload(e.target.files, true);
-                              // Dosya seçildikten sonra input'u temizle ki aynı dosya tekrar seçilebilsin
-                              e.target.value = '';
-                            }
-                          }}
-                          accept="image/jpeg,image/png,image/gif,application/pdf" 
-                          multiple
-                        />
-                      </label>
-                    </div>
-                    
-                    {/* Yüklenen dosyaların önizlemesi */}
-                    {editPreviewAttachments.length > 0 && (
-                      <div className="mt-3">
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Mevcut Dosyalar
-                        </h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                          {editPreviewAttachments.map((url, index) => (
-                            <div key={`existing-${index}`} className="relative group">
-                              <div className="relative h-20 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
-                                {url.includes('.pdf') ? (
-                                  <div className="flex items-center justify-center h-full w-full bg-red-50 dark:bg-red-900/20">
-                                    <span className="text-red-600 dark:text-red-400 text-sm font-medium">PDF</span>
-                                  </div>
-                                ) : (
-                                  <img
-                                    src={url}
-                                    alt={`Attachment ${index + 1}`}
-                                    className="h-full w-full object-cover"
-                                  />
-                                )}
-                                <a 
-                                  href={url} 
-                                  target="_blank" 
-                                  rel="noreferrer" 
-                                  className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/30 group transition-all duration-200"
-                                >
-                                  <span className="text-white opacity-0 group-hover:opacity-100 text-xs font-medium">Görüntüle</span>
-                                </a>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (editingNote) {
-                                    // Dosyayı ekler listesinden çıkar
-                                    const newAttachments = [...editingNote.attachments];
-                                    const removedUrl = newAttachments.splice(index, 1)[0];
-                                    
-                                    // Daha sonra supabase'den silmek için kaldırılan URL'leri saklayın
-                                    setRemovedAttachments(prev => [...prev, removedUrl]);
-                                    
-                                    // Notu güncelle
-                                    setEditingNote({
-                                      ...editingNote,
-                                      attachments: newAttachments
-                                    });
-                                  }
-                                }}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Yeni yüklenen dosyaların önizlemesi */}
-                    {editAttachments.length > 0 && (
-                      <div className="mt-3">
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Yeni Eklenecek Dosyalar
-                        </h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                          {editAttachments.map((url, index) => (
-                            <div key={`new-${index}`} className="relative group">
-                              <div className="relative h-20 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
-                                {url.includes('.pdf') ? (
-                                  <div className="flex items-center justify-center h-full w-full bg-red-50 dark:bg-red-900/20">
-                                    <span className="text-red-600 dark:text-red-400 text-sm font-medium">PDF</span>
-                                  </div>
-                                ) : (
-                                  <img
-                                    src={url}
-                                    alt={`New Attachment ${index + 1}`}
-                                    className="h-full w-full object-cover"
-                                  />
-                                )}
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveFile(index, true)}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex justify-end space-x-3 mt-6">
@@ -1570,35 +1183,37 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
                     )}
                   </div>
                 </div>
-                {professional && note.professional_id === professional.id && (
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => {
-                        setEditingNote(note);
-                        setEditedNoteContent(note.content || '');
-                        setIsEditDialogOpen(true);
-                      }}
-                      className="p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                      aria-label="Düzenle"
-                    >
-                      <Edit className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setNoteToDelete(note.id);
-                        setIsDeleteDialogOpen(true);
-                      }}
-                      className="p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                      aria-label="Sil"
-                    >
-                      <Trash className="h-5 w-5" />
-                    </button>
-                  </div>
-                )}
+                
+                <div className="flex space-x-1.5 sm:space-x-2">
+                  <button
+                    onClick={() => {
+                      setEditingNote(note);
+                      setEditedNoteContent(note.content);
+                      setIsEditDialogOpen(true);
+                    }}
+                    className="inline-flex items-center justify-center p-1.5 sm:p-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 bg-white/60 dark:bg-gray-700/60 hover:bg-white dark:hover:bg-gray-700 rounded-lg border border-gray-200/70 dark:border-gray-600/70 shadow-sm transition-all duration-200 hover:shadow-md"
+                    aria-label="Not Düzenle"
+                  >
+                    <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </button>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNoteToDelete(note.id);
+                      setIsDeleteDialogOpen(true);
+                    }}
+                    className="inline-flex items-center justify-center p-1.5 sm:p-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 bg-white/60 dark:bg-gray-700/60 hover:bg-white dark:hover:bg-gray-700 rounded-lg border border-gray-200/70 dark:border-gray-600/70 shadow-sm transition-all duration-200 hover:shadow-md"
+                    aria-label="Not Sil"
+                  >
+                    <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </button>
+                </div>
               </div>
-              <div className="p-4 sm:p-6">
+              
+              <div className="p-4 sm:p-5">
                 <div 
-                  className="prose prose-sm sm:prose max-w-none dark:prose-invert [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a:hover]:text-blue-700 dark:[&_a:hover]:text-blue-300 [&_ul]:list-disc [&_ol]:list-decimal [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 dark:[&_blockquote]:border-gray-600 [&_blockquote]:pl-4 [&_blockquote]:italic [&_pre]:bg-gray-100 dark:[&_pre]:bg-gray-900 [&_pre]:p-2 [&_pre]:rounded"
+                  className="prose prose-sm sm:prose dark:prose-invert max-w-none"
                   dangerouslySetInnerHTML={{ __html: note.content }}
                 />
               </div>

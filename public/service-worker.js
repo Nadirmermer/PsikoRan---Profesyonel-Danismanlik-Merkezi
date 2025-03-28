@@ -17,28 +17,28 @@ const STATIC_ASSETS = [
 
 // Mesaj işleme - Güncelleme ve diğer iletişim için
 self.addEventListener('message', (event) => {
-  console.log('[Service Worker] Mesaj alındı:', event.data);
+  // console.log('[Service Worker] Mesaj alındı:', event.data);
   
   if (event.data === 'SKIP_WAITING') {
-    console.log('[Service Worker] Skip Waiting...');
+    // console.log('[Service Worker] Skip Waiting...');
     self.skipWaiting();
   }
 });
 
 // Service Worker kurulumunda önbelleğe alma
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Kurulum');
+  // console.log('[Service Worker] Kurulum');
   
   // Yüklenme işlemini beklet
   event.waitUntil(
     caches
       .open(CACHE_NAME)
       .then((cache) => {
-        console.log('[Service Worker] Önbelleğe Alınıyor');
+        // console.log('[Service Worker] Önbelleğe Alınıyor');
         return cache.addAll(STATIC_ASSETS);
       })
       .then(() => {
-        console.log('[Service Worker] Kurulum Tamamlandı');
+        // console.log('[Service Worker] Kurulum Tamamlandı');
         return self.skipWaiting();
       })
   );
@@ -46,7 +46,7 @@ self.addEventListener('install', (event) => {
 
 // Service Worker etkinleştirildiğinde eski önbellekleri temizle
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Etkinleştiriliyor');
+  // console.log('[Service Worker] Etkinleştiriliyor');
   
   // Etkinleştirme işlemini beklet
   event.waitUntil(
@@ -55,12 +55,12 @@ self.addEventListener('activate', (event) => {
         cacheNames.filter((cacheName) => {
           return cacheName !== CACHE_NAME;
         }).map((cacheName) => {
-          console.log('[Service Worker] Eski Önbellek Siliniyor:', cacheName);
+          // console.log('[Service Worker] Eski Önbellek Siliniyor:', cacheName);
           return caches.delete(cacheName);
         })
       );
     }).then(() => {
-      console.log('[Service Worker] Etkinleştirildi');
+      // console.log('[Service Worker] Etkinleştirildi');
       return self.clients.claim();
     })
   );
@@ -129,16 +129,25 @@ self.addEventListener('fetch', (event) => {
 
 // Push bildirimlerini yakala
 self.addEventListener('push', (event) => {
-  console.log('[Service Worker] Push Bildirimi Alındı');
+  // console.log('[Service Worker] Push Bildirimi Alındı');
   let pushData = {};
   
   try {
     // Push verisini al
     if (event.data) {
       pushData = event.data.json();
+      // console.log('[Service Worker] Push mesajı alındı:', pushData);
     }
   } catch (e) {
-    console.error('[Service Worker] Push mesajı JSON olarak ayrıştırılamadı', e);
+    // console.error('[Service Worker] Push mesajı JSON olarak ayrıştırılamadı', e);
+    // JSON olarak ayrıştırılamayan veri için metin almayı dene
+    if (event.data) {
+      pushData = {
+        title: 'PsikoRan',
+        body: event.data.text() || 'Yeni bir bildirim alındı',
+        data: { url: '/' }
+      };
+    }
   }
   
   // Varsayılan bildirim içeriği
@@ -147,6 +156,14 @@ self.addEventListener('push', (event) => {
     body: 'Yeni bir bildiriminiz var.',
     icon: '/images/icons/icon-192x192.webp',
     badge: '/images/icons/badge-72x72.webp',
+    vibrate: [100, 50, 100], // Titreşim
+    silent: false, // Sessiz mod kapalı - ses çalacak
+    timestamp: Date.now(), // Zaman damgası eklendi
+    actions: [{ // Bildirime eylemler ekle
+      action: 'view',
+      title: 'Görüntüle',
+      icon: '/images/icons/view-icon.webp'
+    }],
     data: {
       url: '/'
     }
@@ -159,14 +176,22 @@ self.addEventListener('push', (event) => {
     ...pushData
   };
   
+  // console.log('[Service Worker] Bildirim gösterilecek:', { title, options });
+  
   event.waitUntil(
     self.registration.showNotification(title, options)
+      .then(() => {
+        // console.log('[Service Worker] Bildirim başarıyla gösterildi');
+      })
+      .catch(error => {
+        // console.error('[Service Worker] Bildirim gösterilirken hata:', error);
+      })
   );
 });
 
 // Bildirime tıklama
 self.addEventListener('notificationclick', (event) => {
-  console.log('[Service Worker] Bildirime Tıklandı');
+  // console.log('[Service Worker] Bildirime Tıklandı');
   
   const notification = event.notification;
   const action = event.action;
@@ -178,7 +203,7 @@ self.addEventListener('notificationclick', (event) => {
   // Ek eylem varsa işle
   if (action) {
     // İleriki kullanım için ek eylemler eklenebilir
-    console.log(`[Service Worker] Bildirim Eylemi: ${action}`);
+    // console.log(`[Service Worker] Bildirim Eylemi: ${action}`);
   }
   
   // Tıklama işlemini beklet
@@ -213,5 +238,5 @@ self.addEventListener('notificationclick', (event) => {
 // Bilinmiyor, ancak eğer bildirimler gelmiyorsa 
 // bazı mobil cihazlar bu olayda özel işlem gerektirebilir
 self.addEventListener('notificationclose', (event) => {
-  console.log('[Service Worker] Bildirim Kapatıldı', event);
+  // console.log('[Service Worker] Bildirim Kapatıldı', event);
 }); 

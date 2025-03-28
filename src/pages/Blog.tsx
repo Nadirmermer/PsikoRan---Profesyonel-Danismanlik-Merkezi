@@ -234,7 +234,7 @@ export function Blog() {
                 <Link to={`/blog/${post.slug}`} className="block">
                   <div className="relative h-48 overflow-hidden">
                   <img
-                    src={post.cover_image}
+                    src={post.cover_image || '/assets/images/blog-placeholder.jpg'}
                     alt={post.title}
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                       loading="lazy"

@@ -210,7 +210,6 @@ export function Dashboard() {
   const [appointmentChartData, setAppointmentChartData] = useState<any>(null);
   const [revenueChartData, setRevenueChartData] = useState<any>(null);
   const [clientDistributionData, setClientDistributionData] = useState<any>(null);
-  const [professionalPerformanceData, setProfessionalPerformanceData] = useState<any>(null);
   
   const days = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'] as const;
   
@@ -415,77 +414,6 @@ export function Dashboard() {
   
   const generateClientDistributionData = () => {
     // Bu fonksiyonun tamamını kaldıralım
-  };
-  
-  // Uzman performans grafiği - Sadece asistan için
-  const generateProfessionalPerformanceData = () => {
-    if (!assistant || !monthlyAppointments.length) {
-      setProfessionalPerformanceData(null);
-      return;
-    }
-    
-    // Uzmanları al ve randevularına göre gruplama yap
-    const professionalsMap = new Map();
-    
-    monthlyAppointments.forEach(appointment => {
-      if (appointment.professional && appointment.professional.id) {
-        const profId = appointment.professional.id;
-        const profName = appointment.professional.full_name;
-        
-        if (!professionalsMap.has(profId)) {
-          professionalsMap.set(profId, {
-            name: profName,
-            appointmentCount: 0,
-            revenue: 0
-          });
-        }
-        
-        const profData = professionalsMap.get(profId);
-        profData.appointmentCount += 1;
-        
-        // İlgili ödeme verisi varsa gelir hesapla
-        const payment = monthlyPayments.find(p => p.appointment_id === appointment.id);
-        if (payment) {
-          profData.revenue += Number(payment.amount);
-        }
-      }
-    });
-    
-    // Verimlilik sıralamasına göre 
-    const sortedProfessionals = Array.from(professionalsMap.values())
-      .sort((a, b) => b.appointmentCount - a.appointmentCount)
-      .slice(0, 6); // En aktif 6 uzmanı göster
-    
-    const labels = sortedProfessionals.map(prof => prof.name);
-    const appointmentData = sortedProfessionals.map(prof => prof.appointmentCount);
-    const revenueData = sortedProfessionals.map(prof => prof.revenue);
-    
-    setProfessionalPerformanceData({
-      labels,
-      datasets: [
-        {
-          type: 'bar' as const,
-          label: 'Randevu Sayısı',
-          data: appointmentData,
-          backgroundColor: 'rgba(99, 102, 241, 0.7)',
-          borderColor: 'rgb(99, 102, 241)',
-          borderWidth: 1
-        },
-        {
-          type: 'line' as const,
-          label: 'Gelir',
-          data: revenueData,
-          backgroundColor: 'transparent',
-          borderColor: 'rgb(16, 185, 129)',
-          borderWidth: 2,
-          pointBackgroundColor: 'rgb(16, 185, 129)',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 1,
-          pointRadius: 4,
-          yAxisID: 'y1'
-        }
-      ]
-    });
   };
   
   // Chart konfigürasyon seçenekleri
@@ -699,10 +627,6 @@ export function Dashboard() {
     
     if (clients.length > 0) {
 
-    }
-
-    if (assistant && monthlyAppointments.length > 0) {
-      generateProfessionalPerformanceData();
     }
   }, [monthlyAppointments, monthlyPayments, clients, chartPeriod]);
   
@@ -2163,29 +2087,6 @@ export function Dashboard() {
                 </div>
               </div>
             </motion.div>
-
-            {/* Uzman Performansı - Sadece asistanlar için */}
-            {assistant && professionalPerformanceData && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="mt-8"
-              >
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-lg transition-all duration-300">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-6">
-                    <BrainCircuit className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
-                    <span>Uzman Performansı</span>
-                  </h2>
-                  <div className="h-[280px] w-full px-2 pt-1 pb-3">
-                    <Bar 
-                      data={professionalPerformanceData} 
-                      options={mixedChartOptions} 
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            )}
 
             {/* Randevu tablosu başlığı */}
             <motion.div

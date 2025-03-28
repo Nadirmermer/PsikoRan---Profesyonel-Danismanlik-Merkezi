@@ -20,6 +20,7 @@
       - professional_breaks: Günlük molalar
       - clinic_breaks: Klinik molalar
       - vacations: Tatil planlaması
+      - notification_preferences: Bildirim tercihleri
 
     2. Security
       - RLS politikaları her tablo için tanımlanmıştır
@@ -129,6 +130,7 @@
     closing_time_sunday time NOT NULL DEFAULT '18:00',
     is_open_sunday boolean NOT NULL DEFAULT false,
     created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
     clinic_amount numeric NOT NULL DEFAULT 0,
     working_hours jsonb
   );
@@ -180,11 +182,8 @@
     client_id uuid REFERENCES clients(id) ON DELETE CASCADE,
     professional_id uuid REFERENCES professionals(id) ON DELETE CASCADE,
     title text,
-    content text NOT NULL,
-    encrypted_content text,
-    encryption_key text,
-    iv text,
-    attachments text[],
+    encrypted_content text NOT NULL,
+    client_public_key text,
     created_at timestamptz DEFAULT now()
   );
 
@@ -199,9 +198,8 @@
     created_at timestamptz DEFAULT now() NOT NULL,
     started_at timestamptz,
     completed_at timestamptz,
-    encrypted_answers text,
-    encryption_key text,
-    iv text,
+    encrypted_answers text NOT NULL,
+    client_public_key text,
     notes text,
     duration_seconds integer,
     is_public_access boolean DEFAULT false
@@ -248,7 +246,25 @@
     CONSTRAINT unique_professional_working_hours UNIQUE (professional_id)
   );
 
-  -- Bildirim abonelikleri tablosu
+  -- Bildirim tercihleri tablosu
+  CREATE TABLE notification_preferences (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+    appointment_reminder_30min boolean DEFAULT true,
+    appointment_reminder_1hour boolean DEFAULT true,
+    appointment_reminder_1day boolean DEFAULT true,
+    appointment_cancelled boolean DEFAULT true,
+    appointment_rescheduled boolean DEFAULT true,
+    new_message boolean DEFAULT true,
+    payment_confirmations boolean DEFAULT true,
+    newsletter boolean DEFAULT false,
+    system_updates boolean DEFAULT true,
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
+    CONSTRAINT unique_user_notification_preferences UNIQUE (user_id)
+  );
+
+  -- Create notification_subscriptions table
   CREATE TABLE notification_subscriptions (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL,
@@ -561,10 +577,7 @@
       )
     );
 
-  -- Drop existing policy if exists
-  DROP POLICY IF EXISTS "Insert professionals policy" ON professionals;
-
-  -- Create new insert policy that allows any authenticated user to insert
+  -- Create insert policy that allows any authenticated user to insert
   CREATE POLICY "Insert professionals policy" ON professionals
     FOR INSERT TO authenticated
     WITH CHECK (true);
@@ -1079,23 +1092,108 @@
   -- Test token fonksiyonuna erişim izni ver
   GRANT EXECUTE ON FUNCTION create_test_token TO authenticated;
 
-  -- "attachments" adlı bir Supabase storage bucket'ı oluşturma
-  INSERT INTO storage.buckets (id, name, public, avif_autodetection)
-  VALUES ('attachments', 'attachments', true, false);
+  -- Klinik çalışma saatleri tablosu
+  CREATE TABLE clinic_hours (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    assistant_id UUID REFERENCES assistants(id) ON DELETE CASCADE,
+    pazartesi JSONB NOT NULL DEFAULT '{"opening": "09:00", "closing": "18:00", "isOpen": true}'::jsonb,
+    sali JSONB NOT NULL DEFAULT '{"opening": "09:00", "closing": "18:00", "isOpen": true}'::jsonb,
+    carsamba JSONB NOT NULL DEFAULT '{"opening": "09:00", "closing": "18:00", "isOpen": true}'::jsonb,
+    persembe JSONB NOT NULL DEFAULT '{"opening": "09:00", "closing": "18:00", "isOpen": true}'::jsonb,
+    cuma JSONB NOT NULL DEFAULT '{"opening": "09:00", "closing": "18:00", "isOpen": true}'::jsonb,
+    cumartesi JSONB NOT NULL DEFAULT '{"opening": "09:00", "closing": "18:00", "isOpen": false}'::jsonb,
+    pazar JSONB NOT NULL DEFAULT '{"opening": "09:00", "closing": "18:00", "isOpen": false}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (assistant_id)
+  );
 
-  -- Genel okuma politikası (herkes için)
-  CREATE POLICY "Attachments herkes tarafından okunabilir" ON storage.objects FOR SELECT
-  USING (bucket_id = 'attachments');
+  -- Klinik tatil tablosu
+  CREATE TABLE clinic_vacations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    assistant_id UUID REFERENCES assistants(id) ON DELETE CASCADE,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    CHECK (start_date <= end_date)
+  );
 
-  -- Dosya yükleme için kimlik doğrulanmış kullanıcı politikası
-  CREATE POLICY "Kimlik doğrulanmış kullanıcılar attachments'e dosya yükleyebilir" ON storage.objects
-  FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'attachments');
+  -- Profesyonel tatil tablosu
+  CREATE TABLE professional_vacations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    professional_id UUID REFERENCES professionals(id) ON DELETE CASCADE,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    CHECK (start_date <= end_date)
+  );
 
-  -- Dosya silme için kimlik doğrulanmış kullanıcı politikası
-  CREATE POLICY "Kimlik doğrulanmış kullanıcılar kendi yükledikleri dosyaları silebilir" ON storage.objects
-  FOR DELETE TO authenticated
-  USING (bucket_id = 'attachments');
+  -- RLS politikaları clinic_hours için
+  ALTER TABLE clinic_hours ENABLE ROW LEVEL SECURITY;
+
+  CREATE POLICY "Asistanlar kendi klinik saatlerini görebilir" ON clinic_hours
+    FOR SELECT
+    USING (auth.uid() IN (
+      SELECT user_id FROM assistants WHERE id = assistant_id
+    ));
+
+  CREATE POLICY "Asistanlar kendi klinik saatlerini güncelleyebilir" ON clinic_hours
+    FOR ALL
+    USING (auth.uid() IN (
+      SELECT user_id FROM assistants WHERE id = assistant_id
+    ));
+
+  CREATE POLICY "Profesyoneller kendi kliniklerinin saatlerini görebilir" ON clinic_hours
+    FOR SELECT
+    USING (assistant_id IN (
+      SELECT assistant_id FROM professionals WHERE user_id = auth.uid()
+    ));
+
+  -- RLS politikaları clinic_vacations için
+  ALTER TABLE clinic_vacations ENABLE ROW LEVEL SECURITY;
+
+  CREATE POLICY "Asistanlar kendi klinik tatillerini yönetebilir" ON clinic_vacations
+    FOR ALL
+    USING (auth.uid() IN (
+      SELECT user_id FROM assistants WHERE id = assistant_id
+    ));
+
+  CREATE POLICY "Profesyoneller kendi kliniklerinin tatillerini görebilir" ON clinic_vacations
+    FOR SELECT
+    USING (assistant_id IN (
+      SELECT assistant_id FROM professionals WHERE user_id = auth.uid()
+    ));
+
+  -- RLS politikaları professional_vacations için
+  ALTER TABLE professional_vacations ENABLE ROW LEVEL SECURITY;
+
+  CREATE POLICY "Profesyoneller kendi tatillerini yönetebilir" ON professional_vacations
+    FOR ALL
+    USING (auth.uid() IN (
+      SELECT user_id FROM professionals WHERE id = professional_id
+    ));
+
+  CREATE POLICY "Asistanlar kendi kliniklerindeki profesyonellerin tatillerini görebilir" ON professional_vacations
+    FOR SELECT
+    USING (professional_id IN (
+      SELECT id FROM professionals WHERE assistant_id IN (
+        SELECT id FROM assistants WHERE user_id = auth.uid()
+      )
+    ));
+
+  CREATE POLICY "Asistanlar kendi kliniklerindeki profesyonellerin tatillerini yönetebilir" ON professional_vacations
+    FOR ALL
+    USING (professional_id IN (
+      SELECT id FROM professionals WHERE assistant_id IN (
+        SELECT id FROM assistants WHERE user_id = auth.uid()
+      )
+    ));
 
   -- Blog yazıları tablosu
   CREATE TABLE blog_posts (
@@ -1104,7 +1202,7 @@
     slug text NOT NULL UNIQUE,
     excerpt text NOT NULL,
     content text NOT NULL,
-    cover_image text NOT NULL,
+    cover_image text,
     author text NOT NULL,
     author_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
     published_at timestamptz NOT NULL,
@@ -1194,38 +1292,6 @@
     ORDER BY tag;
   END;
   $$ LANGUAGE plpgsql SECURITY DEFINER;
-
-  -- Önce mevcut bucket'ı ve politikaları temizle
-  DROP POLICY IF EXISTS "Blog görselleri herkese açık" ON storage.objects;
-  DROP POLICY IF EXISTS "Blog görseli yükleme izni" ON storage.objects;
-  DROP POLICY IF EXISTS "Blog görseli silme izni" ON storage.objects;
-
-  -- Blog bucket'ını oluştur (eğer yoksa)
-  INSERT INTO storage.buckets (id, name, public)
-  VALUES ('blog', 'blog', true)
-  ON CONFLICT (id) DO NOTHING;
-
-  -- Bucket izinlerini ayarla
-  CREATE POLICY "Blog görselleri herkese açık"
-  ON storage.objects FOR SELECT
-  USING (bucket_id = 'blog');
-
-  CREATE POLICY "Blog görseli yükleme izni"
-  ON storage.objects FOR INSERT
-  WITH CHECK (
-    bucket_id = 'blog'
-    AND auth.role() = 'authenticated'
-  );
-
-  CREATE POLICY "Blog görseli silme izni"
-  ON storage.objects FOR DELETE
-  USING (
-    bucket_id = 'blog'
-    AND auth.role() = 'authenticated'
-  );
-
-  -- RLS'yi etkinleştir
-  ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
   -- Blog fonksiyonlarına erişim izinleri
   GRANT EXECUTE ON FUNCTION get_blog_categories TO authenticated, anon;

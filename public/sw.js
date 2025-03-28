@@ -43,7 +43,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Önbellek açıldı');
+        // console.log('Önbellek açıldı');
         return cache.addAll(FILES_TO_CACHE);
       })
       .then(() => {
@@ -58,13 +58,13 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keyList) => {
       return Promise.all(keyList.map((key) => {
         if (key !== CACHE_NAME) {
-          console.log('Eski önbellek siliniyor:', key);
+          // console.log('Eski önbellek siliniyor:', key);
           return caches.delete(key);
         }
       }));
     })
     .then(() => {
-      console.log('Service Worker aktif edildi');
+      // console.log('Service Worker aktif edildi');
       return self.clients.claim();
     })
   );
@@ -95,7 +95,7 @@ self.addEventListener('fetch', (event) => {
           return preloadResponse;
         }
       }).catch((error) => {
-        console.error('Preload response error:', error);
+        // console.error('Preload response error:', error);
       })
     );
   }
@@ -167,7 +167,7 @@ self.addEventListener('fetch', (event) => {
 // Push Notification desteği
 self.addEventListener('push', (event) => {
   if (!event.data) {
-    console.log('Push olayı verisiz alındı');
+    // console.log('Push olayı verisiz alındı');
     return;
   }
 
@@ -277,7 +277,7 @@ async function syncAppointments() {
       });
     }
   } catch (error) {
-    console.error('Randevu senkronizasyonu başarısız oldu:', error);
+    // console.error('Randevu senkronizasyonu başarısız oldu:', error);
   }
 }
 
@@ -320,7 +320,7 @@ async function syncNotes() {
       });
     }
   } catch (error) {
-    console.error('Not senkronizasyonu başarısız oldu:', error);
+    // console.error('Not senkronizasyonu başarısız oldu:', error);
   }
 }
 

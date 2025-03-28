@@ -542,8 +542,6 @@ export function BlogAdmin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState('');
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   
@@ -759,8 +757,6 @@ export function BlogAdmin() {
       // Not: Bu alanlar zaten useEffect ile yükleniyor, bu yüzden ekstra bir şey yapmaya gerek yok
     }
     
-    setImagePreview('');
-    setImageFile(null);
     setEditingPost(null);
     if (editor) {
       editor.commands.setContent('');
@@ -882,24 +878,6 @@ export function BlogAdmin() {
         throw new Error('İçerik boş olamaz, lütfen bir içerik girin.');
       }
 
-      // Resim yükleme işlemi
-      let imageUrl = formData.cover_image || '';
-      if (imageFile) {
-        // Resim uzantı kontrolü
-        const fileExtension = imageFile.name.split('.').pop()?.toLowerCase();
-        if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension || '')) {
-          throw new Error('Sadece JPG, PNG, GIF ve WEBP formatındaki resimler desteklenmektedir.');
-        }
-
-        // Resim boyut kontrolü (5MB)
-        if (imageFile.size > 5 * 1024 * 1024) {
-          throw new Error('Resim dosyası maksimum 5MB olmalıdır.');
-        }
-
-        const sanitizedFileName = sanitizeFileName(imageFile.name);
-        imageUrl = await handleImageUpload(imageFile, sanitizedFileName);
-      }
-
       // Okuma süresini içerik uzunluğuna göre hesapla
       const readingTime = calculateReadingTime(editorContent);
 
@@ -927,7 +905,7 @@ export function BlogAdmin() {
         slug: slugValue,
         excerpt: formData.excerpt,
         content: editorContent,
-        cover_image: imageUrl || null,
+        cover_image: null, // Her zaman null olarak ayarla
         author: formData.author,
         author_id,
         category: formData.category,
@@ -1032,37 +1010,8 @@ export function BlogAdmin() {
       }
     }
     
-    // Görsel URL'ini ayarla
-    if (post.cover_image) {
-      // Her zaman yeni timestamp ekle (cache busting)
-      const timestamp = new Date().getTime();
-      const imageUrl = post.cover_image.includes('?') 
-        ? post.cover_image.split('?')[0] + `?t=${timestamp}` // Mevcut parametreleri temizle
-        : `${post.cover_image}?t=${timestamp}`;
-        
-      setImagePreview(imageUrl);
-    }
-    
     setShowForm(true);
     window.scrollTo(0, 0);
-  };
-
-  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  // Görsel önizlemeyi temizleme fonksiyonu
-  const clearImagePreview = () => {
-    setImagePreview('');
-    setImageFile(null);
   };
 
   // Form verisini hazırla
@@ -1416,68 +1365,6 @@ export function BlogAdmin() {
                 </div>
           </div>
           
-              {/* Kapak Görseli */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Kapak Görseli
-                </label>
-                <div className="flex items-start space-x-4">
-                  <div className="flex-grow">
-                    <label className="block w-full h-[120px] px-4 py-2 border-2 border-slate-300 dark:border-slate-600 
-                                   border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer
-                                    hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                      <input
-                        type="file"
-                        onChange={handleImageChange}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      <div className="text-slate-500 dark:text-slate-400 text-center">
-                        <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 48 48">
-                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                  </svg>
-                        <div className="mt-1 text-sm">
-                          {imageFile ? imageFile.name : 'Görsel seçmek için tıklayın veya sürükleyin'}
-                        </div>
-                      </div>
-                    </label>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Önerilen boyut: 1200x630px, maksimum dosya boyutu: 5MB
-                    </p>
-                  </div>
-                  {imagePreview && (
-                    <div className="w-[120px] h-[120px] flex-shrink-0 relative border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-                      <div className="absolute inset-0">
-                        <ImagePreview src={imagePreview} onError={clearImagePreview} />
-                      </div>
-                      <div className="absolute top-1 right-1 flex space-x-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            // Resim düzenleme/kesme fonksiyonu burada eklenmeli
-                            alert('Resim düzenleme özelliği yakında eklenecek!');
-                          }}
-                          className="p-1 bg-white/80 hover:bg-white text-slate-700 rounded-full shadow-sm"
-                          title="Resmi düzenle"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={clearImagePreview}
-                          className="p-1 bg-red-500/80 hover:bg-red-500 text-white rounded-full shadow-sm"
-                          title="Resmi kaldır"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
               {/* İçerik Editörü */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -1584,9 +1471,15 @@ export function BlogAdmin() {
                         {/* Görsel kısmı */}
                         <div className="w-full h-40 relative bg-slate-200 dark:bg-slate-700">
                           {post.cover_image ? (
-                            <ImagePreview 
+                            <img 
                               src={post.cover_image} 
-                              onError={() => {}} 
+                              alt={post.title || 'Blog yazısı görseli'}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Görsel yüklenemezse varsayılan simgeyi göster
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                              }}
                             />
                           ) : (
                             <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-500">
@@ -1751,16 +1644,6 @@ export function BlogAdmin() {
                 )}
               </div>
               
-              {imagePreview && (
-                <div className="rounded-lg overflow-hidden mb-8 aspect-[2/1] bg-slate-100 dark:bg-slate-700">
-                  <img 
-                    src={imagePreview} 
-                    alt={formData.title || 'Blog kapak görseli'} 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-
               {formData.excerpt && (
                 <div className="mb-8">
                   <div className="text-lg italic text-slate-700 dark:text-slate-300 font-medium border-l-4 border-primary-500 pl-4">

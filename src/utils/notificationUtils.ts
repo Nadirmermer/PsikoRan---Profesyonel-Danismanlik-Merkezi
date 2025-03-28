@@ -39,13 +39,13 @@ export async function saveNotificationSubscription(
       .single();
 
     if (fetchError && fetchError.code !== 'PGRST116') {
-      console.error('Mevcut abonelikler kontrol edilirken hata:', fetchError);
+      // console.error('Mevcut abonelikler kontrol edilirken hata:', fetchError);
       return false;
     }
 
     // Eğer abonelik zaten varsa, güncellemeye gerek yok
     if (existingSubscription) {
-      console.log('Bu cihaz için bildirim aboneliği zaten var');
+      // console.log('Bu cihaz için bildirim aboneliği zaten var');
       return true;
     }
 
@@ -66,13 +66,13 @@ export async function saveNotificationSubscription(
       });
 
     if (error) {
-      console.error('Bildirim aboneliği kaydedilirken hata:', error);
+      // console.error('Bildirim aboneliği kaydedilirken hata:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Bildirim aboneliği kaydedilirken hata:', error);
+    // console.error('Bildirim aboneliği kaydedilirken hata:', error);
     return false;
   }
 }
@@ -86,13 +86,13 @@ export async function deleteNotificationSubscription(subscriptionId: string) {
       .eq('id', subscriptionId);
 
     if (error) {
-      console.error('Bildirim aboneliği silinirken hata:', error);
+      // console.error('Bildirim aboneliği silinirken hata:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Bildirim aboneliği silinirken hata:', error);
+    // console.error('Bildirim aboneliği silinirken hata:', error);
     return false;
   }
 }
@@ -106,13 +106,13 @@ export async function deleteAllNotificationSubscriptions(userId: string) {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Kullanıcının tüm bildirim abonelikleri silinirken hata:', error);
+      // console.error('Kullanıcının tüm bildirim abonelikleri silinirken hata:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Kullanıcının tüm bildirim abonelikleri silinirken hata:', error);
+    // console.error('Kullanıcının tüm bildirim abonelikleri silinirken hata:', error);
     return false;
   }
 }
@@ -123,7 +123,7 @@ export async function requestNotificationPermission(
   userType: 'professional' | 'assistant' | 'client'
 ) {
   if (!('Notification' in window)) {
-    console.log('Bu tarayıcı bildirimleri desteklemiyor');
+    // console.log('Bu tarayıcı bildirimleri desteklemiyor');
     return false;
   }
 
@@ -135,7 +135,7 @@ export async function requestNotificationPermission(
     }
 
     if (Notification.permission === 'denied') {
-      console.log('Bildirim izni reddedilmiş, tarayıcı ayarlarından değiştirilmeli');
+      // console.log('Bildirim izni reddedilmiş, tarayıcı ayarlarından değiştirilmeli');
       return false;
     }
 
@@ -147,11 +147,11 @@ export async function requestNotificationPermission(
       const result = await subscribeUserToPush(userId, userType);
       return result;
     } else {
-      console.log('Bildirim izni reddedildi');
+      // console.log('Bildirim izni reddedildi');
       return false;
     }
   } catch (error) {
-    console.error('Bildirim izni istenirken hata:', error);
+    // console.error('Bildirim izni istenirken hata:', error);
     return false;
   }
 }
@@ -163,7 +163,7 @@ async function subscribeUserToPush(
 ) {
   try {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      console.log('Bu tarayıcı Push API veya Service Worker desteklemiyor');
+      // console.log('Bu tarayıcı Push API veya Service Worker desteklemiyor');
       return false;
     }
 
@@ -194,7 +194,6 @@ async function subscribeUserToPush(
     const saved = await saveNotificationSubscription(subscription, userId, userType);
     return saved;
   } catch (error) {
-    console.error('Push bildirimlerine abone olurken hata:', error);
     return false;
   }
 }
@@ -203,15 +202,31 @@ async function subscribeUserToPush(
 async function registerServiceWorker() {
   try {
     if (!('serviceWorker' in navigator)) {
-      console.log('Bu tarayıcı Service Worker desteklemiyor');
       return null;
     }
 
     // Service Worker'ı kaydet
-    const registration = await navigator.serviceWorker.register('/service-worker.js');
+    const registration = await navigator.serviceWorker.register('/service-worker.js', {
+      scope: '/'
+    });
+    
+    // Service Worker'ın durumunu kontrol et
+    if (registration.installing) {
+    } else if (registration.waiting) {
+    } else if (registration.active) {
+    }
+    
+    // Service Worker güncellendiğinde bildir
+    registration.addEventListener('updatefound', () => {
+      const newWorker = registration.installing;
+      if (newWorker) {
+        newWorker.addEventListener('statechange', () => {
+        });
+      }
+    });
+    
     return registration;
   } catch (error) {
-    console.error('Service Worker kaydedilirken hata:', error);
     return null;
   }
 }
@@ -225,13 +240,11 @@ export async function getUserNotificationSubscriptions(userId: string) {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Bildirim abonelikleri alınırken hata:', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Bildirim abonelikleri alınırken hata:', error);
     return null;
   }
 }
@@ -254,16 +267,34 @@ export async function getUserNotificationPreferences(userId: string) {
           appointment_reminder_1day: true,
           appointment_cancelled: true,
           appointment_rescheduled: true,
-          new_message: true
+          new_message: true,
+          payment_confirmations: true,
+          newsletter: false,
+          system_updates: true
         };
       }
-      console.error('Bildirim tercihleri alınırken hata:', error);
+      
+      // relation does not exist hatası için özel kontrol
+      if (error.code === '42P01') {
+        // Varsayılan değerleri döndür
+        return {
+          appointment_reminder_30min: true,
+          appointment_reminder_1hour: true,
+          appointment_reminder_1day: true,
+          appointment_cancelled: true,
+          appointment_rescheduled: true,
+          new_message: true,
+          payment_confirmations: true,
+          newsletter: false,
+          system_updates: true
+        };
+      }
+      
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Bildirim tercihleri alınırken hata:', error);
     return null;
   }
 }
@@ -315,46 +346,56 @@ export async function sendNotification(
   userType: 'professional' | 'assistant' | 'client' = 'client'
 ) {
   try {
-    // Sunucu API'ye POST isteği gönder
-    const response = await fetch('/api/push/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userId,
-        userType,
-        notification: {
-          title,
-          body,
-          icon: '/images/icons/icon-192x192.webp',
-          badge: '/images/icons/badge-72x72.webp',
-          data
-        }
-      }),
-    });
-
-    const result = await response.json();
-    return result.success;
-  } catch (error) {
-    console.error('Bildirim gönderilirken hata:', error);
-    
-    // API çağrısı başarısız olursa, tarayıcıda doğrudan göster
+    // Öncelikle tarayıcıda bildirim göstermeyi dene
     if ('Notification' in window && Notification.permission === 'granted') {
       try {
-        new Notification(title, {
+        const notification = new Notification(title, {
           body,
           icon: '/images/icons/icon-192x192.webp',
           badge: '/images/icons/badge-72x72.webp',
           data
         });
+        
+        // Bildirime tıklandığında yönlendirme için olay dinleyicisi ekle
+        notification.onclick = function() {
+          if (data && data.url) {
+            window.focus();
+            window.location.href = data.url;
+          }
+        };
+        
         return true;
       } catch (notifError) {
-        console.error('Tarayıcı bildirimi gösterilirken hata:', notifError);
-        return false;
       }
     }
     
+    // Eğer API endpoint'i varsa ve tarayıcı bildirimi başarısız olduysa, sunucuya da bildir
+    try {
+      const response = await fetch('/api/push/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          userType,
+          notification: {
+            title,
+            body,
+            icon: '/images/icons/icon-192x192.webp',
+            badge: '/images/icons/badge-72x72.webp',
+            data
+          }
+        }),
+      });
+
+      const result = await response.json();
+      return result.success;
+    } catch (apiError) {
+      // API erişilemez olduğunda, tarayıcı bildirimi zaten denendi, başarısız olunduysa false dön
+      return false;
+    }
+  } catch (error) {
     return false;
   }
 }
@@ -362,168 +403,180 @@ export async function sendNotification(
 // Yaklaşan randevuları kontrol et ve bildirim gönder
 export async function checkUpcomingAppointments(userId?: string, userType?: 'professional' | 'assistant' | 'client') {
   try {
-    // Parametrelerle verilmemişse, oturum açmış kullanıcı bilgilerini kullan
+    // Eğer userId ve userType verilmediyse, mevcut kullanıcıyı kullan
     let currentUserId = userId;
     let currentUserType = userType;
-
-    if (!currentUserId || !currentUserType) {
-      // Kullanıcı oturum açmış mı kontrol et
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('Oturum açılmamış, randevu kontrolü yapılmıyor.');
-        return;
-      }
-
-      currentUserId = session.user.id;
+    
+    if (!currentUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
       
-      // Kullanıcı bilgilerini al
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', currentUserId)
+      currentUserId = user.id;
+    }
+    
+    if (!currentUserType) {
+      // Kullanıcı türünü bul (önce professionals tablosuna bak)
+      const { data: professionalData } = await supabase
+        .from('professionals')
+        .select('id')
+        .eq('user_id', currentUserId)
         .single();
-        
-      if (userError) {
-        console.error('Kullanıcı bilgileri alınırken hata:', userError);
-        return;
-      }
       
-      currentUserType = userData.user_type;
+      if (professionalData) {
+        currentUserType = 'professional';
+      } else {
+        // Asistan olup olmadığını kontrol et
+        const { data: assistantData } = await supabase
+          .from('assistants')
+          .select('id')
+          .eq('user_id', currentUserId)
+          .single();
+          
+        if (assistantData) {
+          currentUserType = 'assistant';
+        } else {
+          // Varsayılan olarak client kabul et
+          currentUserType = 'client';
+        }
+      }
     }
     
     // Bildirim tercihlerini al
-    const { data: prefData, error: prefError } = await supabase
-      .from('notification_preferences')
-      .select('*')
-      .eq('user_id', currentUserId)
-      .single();
-      
-    if (prefError && prefError.code !== 'PGRST116') {
-      console.error('Bildirim tercihleri alınırken hata:', prefError);
-      return;
-    }
-    
-    // Varsayılan tercihleri kullan veya veritabanından gelen tercihleri kullan
-    const preferences = prefData || {
-      appointments_30min: true,
-      appointments_1hour: true,
-      appointments_1day: true,
-      messages: true
-    };
-    
-    // Şimdi randevuları kontrol et
-    const now = new Date();
-    const thirtyMinLater = addMinutes(now, 30);
-    const oneHourLater = addHours(now, 1);
-    const oneDayLater = addDays(now, 1);
-    
-    // Randevu veritabanı sorgusu
-    let query = supabase
-      .from('appointments')
-      .select(`
-        *,
-        professional:professional_id (name, surname, profile_image),
-        client:client_id (name, surname)
-      `);
-      
-    if (currentUserType === 'professional') {
-      query = query.eq('professional_id', currentUserId);
-    } else if (currentUserType === 'client') {
-      query = query.eq('client_id', currentUserId);
-    } else if (currentUserType === 'assistant') {
-      // Asistanlar için ilgili profesyonel randevularını kontrol et
-      const { data: assistantData } = await supabase
-        .from('assistants')
-        .select('professional_id')
-        .eq('id', currentUserId)
+    try {
+      const { data: prefData, error: prefError } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', currentUserId)
         .single();
         
-      if (assistantData) {
-        query = query.eq('professional_id', assistantData.professional_id);
+      if (prefError) {
+        // Devam et ve varsayılan değerleri kullan
       }
-    }
-    
-    // Gelecek randevuları al
-    const { data: appointments, error: appointmentError } = await query
-      .gte('start_time', now.toISOString())
-      .order('start_time', { ascending: true });
       
-    if (appointmentError) {
-      console.error('Randevular alınırken hata:', appointmentError);
-      return;
-    }
-    
-    // Yaklaşan randevular için bildirimleri kontrol et ve gönder
-    for (const appointment of appointments) {
-      const appointmentTime = new Date(appointment.start_time);
+      // Varsayılan tercihleri kullan veya veritabanından gelen tercihleri kullan
+      const preferences = prefData || {
+        appointment_reminder_30min: true,
+        appointment_reminder_1hour: true,
+        appointment_reminder_1day: true,
+        appointment_cancelled: true,
+        appointment_rescheduled: true,
+        new_message: true,
+        payment_confirmations: true,
+        newsletter: false,
+        system_updates: true
+      };
       
-      // 30 dakika kontrolü
-      if (
-        preferences.appointments_30min && 
-        isAfter(appointmentTime, now) && 
-        isBefore(appointmentTime, thirtyMinLater)
-      ) {
-        const notificationData = createAppointmentNotification(
-          appointment, 
-          currentUserType, 
-          '30 dakika'
-        );
+      // Şimdi randevuları kontrol et
+      const now = new Date();
+      const thirtyMinLater = addMinutes(now, 30);
+      const oneHourLater = addHours(now, 1);
+      const oneDayLater = addDays(now, 1);
+      
+      // Randevu veritabanı sorgusu
+      let query = supabase
+        .from('appointments')
+        .select(`
+          *,
+          professional:professional_id (id, full_name, profile_image_url),
+          client:client_id (id, full_name)
+        `);
         
-        await sendNotification(
-          currentUserId,
-          notificationData.title,
-          notificationData.body,
-          { url: `/appointments/${appointment.id}`, appointmentId: appointment.id },
-          currentUserType
-        );
+      if (currentUserType === 'professional') {
+        query = query.eq('professional_id', currentUserId);
+      } else if (currentUserType === 'client') {
+        query = query.eq('client_id', currentUserId);
+      } else if (currentUserType === 'assistant') {
+        // Asistanlar için ilgili profesyonel randevularını kontrol et
+        const { data: assistantData } = await supabase
+          .from('assistants')
+          .select('professional_id')
+          .eq('id', currentUserId)
+          .single();
+          
+        if (assistantData) {
+          query = query.eq('professional_id', assistantData.professional_id);
+        }
       }
       
-      // 1 saat kontrolü
-      if (
-        preferences.appointments_1hour && 
-        isAfter(appointmentTime, thirtyMinLater) && 
-        isBefore(appointmentTime, oneHourLater)
-      ) {
-        const notificationData = createAppointmentNotification(
-          appointment, 
-          currentUserType, 
-          '1 saat'
-        );
+      // Gelecek randevuları al
+      const { data: appointments, error: appointmentError } = await query
+        .gte('start_time', now.toISOString())
+        .order('start_time', { ascending: true });
         
-        await sendNotification(
-          currentUserId,
-          notificationData.title,
-          notificationData.body,
-          { url: `/appointments/${appointment.id}`, appointmentId: appointment.id },
-          currentUserType
-        );
+      if (appointmentError) {
+        return;
       }
       
-      // 1 gün kontrolü
-      if (
-        preferences.appointments_1day && 
-        isAfter(appointmentTime, oneHourLater) && 
-        isBefore(appointmentTime, oneDayLater)
-      ) {
-        const notificationData = createAppointmentNotification(
-          appointment, 
-          currentUserType, 
-          '1 gün'
-        );
+      // Yaklaşan randevular için bildirimleri kontrol et ve gönder
+      for (const appointment of appointments) {
+        const appointmentTime = new Date(appointment.start_time);
         
-        await sendNotification(
-          currentUserId,
-          notificationData.title,
-          notificationData.body,
-          { url: `/appointments/${appointment.id}`, appointmentId: appointment.id },
-          currentUserType
-        );
+        // 30 dakika kontrolü
+        if (
+          preferences.appointment_reminder_30min && 
+          isAfter(appointmentTime, now) && 
+          isBefore(appointmentTime, thirtyMinLater)
+        ) {
+          const notificationData = createAppointmentNotification(
+            appointment, 
+            currentUserType, 
+            '30 dakika'
+          );
+          
+          await sendNotification(
+            currentUserId,
+            notificationData.title,
+            notificationData.body,
+            { url: `/appointments/${appointment.id}`, appointmentId: appointment.id },
+            currentUserType
+          );
+        }
+        
+        // 1 saat kontrolü
+        if (
+          preferences.appointment_reminder_1hour && 
+          isAfter(appointmentTime, thirtyMinLater) && 
+          isBefore(appointmentTime, oneHourLater)
+        ) {
+          const notificationData = createAppointmentNotification(
+            appointment, 
+            currentUserType, 
+            '1 saat'
+          );
+          
+          await sendNotification(
+            currentUserId,
+            notificationData.title,
+            notificationData.body,
+            { url: `/appointments/${appointment.id}`, appointmentId: appointment.id },
+            currentUserType
+          );
+        }
+        
+        // 1 gün kontrolü
+        if (
+          preferences.appointment_reminder_1day && 
+          isAfter(appointmentTime, oneHourLater) && 
+          isBefore(appointmentTime, oneDayLater)
+        ) {
+          const notificationData = createAppointmentNotification(
+            appointment, 
+            currentUserType, 
+            '1 gün'
+          );
+          
+          await sendNotification(
+            currentUserId,
+            notificationData.title,
+            notificationData.body,
+            { url: `/appointments/${appointment.id}`, appointmentId: appointment.id },
+            currentUserType
+          );
+        }
       }
+    } catch (error) {
     }
-    
-    console.log('Randevu bildirimleri kontrol edildi');
   } catch (error) {
-    console.error('Randevu kontrolleri sırasında hata:', error);
   }
 }
 
@@ -543,13 +596,13 @@ function createAppointmentNotification(
     // Profesyonel veya asistan için bildirim
     return {
       title: 'Yaklaşan Randevu Hatırlatması',
-      body: `${appointment.client.name} ${appointment.client.surname} ile randevunuz ${timeFrame} sonra (${appointmentDate})`
+      body: `${appointment.client.full_name || 'Danışan'} ile randevunuz ${timeFrame} sonra (${appointmentDate})`
     };
   } else {
     // Danışan için bildirim
     return {
       title: 'Yaklaşan Randevu Hatırlatması',
-      body: `${appointment.professional.name} ${appointment.professional.surname} ile randevunuz ${timeFrame} sonra (${appointmentDate})`
+      body: `${appointment.professional.full_name || 'Terapistiniz'} ile randevunuz ${timeFrame} sonra (${appointmentDate})`
     };
   }
 }

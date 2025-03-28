@@ -16,7 +16,9 @@ import {
   ChevronRight,
   Loader2,
   Video,
-  Search
+  Search,
+  ArrowRight,
+  ArrowLeft
 } from 'lucide-react';
 import { format, isValid, parseISO, isWithinInterval, addMinutes } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -129,6 +131,9 @@ export function CreateAppointmentModal({
   assistantId,
   onSuccess
 }: CreateAppointmentModalProps) {
+  // Adım takibi için state
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  
   // Form durumu
   const [formData, setFormData] = useState({
     clientId: '',
@@ -161,6 +166,7 @@ export function CreateAppointmentModal({
 
   // UI durumları
   const [loading, setLoading] = useState(false);
+  const [stepLoading, setStepLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -213,33 +219,128 @@ export function CreateAppointmentModal({
     client.full_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Sayfa yüklendiğinde veya modalın açılmasıyla verileri yükle
+  // Modal açıldığında sadece ilk adım için veri yükleme
   useEffect(() => {
     if (isOpen) {
       loadInitialData();
     }
   }, [isOpen, professionalId, assistantId]);
 
-  // Client veya Professional değiştiğinde verileri güncelle
+  // Her adım değiştiğinde ilgili verileri yükle
   useEffect(() => {
-    if (formData.clientId && formData.date) {
-      loadAppointmentsForDate(format(formData.date, 'yyyy-MM-dd'));
-      calculateAvailableTimeSlots(formData.date);
+    if (isOpen) {
+      handleStepDataLoad();
     }
-  }, [formData.clientId, formData.date, formData.duration]);
+  }, [currentStep, isOpen]);
 
-  // Zaman dilimi seçildiğinde uygun odaları hesapla
-  useEffect(() => {
-    if (formData.date && formData.time) {
-      const availableRooms = calculateAvailableRooms();
-      setAvailableRooms(availableRooms);
-      
-      // Eğer seçili oda artık uygun değilse, odayı temizle
-      if (formData.roomId && !availableRooms.some(room => room.id === formData.roomId)) {
-        setFormData(prev => ({ ...prev, roomId: '' }));
+  // Adım değiştiğinde gerekli verileri yükle
+  const handleStepDataLoad = async () => {
+    setStepLoading(true);
+    setError(null);
+    
+    try {
+      switch (currentStep) {
+        case 1:
+          // 1. Adım - Danışan seçimi
+          if (clients.length === 0) {
+            await loadClients();
+          }
+          break;
+        case 2:
+          // 2. Adım - Tarih seçimi
+          if (formData.clientId) {
+            await loadClinicHours();
+            await loadClinicVacations();
+            
+            if (formData.professionalId) {
+              await loadProfessionalWorkingHours(formData.professionalId);
+              await loadProfessionalVacations(formData.professionalId);
+            }
+          }
+          break;
+        case 3:
+          // 3. Adım - Saat seçimi
+          if (formData.clientId && formData.date) {
+            await loadClinicBreaks();
+            if (formData.professionalId) {
+              await loadProfessionalBreaks(formData.professionalId);
+            }
+            await loadAppointmentsForDate(format(formData.date, 'yyyy-MM-dd'));
+            calculateAvailableTimeSlots(formData.date);
+          }
+          break;
+        case 4:
+          // 4. Adım - Oda seçimi
+          if (formData.time) {
+            if (rooms.length === 0) {
+              await loadRooms();
+            }
+            calculateAvailableRooms();
+          }
+          break;
       }
+    } catch (error) {
+      console.error(`Adım ${currentStep} verileri yüklenirken hata:`, error);
+      setError(`Veriler yüklenirken bir hata oluştu. Lütfen tekrar deneyin.`);
+    } finally {
+      setStepLoading(false);
     }
-  }, [formData.date, formData.time, existingAppointments]);
+  };
+  
+  // İlk yükleme - Sadece temel verileri yükle
+  const loadInitialData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // İlk adım için client verilerini yükle
+        await loadClients();
+      
+      // Profesyonel ID varsa ayarla
+      if (professionalId) {
+        setFormData(prev => ({ ...prev, professionalId }));
+      } 
+      // Asistan ID varsa, asistana bağlı uzmanları yükle
+      else if (assistantId) {
+          await loadProfessionals();
+      }
+    } catch (error) {
+      console.error('Başlangıç verileri yüklenirken hata oluştu:', error);
+      setError('Veriler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Validate current step
+  const isStepValid = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        return !!formData.clientId; // Danışan seçilmiş olmalı
+      case 2:
+        return !!formData.date; // Tarih seçilmiş olmalı
+      case 3:
+        return !!formData.time; // Saat seçilmiş olmalı
+      case 4:
+        return formData.isOnline || !!formData.roomId; // Online veya oda seçilmiş olmalı
+      default:
+        return false;
+    }
+  };
+
+  // Sonraki adıma geç
+  const goToNextStep = () => {
+    if (currentStep < 5 && isStepValid(currentStep)) {
+      setCurrentStep(prev => prev + 1);
+    }
+  };
+
+  // Önceki adıma dön
+  const goToPrevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
 
   // Dark mode değişimini izle
   useEffect(() => {
@@ -264,402 +365,128 @@ export function CreateAppointmentModal({
     }
   }, []);
 
-  const loadInitialData = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Sadece başlangıçta gereken temel verileri yükle
-      try {
-        // Danışan verileri
-        await loadClients();
-      } catch (error) {
-        console.error('Danışan verileri yüklenirken hata:', error);
-      }
-      
-      // Professional ID varsa, sadece o uzmanla ilgili temel verileri yükle
-      if (professionalId) {
-        setFormData(prev => ({ ...prev, professionalId }));
-      } 
-      // Assistant ID varsa, o asistana bağlı tüm uzmanları yükle
-      else if (assistantId) {
-        try {
-          await loadProfessionals();
-        } catch (error) {
-          console.error('Uzman verileri yüklenirken hata:', error);
-        }
-      }
-    } catch (error) {
-      console.error('Başlangıç verileri yüklenirken hata oluştu:', error);
-      setError('Veriler yüklenirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Danışan seçimi yapıldığında ilgili verileri yükle
-  useEffect(() => {
-    if (formData.clientId) {
-      loadUserSpecificData();
-    }
-  }, [formData.clientId]);
-
-  // Tarih seçildiğinde ilgili verileri yükle
-  useEffect(() => {
-    if (formData.date) {
-      loadDateSpecificData();
-    }
-  }, [formData.date]);
-
-  // Saat seçildiğinde ilgili verileri yükle
-  useEffect(() => {
-    if (formData.date && formData.time) {
-      loadTimeSpecificData();
-    }
-  }, [formData.time]);
-
-  // Saat seçildiğinde ilgili verileri yükle
-  const loadTimeSpecificData = async () => {
-    // Odaları yükle (eğer daha önce yüklenmemişse)
-    if (rooms.length <= 1) { // Sadece online oda varsa veya hiç yoksa
-      try {
-        await loadRooms();
-      } catch (error) {
-        console.error('Oda verileri yüklenirken hata:', error);
-      }
-    }
-  };
-
-  // Danışan seçildiğinde ilgili verileri yükle
-  const loadUserSpecificData = async () => {
-    // Danışan seçildiğinde odaları yükle
-    try {
-      await loadRooms();
-    } catch (error) {
-      console.error('Oda verileri yüklenirken hata:', error);
-    }
-
-    // Profesyonel ID'yi danışandan belirle (eğer manuel ayarlanmadıysa)
-    if (!professionalId && formData.clientId) {
-      const selectedClient = clients.find(client => client.id === formData.clientId);
-      if (selectedClient) {
-        setFormData(prev => ({ ...prev, professionalId: selectedClient.professional_id }));
-        
-        try {
-          await loadProfessionalWorkingHours(selectedClient.professional_id);
-        } catch (error) {
-          console.error('Uzman çalışma saatleri yüklenirken hata:', error);
-        }
-      }
-    }
-  };
-
-  // Tarih seçildiğinde ilgili verileri yükle
-  const loadDateSpecificData = async () => {
-      try {
-        await loadClinicHours();
-      } catch (error) {
-        console.error('Klinik çalışma saatleri yüklenirken hata:', error);
-      }
-      
-      try {
-        await loadClinicBreaks();
-      } catch (error) {
-        console.error('Klinik mola saatleri yüklenirken hata:', error);
-      }
-      
-      try {
-        await loadClinicVacations();
-      } catch (error) {
-        console.error('Klinik tatil verileri yüklenirken hata:', error);
-      }
-      
-    if (formData.professionalId) {
-      try {
-        await loadProfessionalBreaks(formData.professionalId);
-        } catch (error) {
-          console.error('Uzman mola verileri yüklenirken hata:', error);
-        }
-        
-        try {
-        await loadProfessionalVacations(formData.professionalId);
-        } catch (error) {
-          console.error('Uzman tatil verileri yüklenirken hata:', error);
-        }
-      } 
-
-    // Tarih için mevcut randevuları yükle
-    if (formData.date) {
-      await loadAppointmentsForDate(format(formData.date, 'yyyy-MM-dd'));
-    }
-  };
-
+  // Danışan verilerini yükle
   const loadClients = async () => {
     try {
       let query = supabase.from('clients').select('*').order('full_name');
       
-      // Eğer professional ID varsa, sadece o profesyonelin danışanlarını yükle
+      // Eğer sabit bir professional_id varsa, sadece o profesyonelin danışanlarını göster
       if (professionalId) {
         query = query.eq('professional_id', professionalId);
-      } 
-      // Eğer assistant ID varsa, o asistana bağlı tüm uzmanların danışanlarını yükle
-      else if (assistantId) {
-        const { data: professionalIds } = await supabase
-          .from('professionals')
-          .select('id')
-          .eq('assistant_id', assistantId);
-          
-        if (professionalIds && professionalIds.length > 0) {
-          query = query.in('professional_id', professionalIds.map(p => p.id));
-        }
       }
 
       const { data, error } = await query;
       
       if (error) throw error;
+      
       setClients(data || []);
+      
+      // Profesyonel ID'si ayarlanmamışsa ve seçilen danışan varsa, danışanın profesyonelini ayarla
+      if (!formData.professionalId && formData.clientId) {
+        const selectedClient = data?.find(client => client.id === formData.clientId);
+        if (selectedClient) {
+          setFormData(prev => ({ ...prev, professionalId: selectedClient.professional_id }));
+        }
+      }
     } catch (error) {
-      console.error('Danışan verileri yüklenirken hata:', error);
-      throw error;
+      console.error('Danışanlar yüklenirken hata oluştu:', error);
+      setError('Danışan listesi yüklenirken bir hata oluştu.');
     }
   };
 
+  // Profesyonel verilerini yükle
   const loadProfessionals = async () => {
     try {
-      if (!assistantId) return;
+      let query = supabase.from('professionals').select('*').order('full_name');
       
-      const { data, error } = await supabase
-        .from('professionals')
-        .select('*')
-        .eq('assistant_id', assistantId)
-        .order('full_name');
-        
-      if (error) throw error;
-      setProfessionals(data || []);
-    } catch (error) {
-      console.error('Uzman verileri yüklenirken hata:', error);
-        throw error;
-      }
-  };
-
-  const loadRooms = async () => {
-    try {
-      let query = supabase.from('rooms').select('*').order('name');
-      
+      // Eğer assistant_id varsa, sadece o asistana bağlı profesyonelleri göster
       if (assistantId) {
         query = query.eq('assistant_id', assistantId);
-      } else if (professionalId) {
-        const { data: professional } = await supabase
-          .from('professionals')
-          .select('assistant_id')
-          .eq('id', professionalId)
-          .single();
-          
-        if (professional?.assistant_id) {
-          query = query.eq('assistant_id', professional.assistant_id);
-        }
       }
       
       const { data, error } = await query;
-      
+        
       if (error) throw error;
       
-      // Online görüşme seçeneğini ekle
-      const roomsWithOnline = [
-        {
-          id: 'online',
-          name: 'Online Görüşme',
-          assistant_id: assistantId || ''
-        },
-        ...(data || [])
-      ];
-      
-      setRooms(roomsWithOnline);
+      setProfessionals(data || []);
     } catch (error) {
-      console.error('Oda verileri yüklenirken hata:', error);
-      // Hata durumunda en azından online görüşme seçeneğini ekle
-      setRooms([{
+      console.error('Profesyoneller yüklenirken hata oluştu:', error);
+      setError('Uzman listesi yüklenirken bir hata oluştu.');
+      }
+  };
+
+  // Oda verilerini yükle
+  const loadRooms = async () => {
+    try {
+      // Önce "online" odasını yükle veya oluştur
+      const onlineRoom = {
         id: 'online',
         name: 'Online Görüşme',
         assistant_id: assistantId || ''
-      }]);
+      };
+      
+      let query = supabase.from('rooms').select('*').order('name');
+      
+      // Eğer assistant_id varsa, sadece o asistana bağlı odaları göster
+      if (assistantId) {
+        query = query.eq('assistant_id', assistantId);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      // Online odayı ve fiziksel odaları birleştir
+      setRooms([onlineRoom, ...(data || [])]);
+    } catch (error) {
+      console.error('Odalar yüklenirken hata oluştu:', error);
+      setError('Oda listesi yüklenirken bir hata oluştu.');
     }
   };
 
+  // Klinik çalışma saatlerini yükle
   const loadClinicHours = async () => {
     try {
-      let clinicId = assistantId;
-      
-      if (!clinicId && professionalId) {
-        const { data: professional } = await supabase
-          .from('professionals')
-          .select('assistant_id')
-          .eq('id', professionalId)
-          .single();
-
-        clinicId = professional?.assistant_id;
-      }
-      
-      // Klinik ID bulunamadığında varsayılan değerler kullan
-      if (!clinicId) {
-        setClinicHours({
-          pazartesi: { opening: '09:00', closing: '18:00', isOpen: true },
-          sali: { opening: '09:00', closing: '18:00', isOpen: true },
-          carsamba: { opening: '09:00', closing: '18:00', isOpen: true },
-          persembe: { opening: '09:00', closing: '18:00', isOpen: true },
-          cuma: { opening: '09:00', closing: '18:00', isOpen: true },
-          cumartesi: { opening: '09:00', closing: '18:00', isOpen: false },
-          pazar: { opening: '09:00', closing: '18:00', isOpen: false }
-        });
-        return;
-      }
-      
       const { data, error } = await supabase
-        .from('clinic_settings')
+        .from('clinic_hours')
         .select('*')
-        .eq('assistant_id', clinicId)
         .single();
         
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       
-      if (data) {
-        setClinicHours({
-          pazartesi: {
-            opening: data.opening_time_monday || '09:00',
-            closing: data.closing_time_monday || '18:00',
-            isOpen: data.is_open_monday ?? true
-          },
-          sali: {
-            opening: data.opening_time_tuesday || '09:00',
-            closing: data.closing_time_tuesday || '18:00',
-            isOpen: data.is_open_tuesday ?? true
-          },
-          carsamba: {
-            opening: data.opening_time_wednesday || '09:00',
-            closing: data.closing_time_wednesday || '18:00',
-            isOpen: data.is_open_wednesday ?? true
-          },
-          persembe: {
-            opening: data.opening_time_thursday || '09:00',
-            closing: data.closing_time_thursday || '18:00',
-            isOpen: data.is_open_thursday ?? true
-          },
-          cuma: {
-            opening: data.opening_time_friday || '09:00',
-            closing: data.closing_time_friday || '18:00',
-            isOpen: data.is_open_friday ?? true
-          },
-          cumartesi: {
-            opening: data.opening_time_saturday || '09:00',
-            closing: data.closing_time_saturday || '18:00',
-            isOpen: data.is_open_saturday ?? false
-          },
-          pazar: {
-            opening: data.opening_time_sunday || '09:00',
-            closing: data.closing_time_sunday || '18:00',
-            isOpen: data.is_open_sunday ?? false
-          }
-        });
-      } else {
-        setClinicHours({
-          pazartesi: { opening: '09:00', closing: '18:00', isOpen: true },
-          sali: { opening: '09:00', closing: '18:00', isOpen: true },
-          carsamba: { opening: '09:00', closing: '18:00', isOpen: true },
-          persembe: { opening: '09:00', closing: '18:00', isOpen: true },
-          cuma: { opening: '09:00', closing: '18:00', isOpen: true },
-          cumartesi: { opening: '09:00', closing: '18:00', isOpen: false },
-          pazar: { opening: '09:00', closing: '18:00', isOpen: false }
-        });
-      }
+      setClinicHours(data);
     } catch (error) {
-      console.error('Klinik çalışma saatleri yüklenirken hata:', error);
-      // Hata durumunda varsayılan değerler belirle
-      setClinicHours({
-        pazartesi: { opening: '09:00', closing: '18:00', isOpen: true },
-        sali: { opening: '09:00', closing: '18:00', isOpen: true },
-        carsamba: { opening: '09:00', closing: '18:00', isOpen: true },
-        persembe: { opening: '09:00', closing: '18:00', isOpen: true },
-        cuma: { opening: '09:00', closing: '18:00', isOpen: true },
-        cumartesi: { opening: '09:00', closing: '18:00', isOpen: false },
-        pazar: { opening: '09:00', closing: '18:00', isOpen: false }
-      });
+      console.error('Klinik çalışma saatleri yüklenirken hata oluştu:', error);
+      setError('Klinik çalışma saatleri yüklenirken bir hata oluştu.');
     }
   };
 
+  // Profesyonel çalışma saatlerini yükle
   const loadProfessionalWorkingHours = async (profId: string) => {
     try {
       const { data, error } = await supabase
         .from('professional_working_hours')
         .select('*')
         .eq('professional_id', profId)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') throw error;
+        .single();
       
-      if (data) {
-        setProfessionalWorkingHours({
-          pazartesi: {
-            opening: data.opening_time_monday || '09:00',
-            closing: data.closing_time_monday || '18:00',
-            isOpen: data.is_open_monday ?? true
-          },
-          sali: {
-            opening: data.opening_time_tuesday || '09:00',
-            closing: data.closing_time_tuesday || '18:00',
-            isOpen: data.is_open_tuesday ?? true
-          },
-          carsamba: {
-            opening: data.opening_time_wednesday || '09:00',
-            closing: data.closing_time_wednesday || '18:00',
-            isOpen: data.is_open_wednesday ?? true
-          },
-          persembe: {
-            opening: data.opening_time_thursday || '09:00',
-            closing: data.closing_time_thursday || '18:00',
-            isOpen: data.is_open_thursday ?? true
-          },
-          cuma: {
-            opening: data.opening_time_friday || '09:00',
-            closing: data.closing_time_friday || '18:00',
-            isOpen: data.is_open_friday ?? true
-          },
-          cumartesi: {
-            opening: data.opening_time_saturday || '09:00',
-            closing: data.closing_time_saturday || '18:00',
-            isOpen: data.is_open_saturday ?? false
-          },
-          pazar: {
-            opening: data.opening_time_sunday || '09:00',
-            closing: data.closing_time_sunday || '18:00',
-            isOpen: data.is_open_sunday ?? false
-          }
-        });
-      } else {
-        setProfessionalWorkingHours({
-          pazartesi: { opening: '09:00', closing: '18:00', isOpen: true },
-          sali: { opening: '09:00', closing: '18:00', isOpen: true },
-          carsamba: { opening: '09:00', closing: '18:00', isOpen: true },
-          persembe: { opening: '09:00', closing: '18:00', isOpen: true },
-          cuma: { opening: '09:00', closing: '18:00', isOpen: true },
-          cumartesi: { opening: '09:00', closing: '18:00', isOpen: false },
-          pazar: { opening: '09:00', closing: '18:00', isOpen: false }
-        });
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Veri bulunamadı, klinik saatlerini kullan
+          setProfessionalWorkingHours(clinicHours);
+          return;
+        }
+        throw error;
       }
+      
+      setProfessionalWorkingHours(data);
     } catch (error) {
-      console.error('Uzman çalışma saatleri yüklenirken hata:', error);
-      // Hata durumunda varsayılan değerler kullan
-      setProfessionalWorkingHours({
-        pazartesi: { opening: '09:00', closing: '18:00', isOpen: true },
-        sali: { opening: '09:00', closing: '18:00', isOpen: true },
-        carsamba: { opening: '09:00', closing: '18:00', isOpen: true },
-        persembe: { opening: '09:00', closing: '18:00', isOpen: true },
-        cuma: { opening: '09:00', closing: '18:00', isOpen: true },
-        cumartesi: { opening: '09:00', closing: '18:00', isOpen: false },
-        pazar: { opening: '09:00', closing: '18:00', isOpen: false }
-      });
+      console.error('Profesyonel çalışma saatleri yüklenirken hata oluştu:', error);
+      setError('Uzman çalışma saatleri yüklenirken bir hata oluştu.');
     }
   };
 
+  // Profesyonel mola saatlerini yükle
   const loadProfessionalBreaks = async (profId: string) => {
     try {
       const { data, error } = await supabase
@@ -668,350 +495,301 @@ export function CreateAppointmentModal({
         .eq('professional_id', profId);
         
       if (error) throw error;
+      
       setProfessionalBreaks(data || []);
     } catch (error) {
-      console.error('Uzman mola saatleri yüklenirken hata:', error);
-      // Hata durumunda boş dizi ayarla
-      setProfessionalBreaks([]);
+      console.error('Profesyonel mola saatleri yüklenirken hata oluştu:', error);
+      setError('Uzman mola saatleri yüklenirken bir hata oluştu.');
     }
   };
 
+  // Klinik mola saatlerini yükle
   const loadClinicBreaks = async () => {
     try {
-      let clinicId = assistantId;
-      
-      if (!clinicId && professionalId) {
-        const { data: professional } = await supabase
-          .from('professionals')
-          .select('assistant_id')
-          .eq('id', professionalId)
-          .single();
-
-        clinicId = professional?.assistant_id;
-      }
-      
-      // Klinik ID bulunamadığında boş dizi kullan
-      if (!clinicId) {
-        setClinicBreaks([]);
-        return;
-      }
-      
       const { data, error } = await supabase
         .from('clinic_breaks')
-        .select('*')
-        .eq('clinic_id', clinicId);
+        .select('*');
         
       if (error) throw error;
+      
       setClinicBreaks(data || []);
     } catch (error) {
-      console.error('Klinik mola saatleri yüklenirken hata:', error);
-      // Hata durumunda boş dizi ayarla
-      setClinicBreaks([]);
+      console.error('Klinik mola saatleri yüklenirken hata oluştu:', error);
+      setError('Klinik mola saatleri yüklenirken bir hata oluştu.');
     }
   };
 
+  // Profesyonel tatillerini yükle
   const loadProfessionalVacations = async (profId: string) => {
     try {
       const { data, error } = await supabase
-        .from('vacations')
+        .from('professional_vacations')
         .select('*')
         .eq('professional_id', profId);
 
       if (error) throw error;
+      
       setProfessionalVacations(data || []);
     } catch (error) {
-      console.error('Uzman izinleri yüklenirken hata:', error);
-      // Hata durumunda boş dizi ayarla
-      setProfessionalVacations([]);
+      console.error('Profesyonel tatilleri yüklenirken hata oluştu:', error);
+      setError('Uzman tatil bilgileri yüklenirken bir hata oluştu.');
     }
   };
 
+  // Klinik tatillerini yükle
   const loadClinicVacations = async () => {
     try {
-      let clinicId = assistantId;
-
-      if (!clinicId && professionalId) {
-        const { data: professional } = await supabase
-          .from('professionals')
-          .select('assistant_id')
-          .eq('id', professionalId)
-          .single();
-
-        clinicId = professional?.assistant_id;
-      }
-      
-      // Klinik ID bulunamadığında boş dizi kullan
-      if (!clinicId) {
-        setClinicVacations([]);
-        return;
-      }
-      
       const { data, error } = await supabase
-        .from('vacations')
-        .select('*')
-        .eq('clinic_id', clinicId);
+        .from('clinic_vacations')
+        .select('*');
 
       if (error) throw error;
+      
       setClinicVacations(data || []);
     } catch (error) {
-      console.error('Klinik izinleri yüklenirken hata:', error);
-      // Hata durumunda boş dizi ayarla
-      setClinicVacations([]);
+      console.error('Klinik tatilleri yüklenirken hata oluştu:', error);
+      setError('Klinik tatil bilgileri yüklenirken bir hata oluştu.');
     }
   };
 
+  // Seçili tarih için randevuları yükle
   const loadAppointmentsForDate = async (date: string) => {
     try {
-      const startTime = new Date(date);
-      startTime.setHours(0, 0, 0, 0);
-
-      const endTime = new Date(date);
-      endTime.setHours(23, 59, 59, 999);
+      // Günün başlangıç ve bitiş saatleri
+      const startOfDay = `${date}T00:00:00`;
+      const endOfDay = `${date}T23:59:59`;
 
       let query = supabase
         .from('appointments')
-        .select('*')
-        .eq('status', 'scheduled');
-
-      // Sadece ilgili uzmanın randevuları ile sınırlandır
+        .select(`
+          *,
+          clients(id, full_name),
+          professionals(id, full_name)
+        `)
+        .gte('start_time', startOfDay)
+        .lte('start_time', endOfDay)
+        .not('status', 'eq', 'cancelled');
+      
+      // Eğer sabit bir professional_id varsa, sadece o profesyonelin randevularını göster
       if (formData.professionalId) {
         query = query.eq('professional_id', formData.professionalId);
-      } else if (assistantId) {
-        const { data: managedProfessionals } = await supabase
-          .from('professionals')
-          .select('id')
-          .eq('assistant_id', assistantId);
-
-        if (managedProfessionals && managedProfessionals.length > 0) {
-          const professionalIds = managedProfessionals.map((p) => p.id);
-          query = query.in('professional_id', professionalIds);
-        }
       }
 
       const { data, error } = await query;
+      
       if (error) throw error;
 
       setExistingAppointments(data || []);
     } catch (error) {
-      console.error('Mevcut randevular yüklenirken hata:', error);
-      // Hata durumunda boş dizi ayarla
-      setExistingAppointments([]);
+      console.error('Randevular yüklenirken hata oluştu:', error);
+      setError('Mevcut randevular yüklenirken bir hata oluştu.');
     }
   };
 
-  // Tarih, tatil ve mesai saati kontrolleri
-  const isDateInVacations = (date: Date): boolean => {
-    if (!professionalVacations || !clinicVacations) {
-      return false;
-    }
-    
-    const dateStr = format(date, 'yyyy-MM-dd');
-    
-    // Profesyonel tatili kontrolü
-    const isProfessionalOnVacation = professionalVacations.some(vacation => {
-      const startDate = vacation.start_date.substring(0, 10);
-      const endDate = vacation.end_date.substring(0, 10);
-      return dateStr >= startDate && dateStr <= endDate;
-    });
-    
-    // Klinik tatili kontrolü
-    const isClinicOnVacation = clinicVacations.some(vacation => {
-      const startDate = vacation.start_date.substring(0, 10);
-      const endDate = vacation.end_date.substring(0, 10);
-      return dateStr >= startDate && dateStr <= endDate;
-    });
-    
-    return isProfessionalOnVacation || isClinicOnVacation;
-  };
-
+  // Kliniğin açık olup olmadığını kontrol et
   const isClinicOpen = (date: Date): boolean => {
-    // Eğer clinicHours yüklenmemişse, açık olarak kabul et
-    if (!clinicHours) {
+    if (!clinicHours) return false;
+    
+    // Tarih tatil gününe denk geliyorsa, klinik kapalıdır
+    if (isDateInVacations(date)) return false;
+    
+    // Haftanın günü
+    const dayOfWeek = date.getDay();
+    const days = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'] as const;
+    const currentDay = days[dayOfWeek];
+    
+    // Klinik çalışma saatleri
+    const dayHours = clinicHours[currentDay];
+    
+    // Kliniğin o gün açık olup olmadığını kontrol et
+    return dayHours.isOpen;
+  };
+
+  // Tarihin tatil gününe denk gelip gelmediğini kontrol et
+  const isDateInVacations = (date: Date): boolean => {
+    if (!isValid(date)) return false;
+    
+    // Profesyonel tatilleri
+    for (const vacation of professionalVacations) {
+      const startDate = new Date(vacation.start_date);
+      const endDate = new Date(vacation.end_date);
+      
+      if (isWithinInterval(date, { start: startDate, end: endDate })) {
       return true;
     }
-    
-    // Tatil günü kontrolü
-    if (isDateInVacations(date)) {
-      return false;
     }
     
-    const dayOfWeek = date.getDay();
-    const days = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'] as const;
-    const currentDay = days[dayOfWeek];
+    // Klinik tatilleri
+    for (const vacation of clinicVacations) {
+      const startDate = new Date(vacation.start_date);
+      const endDate = new Date(vacation.end_date);
+      
+      if (isWithinInterval(date, { start: startDate, end: endDate })) {
+        return true;
+      }
+    }
     
-    // Klinik çalışma saatleri kontrolü
-    const isClinicWorkDay = clinicHours[currentDay]?.isOpen || false;
-    
-    // Profesyonel çalışma saatleri kontrolü (eğer seçilmişse)
-    const isProfessionalWorkDay = formData.professionalId && professionalWorkingHours
-      ? professionalWorkingHours[currentDay]?.isOpen || false
-      : true;
-    
-    return isClinicWorkDay && isProfessionalWorkDay;
+    return false;
   };
 
+  // Saat diliminin mola saatlerine denk gelip gelmediğini kontrol et
   const isTimeInBreaks = (hour: number, minute: number): boolean => {
-    const timeToCheck = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    const timeInMinutes = hour * 60 + minute;
+    
+    // Günün adını al
     const dayOfWeek = formData.date.getDay();
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const englishDay = days[dayOfWeek];
+    const days = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'] as const;
+    const currentDay = days[dayOfWeek];
     
-    // Profesyonel molaları kontrolü
-    const isInProfessionalBreak = professionalBreaks.some(breakItem => {
-      if (breakItem.day_of_week.toLowerCase() !== englishDay) return false;
+    // Profesyonel molaları
+    const profBreaksForDay = professionalBreaks.filter(b => b.day_of_week === currentDay);
+    for (const breakItem of profBreaksForDay) {
+      const [startHour, startMinute] = breakItem.start_time.split(':').map(Number);
+      const [endHour, endMinute] = breakItem.end_time.split(':').map(Number);
       
-      return timeToCheck >= breakItem.start_time && timeToCheck < breakItem.end_time;
-    });
-    
-    // Klinik molaları kontrolü
-    const isInClinicBreak = clinicBreaks.some(breakItem => {
-      if (breakItem.day_of_week.toLowerCase() !== englishDay) return false;
+      const breakStartInMinutes = startHour * 60 + startMinute;
+      const breakEndInMinutes = endHour * 60 + endMinute;
       
-      return timeToCheck >= breakItem.start_time && timeToCheck < breakItem.end_time;
-    });
+      if (timeInMinutes >= breakStartInMinutes && timeInMinutes < breakEndInMinutes) {
+        return true;
+      }
+    }
     
-    return isInProfessionalBreak || isInClinicBreak;
+    // Klinik molaları
+    const clinicBreaksForDay = clinicBreaks.filter(b => b.day_of_week === currentDay);
+    for (const breakItem of clinicBreaksForDay) {
+      const [startHour, startMinute] = breakItem.start_time.split(':').map(Number);
+      const [endHour, endMinute] = breakItem.end_time.split(':').map(Number);
+      
+      const breakStartInMinutes = startHour * 60 + startMinute;
+      const breakEndInMinutes = endHour * 60 + endMinute;
+      
+      if (timeInMinutes >= breakStartInMinutes && timeInMinutes < breakEndInMinutes) {
+        return true;
+      }
+    }
+    
+    return false;
   };
 
-  // Zaman dilimleri ve oda hesaplama işlevleri
+  // Kullanılabilir zaman dilimlerini hesapla
   const calculateAvailableTimeSlots = (date: Date) => {
-    if (!date || !clinicHours) {
+    if (!clinicHours || !date) {
       setAvailableTimeSlots([]);
-      return [];
+      return;
     }
 
-    // Tatil veya mesai dışı kontrolü
-    if (!isClinicOpen(date)) {
+    // Tarihin tatil gününe denk gelip gelmediğini kontrol et
+    if (isDateInVacations(date)) {
       setAvailableTimeSlots([]);
-      return [];
+      return;
     }
     
+    // Haftanın günü
     const dayOfWeek = date.getDay();
     const days = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'] as const;
     const currentDay = days[dayOfWeek];
     
+    // Klinik çalışma saatleri
     const clinicDayHours = clinicHours[currentDay];
-    const professionalDayHours = professionalWorkingHours?.[currentDay];
 
-    if (!clinicDayHours.isOpen || (professionalDayHours && !professionalDayHours.isOpen)) {
+    // Klinik kapalıysa, boş dizi döndür
+    if (!clinicDayHours.isOpen) {
       setAvailableTimeSlots([]);
-      return [];
+      return;
     }
-
-    // Çalışma saatlerinin kesişimini al
-    let openingHour = parseInt(clinicDayHours.opening.split(':')[0]);
-    let openingMinute = parseInt(clinicDayHours.opening.split(':')[1]);
-    let closingHour = parseInt(clinicDayHours.closing.split(':')[0]);
-    let closingMinute = parseInt(clinicDayHours.closing.split(':')[1]);
     
-    if (professionalDayHours) {
-      const profOpeningHour = parseInt(professionalDayHours.opening.split(':')[0]);
-      const profOpeningMinute = parseInt(professionalDayHours.opening.split(':')[1]);
-      const profClosingHour = parseInt(professionalDayHours.closing.split(':')[0]);
-      const profClosingMinute = parseInt(professionalDayHours.closing.split(':')[1]);
+    // Profesyonel çalışma saatleri
+    let openingHour, openingMinute, closingHour, closingMinute;
+    
+    if (formData.professionalId && professionalWorkingHours) {
+      const profHours = professionalWorkingHours[currentDay];
+      
+      // Profesyonel o gün çalışmıyorsa, boş dizi döndür
+      if (!profHours.isOpen) {
+        setAvailableTimeSlots([]);
+        return;
+      }
+      
+      // Profesyonel ve klinik çalışma saatlerinin kesişimini al
+      [openingHour, openingMinute = 0] = profHours.opening.split(':').map(Number);
+      [closingHour, closingMinute = 0] = profHours.closing.split(':').map(Number);
+      
+      const [clinicOpenHour, clinicOpenMinute = 0] = clinicDayHours.opening.split(':').map(Number);
+      const [clinicCloseHour, clinicCloseMinute = 0] = clinicDayHours.closing.split(':').map(Number);
       
       // En geç başlangıç saatini al
-      if (profOpeningHour > openingHour || (profOpeningHour === openingHour && profOpeningMinute > openingMinute)) {
-        openingHour = profOpeningHour;
-        openingMinute = profOpeningMinute;
+      if (clinicOpenHour > openingHour || (clinicOpenHour === openingHour && clinicOpenMinute > openingMinute)) {
+        openingHour = clinicOpenHour;
+        openingMinute = clinicOpenMinute;
       }
       
       // En erken bitiş saatini al
-      if (profClosingHour < closingHour || (profClosingHour === closingHour && profClosingMinute < closingMinute)) {
-        closingHour = profClosingHour;
-        closingMinute = profClosingMinute;
+      if (clinicCloseHour < closingHour || (clinicCloseHour === closingHour && clinicCloseMinute < closingMinute)) {
+        closingHour = clinicCloseHour;
+        closingMinute = clinicCloseMinute;
       }
+    } else {
+      // Sadece klinik çalışma saatlerini kullan
+      [openingHour, openingMinute = 0] = clinicDayHours.opening.split(':').map(Number);
+      [closingHour, closingMinute = 0] = clinicDayHours.closing.split(':').map(Number);
+    }
+    
+    // Başlangıç dakikasını bir sonraki tam saate yuvarla
+    if (openingMinute > 0) {
+      openingHour += 1;
+      openingMinute = 0;
     }
     
     const slots: string[] = [];
     let currentHour = openingHour;
     let currentMinute = openingMinute;
     
-    // Mevcut zamanı kontrol et
-    const now = new Date();
-    const isToday = now.toDateString() === date.toDateString();
+    // Randevu süresi (dakika)
+    const durationMinutes = parseInt(formData.duration, 10);
     
-    // Uzmanın mevcut tüm randevularını al (sadece seçilen tarihteki değil, tüm randevular)
-    const professionalAppointments = formData.professionalId 
-      ? existingAppointments.filter(app => app.professional_id === formData.professionalId)
-      : [];
-    
-    while (
-      currentHour < closingHour || 
-      (currentHour === closingHour && currentMinute <= closingMinute - parseInt(formData.duration))
-    ) {
-      // Bugün ise ve zaman geçmişte kaldıysa atla
-      if (isToday) {
-        const slotTime = new Date(date);
-        slotTime.setHours(currentHour, currentMinute, 0, 0);
+    // Her saat için 0 ve 30 dakika başlangıçlı randevu dilimleri oluştur
+    while (currentHour < closingHour || (currentHour === closingHour && currentMinute < closingMinute)) {
+      // Mola zamanı kontrolü
+      if (!isTimeInBreaks(currentHour, currentMinute)) {
+        // Randevu bitiş zamanını hesapla
+        const endTimeInMinutes = currentHour * 60 + currentMinute + durationMinutes;
+        const endHour = Math.floor(endTimeInMinutes / 60);
+        const endMinute = endTimeInMinutes % 60;
         
-        if (slotTime < now) {
-          currentMinute += 15;
-          if (currentMinute >= 60) {
-      currentHour += 1;
-            currentMinute = 0;
-          }
-          continue;
-        }
-      }
-      
-      // Mola zamanlarında ise atla
-      if (isTimeInBreaks(currentHour, currentMinute)) {
-        currentMinute += 15;
-        if (currentMinute >= 60) {
-          currentHour += 1;
-          currentMinute = 0;
-        }
-        continue;
-      }
-      
-      const timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
-      
-      // Randevu süresi için yeterli zaman var mı kontrol et
-      const slotStartTime = new Date(date);
-      slotStartTime.setHours(currentHour, currentMinute, 0, 0);
-      
-      const slotEndTime = new Date(slotStartTime.getTime() + parseInt(formData.duration) * 60000);
-      const slotEndHour = slotEndTime.getHours();
-      const slotEndMinute = slotEndTime.getMinutes();
-      
-      if (
-        slotEndHour > closingHour || 
-        (slotEndHour === closingHour && slotEndMinute > closingMinute)
-      ) {
+        // Randevu bitiş zamanı çalışma saatleri içinde mi?
+        if (endHour < closingHour || (endHour === closingHour && endMinute <= closingMinute)) {
+          // Mevcut randevularla çakışma kontrolü
+          let hasConflict = false;
+          
+          const startTime = `${formData.date.toISOString().split('T')[0]}T${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}:00`;
+          const endTime = `${formData.date.toISOString().split('T')[0]}T${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}:00`;
+          
+          for (const appointment of existingAppointments) {
+            const apptStartTime = new Date(appointment.start_time).getTime();
+            const apptEndTime = new Date(appointment.end_time).getTime();
+            const newStartTime = new Date(startTime).getTime();
+            const newEndTime = new Date(endTime).getTime();
+            
+            // Çakışma kontrolü
+            if (
+              (newStartTime >= apptStartTime && newStartTime < apptEndTime) || // Başlangıç zamanı çakışıyor
+              (newEndTime > apptStartTime && newEndTime <= apptEndTime) || // Bitiş zamanı çakışıyor
+              (newStartTime <= apptStartTime && newEndTime >= apptEndTime) // İçine alıyor
+            ) {
+              hasConflict = true;
         break;
-      }
-      
-      // Uzmanın herhangi bir randevusu ile çakışma kontrolü
-      const hasProfessionalConflict = professionalAppointments.some(appointment => {
-        const appointmentStart = new Date(appointment.start_time);
-        const appointmentEnd = new Date(appointment.end_time);
-        
-        // Uzmanın başka bir yerdeki randevusu ile çakışma
-        const sameDay = appointmentStart.toDateString() === slotStartTime.toDateString();
-        if (!sameDay) return false;
-        
-        return (
-          (slotStartTime >= appointmentStart && slotStartTime < appointmentEnd) ||
-          (slotEndTime > appointmentStart && slotEndTime <= appointmentEnd) ||
-          (slotStartTime <= appointmentStart && slotEndTime >= appointmentEnd)
-        );
-      });
-      
-      // Eğer uzmanın çakışan bir randevusu varsa, bu zaman dilimini atla
-      if (hasProfessionalConflict) {
-        currentMinute += 15;
-        if (currentMinute >= 60) {
-          currentHour += 1;
-          currentMinute = 0;
+            }
+          }
+          
+          if (!hasConflict) {
+            slots.push(`${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`);
+          }
         }
-        continue;
       }
       
-      slots.push(timeString);
-      
-      // Sonraki zaman dilimi
-      currentMinute += 15;
+      // Sonraki zaman dilimi (30 dakika artır)
+      currentMinute += 30;
       if (currentMinute >= 60) {
         currentHour += 1;
         currentMinute = 0;
@@ -1019,176 +797,178 @@ export function CreateAppointmentModal({
     }
     
     setAvailableTimeSlots(slots);
-    return slots;
   };
 
+  // Kullanılabilir odaları hesapla
   const calculateAvailableRooms = () => {
-    if (!formData.date || !formData.time || !rooms.length) {
+    if (!formData.date || !formData.time) {
+      setAvailableRooms([]);
       return [];
     }
     
-    const startDateTime = new Date(formData.date);
-    const [hours, minutes] = formData.time.split(':').map(Number);
-    startDateTime.setHours(hours, minutes, 0, 0);
+    // Randevu başlangıç ve bitiş zamanlarını hesapla
+    const [hour, minute] = formData.time.split(':').map(Number);
+    const durationMinutes = parseInt(formData.duration, 10);
     
+    const startTimeInMinutes = hour * 60 + minute;
+    const endTimeInMinutes = startTimeInMinutes + durationMinutes;
     
-    const endDateTime = new Date(startDateTime.getTime() + parseInt(formData.duration) * 60000);
+    const endHour = Math.floor(endTimeInMinutes / 60);
+    const endMinute = endTimeInMinutes % 60;
     
-    // Önce online görüşmeleri dahil et
-    const availableRoomsList = [{ 
-      id: 'online', 
-      name: 'Online Görüşme', 
-      assistant_id: assistantId || '' 
-    }];
+    const startTime = `${formData.date.toISOString().split('T')[0]}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
+    const endTime = `${formData.date.toISOString().split('T')[0]}T${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}:00`;
     
-    // Fiziksel odaları kontrol et
+    // Online odayı her zaman ekle
+    const onlineRoom = rooms.find(room => room.id === 'online');
+    let availableRooms = onlineRoom ? [onlineRoom] : [];
+    
+    // Fiziksel odalar için uygunluk kontrolü yap
     const physicalRooms = rooms.filter(room => room.id !== 'online');
     
     for (const room of physicalRooms) {
-      const hasConflict = existingAppointments.some(appointment => {
-        if (appointment.room_id !== room.id) return false;
-        
-        const appointmentStart = new Date(appointment.start_time);
-        const appointmentEnd = new Date(appointment.end_time);
-        
-        return (
-          (startDateTime >= appointmentStart && startDateTime < appointmentEnd) ||
-          (endDateTime > appointmentStart && endDateTime <= appointmentEnd) ||
-          (startDateTime <= appointmentStart && endDateTime >= appointmentEnd)
-        );
-      });
+      let isAvailable = true;
       
-      if (!hasConflict) {
-        availableRoomsList.push(room);
+      // Bu oda için çakışan randevular var mı?
+      for (const appointment of existingAppointments) {
+        if (appointment.room_id === room.id) {
+          const apptStartTime = new Date(appointment.start_time).getTime();
+          const apptEndTime = new Date(appointment.end_time).getTime();
+          const newStartTime = new Date(startTime).getTime();
+          const newEndTime = new Date(endTime).getTime();
+          
+          // Çakışma kontrolü
+          if (
+            (newStartTime >= apptStartTime && newStartTime < apptEndTime) || // Başlangıç zamanı çakışıyor
+            (newEndTime > apptStartTime && newEndTime <= apptEndTime) || // Bitiş zamanı çakışıyor
+            (newStartTime <= apptStartTime && newEndTime >= apptEndTime) // İçine alıyor
+          ) {
+            isAvailable = false;
+            break;
+          }
+        }
+      }
+      
+      if (isAvailable) {
+        availableRooms.push(room);
       }
     }
     
-    return availableRoomsList;
+    setAvailableRooms(availableRooms);
+    return availableRooms;
   };
 
-  // Form işleme ve gönderme
+  // Input değişikliklerini işle
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormData(prev => ({ ...prev, [name]: checked }));
-    } else {
+    const { name, value } = e.target;
       setFormData(prev => ({ ...prev, [name]: value }));
-    }
     
-    // Özel işlemler
-    if (name === 'clientId' && value) {
-      // Danışan seçildiğinde profesyoneli otomatik ayarla
-      const selectedClient = clients.find(client => client.id === value);
-      if (selectedClient && !professionalId) {
-        setFormData(prev => ({ ...prev, professionalId: selectedClient.professional_id }));
-        loadProfessionalWorkingHours(selectedClient.professional_id);
-        loadProfessionalBreaks(selectedClient.professional_id);
-        loadProfessionalVacations(selectedClient.professional_id);
-      }
-    } else if (name === 'duration') {
-      // Süre değiştiğinde zaman dilimlerini yeniden hesapla
+    // Randevu süresi değiştiğinde, mevcut saatleri yeniden hesaplatır
+    if (name === 'duration' && formData.date) {
       calculateAvailableTimeSlots(formData.date);
     }
   };
 
+  // Tarih değişikliklerini işle
   const handleDateChange = (date: Date) => {
-    setFormData(prev => ({ ...prev, date, time: '' }));
-    // Dayjs state'ini de güncelle
     setSelectedDate(dayjs(date));
-    loadAppointmentsForDate(format(date, 'yyyy-MM-dd'));
+    setFormData(prev => ({ ...prev, date, time: '' })); // Tarih değiştiğinde saati sıfırla
   };
 
+  // Saat değişikliklerini işle
   const handleTimeChange = (time: string) => {
-    setFormData(prev => ({ ...prev, time, roomId: '' }));
+    setFormData(prev => ({ ...prev, time }));
   };
 
+  // Oda değişikliklerini işle
   const handleRoomChange = (roomId: string) => {
-    if (roomId === 'online') {
-      setFormData(prev => ({ ...prev, roomId: '', isOnline: true }));
-    } else {
-      setFormData(prev => ({ ...prev, roomId, isOnline: false }));
-    }
+    setFormData(prev => ({ ...prev, roomId }));
   };
 
+  // Form gönderimini işle
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.clientId || !formData.date || !formData.time) {
+      setError('Lütfen gerekli tüm alanları doldurun.');
+      return;
+    }
+    
+      if (!formData.isOnline && !formData.roomId) {
+      setError('Lütfen bir oda seçin veya online görüşme olarak işaretleyin.');
+      return;
+      }
+      
     setLoading(true);
     setError(null);
     
     try {
-      // Gerekli alanları kontrol et
-      if (!formData.clientId) throw new Error('Danışan seçilmedi');
-      if (!formData.professionalId) throw new Error('Ruh sağlığı uzmanı belirlenmedi');
-      if (!formData.date) throw new Error('Tarih seçilmedi');
-      if (!formData.time) throw new Error('Saat seçilmedi');
-      
-      // Online görüşme ise oda kontrol etme, yüz yüze ise oda seçimi zorunlu
-      if (!formData.isOnline && !formData.roomId) {
-        throw new Error('Yüz yüze görüşme için oda seçimi zorunludur');
-      }
-      
       // Randevu başlangıç ve bitiş zamanlarını hesapla
-      const startDateTime = new Date(formData.date);
-      const [hours, minutes] = formData.time.split(':').map(Number);
-      startDateTime.setHours(hours, minutes, 0, 0);
+      const [hour, minute] = formData.time.split(':').map(Number);
+      const durationMinutes = parseInt(formData.duration, 10);
       
-      const endDateTime = new Date(startDateTime.getTime() + parseInt(formData.duration) * 60000);
+      const startTime = new Date(formData.date);
+      startTime.setHours(hour, minute, 0, 0);
       
-      // Online görüşme için Jitsi linki oluştur
-      let meetingUrl = null;
-      if (formData.isOnline) {
-        // Benzersiz bir oda adı oluştur
-        const selectedClient = clients.find(c => c.id === formData.clientId);
-        const selectedProfessional = professionals.find(p => p.id === formData.professionalId);
-        
-        // Format: p[professional_id]-c[client_id]-[date_timestamp]
-        const meetingRoomId = `p${formData.professionalId.substring(0, 5)}-c${formData.clientId.substring(0, 5)}-${startDateTime.getTime()}`;
-        
-        // Jitsi Meet URL'i
-        meetingUrl = `https://meet.jit.si/${meetingRoomId}`;
-      }
+      const endTime = new Date(startTime);
+      endTime.setMinutes(endTime.getMinutes() + durationMinutes);
       
-      // Randevu oluştur
-      const { error } = await supabase.from('appointments').insert({
+      // Randevu verisi oluştur
+      const appointmentData = {
         client_id: formData.clientId,
         professional_id: formData.professionalId,
-        room_id: formData.isOnline ? null : formData.roomId,
-        start_time: startDateTime.toISOString(),
-        end_time: endDateTime.toISOString(),
-        notes: formData.notes || null,
+        room_id: formData.isOnline ? 'online' : formData.roomId,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
         status: 'scheduled',
-        is_online: formData.isOnline,
-        meeting_url: formData.isOnline ? meetingUrl : null
-      });
+        notes: formData.notes || null,
+        is_online: formData.isOnline
+      };
+      
+      // Randevuyu oluştur
+      const { data, error } = await supabase
+        .from('appointments')
+        .insert([appointmentData])
+        .select()
+        .single();
       
       if (error) throw error;
       
-      // Başarı mesajını göster, kısa süre sonra kapat
-      setSuccess('Randevu oluşturuldu!');
+      // Başarı mesajını göster
+      setSuccess('Randevu başarıyla oluşturuldu!');
       
-      // Başarı mesajını gösterdikten sonra hızlıca modalı kapat
+      // Form verilerini sıfırla
+      setFormData({
+        clientId: '',
+        professionalId: professionalId || '',
+        roomId: '',
+        date: new Date(),
+        time: '',
+        duration: '45',
+        notes: '',
+        isOnline: false
+      });
+      
+      // Callback'i çağır
+      if (onSuccess) {
       setTimeout(() => {
-        // onSuccess fonksiyonunun varlığını kontrol et
-        if (typeof onSuccess === 'function') {
           onSuccess();
+        }, 1500);
         }
-        onClose();
-      }, 800); // Daha kısa bir süre
       
+      // Modal'ı kapat
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (error) {
-      console.error('Randevu oluşturulurken hata:', error);
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError('Randevu oluşturulurken bir hata oluştu.');
-      }
-      setLoading(false); // Hata durumunda loading'i kapat
+      console.error('Randevu oluşturulurken hata oluştu:', error);
+      setError('Randevu oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Türkçe günleri formatla
+  // Türkçe gün adını formatla
   const formatTurkishDay = (date: Date) => {
     return format(date, 'EEEE', { locale: tr });
   };
@@ -1198,9 +978,6 @@ export function CreateAppointmentModal({
     return format(date, 'd MMMM yyyy', { locale: tr });
   };
 
-  // Modal açık değilse hiçbir şey render etme
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center overflow-y-auto p-1">
@@ -1209,12 +986,73 @@ export function CreateAppointmentModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl overflow-hidden w-full max-w-[98vw] sm:max-w-[95vw] md:max-w-5xl lg:max-w-6xl mx-auto relative my-1"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl overflow-hidden w-full max-w-3xl mx-auto relative my-1"
         >
-          
+          {/* Header */}
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 backdrop-blur-sm flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+              <Calendar className="h-5 w-5 mr-2 text-primary-600 dark:text-primary-400" />
+              Yeni Randevu Oluştur
+            </h3>
+            <button 
+              onClick={onClose}
+              className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            </button>
+          </div>
+
+          {/* Adım göstergesi */}
+          <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-2 border-b border-gray-200 dark:border-gray-700/60">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1">
+                {[1, 2, 3, 4, 5].map((step) => (
+                  <motion.div 
+                    key={step}
+                    className={`flex items-center ${step !== 5 && 'mr-1'}`}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: step * 0.1 }}
+                  >
+                    <motion.div 
+                      className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-semibold ${
+                        step < currentStep 
+                          ? 'bg-primary-600 text-white' 
+                          : step === currentStep 
+                            ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400 ring-2 ring-primary-500 dark:ring-primary-400' 
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                      }`}
+                      whileHover={step <= currentStep ? { scale: 1.05 } : {}}
+                      whileTap={step <= currentStep ? { scale: 0.95 } : {}}
+                      onClick={() => step < currentStep && setCurrentStep(step)}
+                    >
+                      {step < currentStep ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : (
+                        <span>{step}</span>
+                      )}
+                    </motion.div>
+                    {step !== 5 && (
+                      <div className={`h-0.5 w-6 ${
+                        step < currentStep ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'
+                      }`}></div>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+              
+              <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                {currentStep === 1 && 'Danışan Seçimi'}
+                {currentStep === 2 && 'Tarih Seçimi'}
+                {currentStep === 3 && 'Saat Seçimi'}
+                {currentStep === 4 && 'Görüşme Yeri'}
+                {currentStep === 5 && 'Randevu Özeti'}
+              </div>
+            </div>
+          </div>
 
           {/* Form içeriği */}
-          <div className="p-2 overflow-y-auto relative overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 110px)' }}>
+          <div className="p-4 overflow-y-auto relative" style={{ maxHeight: 'calc(100vh - 180px)' }}>
             {loading && (
               <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 z-10 flex items-center justify-center backdrop-blur-sm">
                 <div className="flex flex-col items-center space-y-2">
@@ -1230,10 +1068,10 @@ export function CreateAppointmentModal({
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 flex items-start"
+                className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 flex items-start"
               >
-                <AlertCircle size={16} className="mr-2 mt-0.5 flex-shrink-0" />
-                <p className="text-xs">{error}</p>
+                <AlertCircle size={18} className="mr-2 mt-0.5 flex-shrink-0" />
+                <p className="text-sm">{error}</p>
               </motion.div>
             )}
 
@@ -1249,29 +1087,36 @@ export function CreateAppointmentModal({
             )}
 
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-3">
-
-                {/* Sol Taraf - Danışan seçimi ve tarih */}
-                <div className="space-y-2 md:space-y-3">
-                  {/* Danışan Seçimi */}
-                        <div>
-                    <h3 className="flex items-center text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                      <div className="h-4 w-4 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
-                        <span className="text-xs font-bold">1</span>
-                          </div>
-                      Danışan Bilgileri
-                    </h3>
+              {/* Form içeriği burada - her bir adım ayrı render ediliyor */}
+              {/* Adım 1: Danışan Seçimi */}
+              {currentStep === 1 && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-4"
+                >
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <h4 className="text-base font-medium text-gray-900 dark:text-white mb-3">Randevu oluşturmak için danışan seçin</h4>
                     
-                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 border border-gray-200 dark:border-gray-700/60 shadow-sm">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Danışan Seçin
+                    {stepLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="flex flex-col items-center space-y-2">
+                          <Loader2 size={24} className="animate-spin text-primary-600 dark:text-primary-400" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Danışan listesi yükleniyor...</p>
+                          </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Danışan arama */}
+                        <div className="mb-4 relative" ref={searchRef}>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Danışan Ara
                         </label>
-                        <div className="relative" ref={searchRef}>
                         <div className="relative">
                             <input
                               type="text"
-                              placeholder="Danışan ara..."
+                              placeholder="Ad soyad ile ara..."
                               value={searchTerm}
                               onChange={(e) => {
                                 setSearchTerm(e.target.value);
@@ -1298,14 +1143,15 @@ export function CreateAppointmentModal({
                             )}
                           </div>
                           
+                          {/* Danışan listesi dropdown */}
                           {dropdownOpen && (
-                            <div className="absolute z-[80] w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-36 overflow-y-auto">
+                            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                               {clients.length === 0 ? (
-                                <div className="p-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                                <div className="p-3 text-sm text-gray-500 dark:text-gray-400 text-center">
                                   Henüz danışan eklenmemiş
                                 </div>
                               ) : filteredClients.length === 0 ? (
-                                <div className="p-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                                <div className="p-3 text-sm text-gray-500 dark:text-gray-400 text-center">
                                   Eşleşen danışan bulunamadı
                                 </div>
                               ) : (
@@ -1313,23 +1159,30 @@ export function CreateAppointmentModal({
                                   <div
                                     key={client.id}
                                     onClick={() => {
-                                      setFormData(prev => ({ ...prev, clientId: client.id }));
+                                      setFormData(prev => ({ 
+                                        ...prev, 
+                                        clientId: client.id,
+                                        professionalId: client.professional_id || formData.professionalId
+                                      }));
                                       setSearchTerm(client.full_name);
                                       setDropdownOpen(false);
                                     }}
-                                    className={`p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                                    className={`p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
                                       formData.clientId === client.id ? 'bg-primary-50 dark:bg-primary-900/30' : ''
                                     }`}
                                   >
                                     <div className="flex items-center">
-                                      <div className="p-1 bg-primary-100 dark:bg-primary-900/50 rounded-full mr-1.5">
-                                        <User size={12} className="text-primary-600 dark:text-primary-400" />
+                                      <div className="h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-3">
+                                        <User size={16} />
                                       </div>
                                       <div className="flex-1">
-                                        <p className="text-xs font-medium text-gray-800 dark:text-gray-200">{client.full_name}</p>
-                                        <div className="flex flex-wrap items-center gap-1">
+                                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{client.full_name}</p>
+                                        <div className="flex flex-wrap items-center gap-2 mt-1">
                                           {client.phone && (
-                                            <p className="text-[10px] text-gray-500 dark:text-gray-400">{client.phone}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">{client.phone}</p>
+                                          )}
+                                          {client.email && (
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">{client.email}</p>
                                           )}
                                         </div>
                                       </div>
@@ -1340,11 +1193,36 @@ export function CreateAppointmentModal({
                             </div>
                           )}
                   </div>
+                        
+                        {/* Seçilen danışan bilgisi */}
+                        {selectedClient && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-3 border border-primary-100 dark:border-primary-800/50 bg-primary-50 dark:bg-primary-900/20 rounded-lg"
+                          >
+                            <div className="flex items-center">
+                              <div className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-3">
+                                <User size={18} />
               </div>
-
-                      {/* Süre seçimi */}
-                      <div className="mt-2">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <div>
+                                <h5 className="font-medium text-gray-900 dark:text-white">{selectedClient.full_name}</h5>
+                                <div className="flex flex-wrap items-center gap-2 mt-1">
+                                  {selectedClient.phone && (
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">{selectedClient.phone}</p>
+                                  )}
+                                  {selectedClient.email && (
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">{selectedClient.email}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                        
+                        {/* Randevu süresi seçimi */}
+                        <div className="mt-4">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Randevu Süresi
                         </label>
                         <div className="relative">
@@ -1356,40 +1234,70 @@ export function CreateAppointmentModal({
                           >
                             <option value="30">30 dakika</option>
                             <option value="45">45 dakika</option>
-                            <option value="60">60 dakika</option>
-                            <option value="90">90 dakika</option>
-                            <option value="120">120 dakika</option>
+                              <option value="60">60 dakika (1 saat)</option>
+                              <option value="90">90 dakika (1.5 saat)</option>
+                              <option value="120">120 dakika (2 saat)</option>
                           </select>
                           <ChevronDown size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none" />
                       </div>
                       </div>
+                        
+                        {/* Bilgilendirme */}
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-lg">
+                          <div className="flex">
+                            <div className="flex-shrink-0">
+                              <AlertCircle size={18} className="text-blue-600 dark:text-blue-400" />
                   </div>
+                            <div className="ml-3">
+                              <p className="text-sm text-blue-700 dark:text-blue-300">
+                                Devam etmek için lütfen bir danışan seçin. Danışan seçimi yapıldıktan sonra tarih seçimine geçebilirsiniz.
+                              </p>
                 </div>
-
-              {/* Tarih Seçimi */}
-              <div>
-                    <h3 className="flex items-center text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                      <div className="h-4 w-4 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
-                        <span className="text-xs font-bold">2</span>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
-                      Tarih Seçimi
-                    </h3>
+                </motion.div>
+              )}
+
+              {/* Adım 2: Tarih Seçimi */}
+              {currentStep === 2 && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-4"
+                >
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <h4 className="text-base font-medium text-gray-900 dark:text-white mb-3">Randevu tarihini seçin</h4>
                     
-                    {/* DatePicker konteyneri */}
-                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 border border-gray-200 dark:border-gray-700/60 shadow-sm">
-                      <div className="flex flex-col items-center justify-center">
-                        {/* Seçilen tarihi takvimin üstünde gösteriyoruz */}
-                      {formData.date && (
-                          <div className="w-full mb-2 p-2 bg-primary-50 dark:bg-primary-900/30 rounded-lg border border-primary-100 dark:border-primary-800/50">
-                          <p className="text-sm text-primary-700 dark:text-primary-300 text-center">
-                            <span className="font-semibold">{formatTurkishDay(formData.date)}</span>, {formatTurkishDate(formData.date)}
-                          </p>
+                    {/* Seçili danışan bilgisi */}
+                    {selectedClient && (
+                      <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-3">
+                            <User size={16} />
+                          </div>
+              <div>
+                            <h5 className="font-medium text-gray-900 dark:text-white text-sm">{selectedClient.full_name}</h5>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Randevu Süresi: {formData.duration} dakika</p>
+                  </div>
+                        </div>
                       </div>
                     )}
                         
-                        {/* Takvimi küçük boyutlu olarak gösteriyoruz */}
-                        <div className="w-full mx-auto">
-                          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-sm">
+                    {stepLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="flex flex-col items-center space-y-2">
+                          <Loader2 size={24} className="animate-spin text-primary-600 dark:text-primary-400" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Uygun tarihler yükleniyor...</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Tarih seçimi */}
+                        <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                             <ThemeProvider theme={theme}>
                               <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="tr">
                                 <DateCalendar 
@@ -1406,45 +1314,12 @@ export function CreateAppointmentModal({
                                     bgcolor: theme => theme.palette.mode === 'dark' ? '#1e293b' : '#ffffff',
                                     color: theme => theme.palette.mode === 'dark' ? '#f8fafc' : '#334155',
                                     borderRadius: 1,
-                                    padding: '0.25rem',
-                                    '& .MuiPickersCalendarHeader-root': {
-                                      paddingLeft: '0.25rem',
-                                      paddingRight: '0.25rem',
-                                    },
-                                    '& .MuiDayCalendar-header': {
-                                      justifyContent: 'space-around',
-                                      paddingLeft: '0.25rem',
-                                      paddingRight: '0.25rem',
-                                    },
-                                    '& .MuiDayCalendar-weekContainer': {
-                                      justifyContent: 'space-around',
-                                      margin: '0.15rem 0',
-                                    },
-                                    '& .MuiPickersDay-root': {
-                                      margin: '0 0.1rem',
-                                      height: '2rem',
-                                      width: '2rem',
-                                      color: theme => theme.palette.mode === 'dark' ? '#f8fafc' : '#334155',
-                                      fontSize: '0.75rem',
-                                    },
                                     '& .MuiPickersDay-root.Mui-selected': {
                                       backgroundColor: '#4f46e5',
                                       color: '#fff',
                                     },
                                     '& .MuiPickersDay-root:hover': {
                                       backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                                    },
-                                    '& .MuiPickersDay-root.Mui-disabled': {
-                                      color: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
-                                    },
-                                    '& .MuiPickersCalendarHeader-label': {
-                                      color: theme => theme.palette.mode === 'dark' ? '#f8fafc' : '#334155',
-                                      fontSize: '0.9rem',
-                                    },
-                                    '& .MuiSvgIcon-root': {
-                                      color: theme => theme.palette.mode === 'dark' ? '#94a3b8' : '#64748b',
-                                      width: '1.25rem',
-                                      height: '1.25rem',
                                     }
                                   }}
                                   shouldDisableDate={(date) => !isClinicOpen(date.toDate())}
@@ -1452,30 +1327,111 @@ export function CreateAppointmentModal({
                               </LocalizationProvider>
                             </ThemeProvider>
                           </div>
+                        
+                        {/* Seçilen tarih bilgisi */}
+                        {formData.date && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mt-4 p-3 border border-primary-100 dark:border-primary-800/50 bg-primary-50 dark:bg-primary-900/20 rounded-lg"
+                          >
+                            <div className="flex items-center">
+                              <div className="h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-3">
+                                <Calendar size={16} />
                         </div>
+                              <div>
+                                <h5 className="font-medium text-gray-900 dark:text-white text-sm">
+                                  {formatTurkishDay(formData.date)}
+                                </h5>
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                  {formatTurkishDate(formData.date)}
+                                </p>
                       </div>
                   </div>
+                          </motion.div>
+                        )}
+                        
+                        {/* Bilgilendirme */}
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-lg">
+                          <div className="flex">
+                            <div className="flex-shrink-0">
+                              <AlertCircle size={18} className="text-blue-600 dark:text-blue-400" />
                 </div>
+                            <div className="ml-3">
+                              <p className="text-sm text-blue-700 dark:text-blue-300">
+                                Kırmızı ile işaretlenen tarihler klinik veya uzmanın çalışma takviminde kapalı/izinli olduğu günlerdir.
+                              </p>
             </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              )}
 
-                {/* Orta Kısım - Saat ve oda seçimi */}
-                <div className="space-y-2 md:space-y-3">
-              {/* Saat Seçimi */}
-                <div>
-                    <h3 className="flex items-center text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                      <div className="h-4 w-4 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
-                        <span className="text-xs font-bold">3</span>
-                    </div>
-                      Saat Seçimi
-                    </h3>
+              {/* Adım 3: Saat Seçimi */}
+              {currentStep === 3 && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-4"
+                >
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <h4 className="text-base font-medium text-gray-900 dark:text-white mb-3">Randevu saatini seçin</h4>
                     
-                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 border border-gray-200 dark:border-gray-700/60 shadow-sm">
+                    {/* Özet bilgiler */}
+                    <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex items-center">
+                          <div className="h-7 w-7 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-2">
+                            <User size={14} />
+                          </div>
+                <div>
+                            <p className="text-sm text-gray-900 dark:text-white">{selectedClient?.full_name}</p>
+                    </div>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <div className="h-7 w-7 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-2">
+                            <Calendar size={14} />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-900 dark:text-white">
+                              {formatTurkishDay(formData.date)}, {formatTurkishDate(formData.date)}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <div className="h-7 w-7 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-2">
+                            <Clock size={14} />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-900 dark:text-white">Randevu Süresi: {formData.duration} dakika</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {stepLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="flex flex-col items-center space-y-2">
+                          <Loader2 size={24} className="animate-spin text-primary-600 dark:text-primary-400" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Uygun saatler hesaplanıyor...</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Saat seçimi */}
+                        <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Randevu Saati
+                            Müsait Saatler
                     </label>
                       
                     {availableTimeSlots.length > 0 ? (
-                        <div className="grid grid-cols-3 gap-1 max-h-[260px] overflow-y-auto pr-1">
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                           {availableTimeSlots.map(time => (
                             <motion.button
                             key={time}
@@ -1483,7 +1439,7 @@ export function CreateAppointmentModal({
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               onClick={() => handleTimeChange(time)}
-                              className={`py-2 px-1 rounded-lg text-center transition-all duration-200 text-sm ${
+                                  className={`py-2 px-3 rounded-lg text-center transition-all duration-200 ${
                                 formData.time === time
                                   ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-md'
                                   : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700'
@@ -1494,315 +1450,458 @@ export function CreateAppointmentModal({
                         ))}
                       </div>
                     ) : (
-                        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-lg">
-                          <div className="flex items-center space-x-2">
-                            <div className="rounded-full bg-amber-100 dark:bg-amber-900/50 p-1.5 flex-shrink-0">
-                              <Clock size={14} className="text-amber-600 dark:text-amber-400" />
+                            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-lg">
+                              <div className="flex items-center">
+                                <div className="rounded-full bg-amber-100 dark:bg-amber-900/50 p-2 flex-shrink-0">
+                                  <Clock size={16} className="text-amber-600 dark:text-amber-400" />
                         </div>
-                            <p className="text-xs text-amber-800 dark:text-amber-400">
-                              Seçilen tarihte uygun randevu saati bulunamadı.
+                                <p className="ml-3 text-sm text-amber-800 dark:text-amber-400">
+                                  Seçilen tarihte uygun randevu saati bulunamadı. Lütfen başka bir tarih seçin.
                             </p>
                           </div>
                       </div>
                     )}
+                        </div>
                       
+                        {/* Seçilen saat bilgisi */}
                       {formData.time && (
-                        <div className="mt-2 p-2 bg-primary-50 dark:bg-primary-900/30 rounded-lg border border-primary-100 dark:border-primary-800/50">
-                          <div className="flex items-center space-x-2">
-                            <Clock size={14} className="text-primary-600 dark:text-primary-400" />
-                            <p className="text-xs text-primary-700 dark:text-primary-300">
-                              Seçilen saat: <span className="font-semibold">{formData.time}</span>
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mt-4 p-3 border border-primary-100 dark:border-primary-800/50 bg-primary-50 dark:bg-primary-900/20 rounded-lg"
+                          >
+                            <div className="flex items-center">
+                              <div className="h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-3">
+                                <Clock size={16} />
+                              </div>
+                              <div>
+                                <h5 className="font-medium text-gray-900 dark:text-white text-sm">
+                                  Seçilen saat: {formData.time}
+                                </h5>
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                  Randevu bitiş saati: {(() => {
+                                    const [hour, minute] = formData.time.split(':').map(Number);
+                                    const durationMinutes = parseInt(formData.duration, 10);
+                                    
+                                    const endTimeInMinutes = hour * 60 + minute + durationMinutes;
+                                    const endHour = Math.floor(endTimeInMinutes / 60);
+                                    const endMinute = endTimeInMinutes % 60;
+                                    
+                                    return `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+                                  })()}
                             </p>
                   </div>
                 </div>
-              )}
+                          </motion.div>
+                        )}
+                        
+                        {/* Bilgilendirme */}
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-lg">
+                          <div className="flex">
+                            <div className="flex-shrink-0">
+                              <AlertCircle size={18} className="text-blue-600 dark:text-blue-400" />
                     </div>
+                            <div className="ml-3">
+                              <p className="text-sm text-blue-700 dark:text-blue-300">
+                                Devam etmek için lütfen bir saat seçin. Saat seçimi yapıldıktan sonra görüşme yeri seçimine geçebilirsiniz.
+                              </p>
                   </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              )}
 
-              {/* Oda Seçimi */}
-                <div>
-                    <h3 className="flex items-center text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                      <div className="h-4 w-4 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
-                        <span className="text-xs font-bold">4</span>
-                    </div>
-                      Görüşme Türü ve Yeri
-                    </h3>
+              {/* Adım 4: Görüşme Yeri */}
+              {currentStep === 4 && (
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-4"
+                >
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <h4 className="text-base font-medium text-gray-900 dark:text-white mb-3">Görüşme türü ve yeri seçin</h4>
                     
-                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 border border-gray-200 dark:border-gray-700/60 shadow-sm">
-                      {/* Önce Görüşme Türü Seçimi */}
-                      <div className="mb-2">
-                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    {/* Özet bilgiler */}
+                    <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex items-center">
+                          <div className="h-7 w-7 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-2">
+                            <User size={14} />
+                          </div>
+                <div>
+                            <p className="text-sm text-gray-900 dark:text-white">{selectedClient?.full_name}</p>
+                    </div>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <div className="h-7 w-7 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-2">
+                            <Calendar size={14} />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-900 dark:text-white">
+                              {formatTurkishDay(formData.date)}, {formatTurkishDate(formData.date)}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center">
+                          <div className="h-7 w-7 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-2">
+                            <Clock size={14} />
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-900 dark:text-white">Saat: {formData.time} ({formData.duration} dk)</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {stepLoading ? (
+                      <div className="flex justify-center py-8">
+                        <div className="flex flex-col items-center space-y-2">
+                          <Loader2 size={24} className="animate-spin text-primary-600 dark:text-primary-400" />
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Görüşme seçenekleri hazırlanıyor...</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Görüşme Türü Seçimi */}
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Görüşme Türü
                         </label>
-                        <div className="grid grid-cols-2 gap-1.5">
+                          <div className="grid grid-cols-2 gap-3">
                         <motion.button
                           type="button"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                            onClick={() => setFormData(prev => ({ ...prev, isOnline: true, roomId: '' }))}
-                            className={`flex items-center p-1.5 rounded-lg transition-all duration-200 ${
-                            formData.isOnline
+                              whileHover={{ scale: 1.03 }}
+                              whileTap={{ scale: 0.97 }}
+                              onClick={() => setFormData(prev => ({ ...prev, isOnline: false, roomId: '' }))}
+                              className={`flex items-center p-3 rounded-lg transition-all duration-200 ${
+                                !formData.isOnline
                               ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-md'
                               : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700'
                           }`}
                         >
-                            <div className={`p-1 rounded-full mr-1.5 ${
-                            formData.isOnline
+                              <div className={`p-2 rounded-full mr-2 ${
+                                !formData.isOnline
                               ? 'bg-white/20'
                               : 'bg-primary-100 dark:bg-primary-900/30'
                           }`}>
-                              <Video size={12} className={formData.isOnline ? 'text-white' : 'text-primary-600 dark:text-primary-400'} />
+                                <Home size={16} className={!formData.isOnline ? 'text-white' : 'text-primary-600 dark:text-primary-400'} />
                   </div>
-                            <span className="font-medium text-xs">Online</span>
+                              <div className="flex-1 text-left">
+                                <p className="font-medium text-sm">Yüz Yüze Görüşme</p>
+                                <p className="text-xs opacity-80">Klinikte buluşma</p>
+                              </div>
                           </motion.button>
                           
                           <motion.button
                             type="button"
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => setFormData(prev => ({ ...prev, isOnline: false, roomId: '' }))}
-                            className={`flex items-center p-1.5 rounded-lg transition-all duration-200 ${
-                              !formData.isOnline
+                              whileHover={{ scale: 1.03 }}
+                              whileTap={{ scale: 0.97 }}
+                              onClick={() => setFormData(prev => ({ ...prev, isOnline: true, roomId: 'online' }))}
+                              className={`flex items-center p-3 rounded-lg transition-all duration-200 ${
+                                formData.isOnline
                                 ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-md'
                                 : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700'
                             }`}
                           >
-                            <div className={`p-1 rounded-full mr-1.5 ${
-                              !formData.isOnline
+                              <div className={`p-2 rounded-full mr-2 ${
+                                formData.isOnline
                                 ? 'bg-white/20'
                                 : 'bg-primary-100 dark:bg-primary-900/30'
                             }`}>
-                              <Home size={12} className={!formData.isOnline ? 'text-white' : 'text-primary-600 dark:text-primary-400'} />
+                                <Video size={16} className={formData.isOnline ? 'text-white' : 'text-primary-600 dark:text-primary-400'} />
                           </div>
-                            <span className="font-medium text-xs">Yüz Yüze</span>
+                              <div className="flex-1 text-left">
+                                <p className="font-medium text-sm">Online Görüşme</p>
+                                <p className="text-xs opacity-80">Video konferans</p>
+                              </div>
                         </motion.button>
                         </div>
                       </div>
                       
-                      {/* Sonra Oda Seçimi (Yüz Yüze seçildiğinde) */}
-                      {!formData.isOnline ? (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                            Oda Seçimi <span className="text-red-500">*</span>
+                        {/* Oda Seçimi (Yüz yüze görüşme seçilirse) */}
+                        {!formData.isOnline && (
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Oda Seçimi
                           </label>
                           
-                          <div className="space-y-1 max-h-[160px] overflow-y-auto pr-1">
-                        {rooms
+                            {availableRooms
                               .filter(room => room.id !== 'online')
                               .length === 0 ? (
-                                <div className="p-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-                                  Henüz oda eklenmemiş
+                                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-lg">
+                                  <div className="flex items-center">
+                                    <div className="rounded-full bg-amber-100 dark:bg-amber-900/50 p-2 flex-shrink-0">
+                                      <Home size={16} className="text-amber-600 dark:text-amber-400" />
                                 </div>
-                              ) : !availableRooms.some(room => room.id !== 'online') ? (
-                                <div className="p-2 text-xs text-amber-600 dark:text-amber-400 text-center">
-                                  Bu saatte müsait oda bulunmuyor
+                                    <p className="ml-3 text-sm text-amber-800 dark:text-amber-400">
+                                      Bu saatte müsait oda bulunamadı. Lütfen başka bir saat seçin veya online görüşme olarak planlayın.
+                                    </p>
+                                  </div>
                                 </div>
                               ) : (
-                                rooms
+                                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                                  {availableRooms
                           .filter(room => room.id !== 'online')
-                          .map(room => {
-                            const isAvailable = availableRooms.some(r => r.id === room.id);
-                            
-                            return (
+                                    .map(room => (
                               <motion.button
                             key={room.id}
                                 type="button"
-                                whileHover={isAvailable ? { scale: 1.02 } : { scale: 1 }}
-                                whileTap={isAvailable ? { scale: 0.98 } : { scale: 1 }}
-                                onClick={() => isAvailable && handleRoomChange(room.id)}
-                                disabled={!isAvailable}
-                                        className={`flex items-center w-full p-1.5 rounded-lg transition-all duration-200 ${
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => handleRoomChange(room.id)}
+                                        className={`flex items-center w-full p-3 rounded-lg transition-all duration-200 ${
                                   formData.roomId === room.id
                                     ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white shadow-md'
-                                    : isAvailable
-                                    ? 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700'
-                                    : 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed border border-gray-200 dark:border-gray-700 opacity-70'
+                                            : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700'
                                 }`}
                               >
-                                        <div className={`p-1 rounded-full mr-1.5 ${
+                                        <div className={`p-2 rounded-full mr-2 ${
                                   formData.roomId === room.id
                                     ? 'bg-white/20'
-                                    : isAvailable
-                                    ? 'bg-primary-100 dark:bg-primary-900/30'
-                                    : 'bg-gray-200 dark:bg-gray-700'
+                                            : 'bg-primary-100 dark:bg-primary-900/30'
                                 }`}>
-                                          <Home size={12} className={
+                                          <Home size={16} className={
                                     formData.roomId === room.id
                                       ? 'text-white'
-                                      : isAvailable
-                                              ? 'text-primary-600 dark:text-primary-400'
-                                              : 'text-gray-400 dark:text-gray-500'
+                                              : 'text-primary-600 dark:text-primary-400'
                                   } />
                       </div>
                                 <div className="flex-1 text-left">
-                                          <p className="font-medium text-xs">{room.name}</p>
-                                          <p className="text-[10px] opacity-80">
-                                    {isAvailable 
-                                      ? 'Müsait'
-                                      : 'Bu saatte dolu'
-                                    }
-                                  </p>
+                                          <p className="font-medium text-sm">{room.name}</p>
+                                          <p className="text-xs opacity-80">Müsait</p>
                         </div>
                               </motion.button>
-                            );
-                          })
-                              )}
-                      </div>
-                            </div>
-                      ) : (
-                        // Online görüşme seçildiğinde bilgi mesajı
-                        <div className="p-2 mt-1 text-xs text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-100 dark:border-primary-800/50">
-                          Online görüşme seçildi. Oda seçimine gerek yok.
+                                    ))}
                 </div>
               )}
                     </div>
-                    </div>
-                  </div>
-
-                {/* Sağ Taraf - Notlar ve özet */}
-                <div className="space-y-2 md:space-y-3">
-                  {/* Notlar */}
-                <div>
-                    <h3 className="flex items-center text-sm font-semibold text-gray-900 dark:text-white mb-2">
-                      <div className="h-4 w-4 rounded-full bg-primary-100 dark:bg-primary-800/40 text-primary-600 dark:text-primary-400 flex items-center justify-center mr-1.5">
-                        <span className="text-xs font-bold">5</span>
-                    </div>
-                      Randevu Notları
-                    </h3>
-                    
-                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-2 border border-gray-200 dark:border-gray-700/60 shadow-sm">
-                      <div>
-                        <label htmlFor="notes" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Notlar (Opsiyonel)
+                        )}
+                        
+                        {/* Notes (Opsiyonel) */}
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Randevu Notları (Opsiyonel)
                     </label>
                         <div className="relative">
                           <textarea
-                            id="notes"
                             name="notes"
                             value={formData.notes}
                             onChange={handleInputChange}
-                            rows={2}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-600 transition-shadow text-xs"
-                            placeholder="Randevu ile ilgili ekstra bilgiler..."
+                              rows={3}
+                              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-600 transition-shadow text-sm"
+                              placeholder="Randevu ile ilgili ekstra bilgiler veya notlar..."
                           ></textarea>
-                          <PencilLine size={14} className="absolute right-3 top-3 text-gray-400 pointer-events-none" />
+                            <PencilLine size={16} className="absolute right-3 top-3 text-gray-400 pointer-events-none" />
                     </div>
                   </div>
+                        
+                        {/* Bilgilendirme */}
+                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-lg">
+                          <div className="flex">
+                            <div className="flex-shrink-0">
+                              <AlertCircle size={18} className="text-blue-600 dark:text-blue-400" />
                 </div>
+                            <div className="ml-3">
+                              <p className="text-sm text-blue-700 dark:text-blue-300">
+                                {formData.isOnline
+                                  ? "Online görüşme seçildi. Devam etmek için 'Sonraki Adım' butonuna tıklayın."
+                                  : "Yüz yüze görüşme için lütfen bir oda seçin. Oda seçimi yapıldıktan sonra devam edebilirsiniz."}
+                              </p>
               </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              )}
 
-              {/* Randevu Özeti */}
-              {formData.clientId && formData.date && formData.time && (formData.isOnline || formData.roomId) && (
+              {/* Adım 5: Randevu Özeti */}
+              {currentStep === 5 && (
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                      className="p-2 bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-900/30 dark:to-indigo-900/30 rounded-lg border border-primary-100 dark:border-primary-800/50 relative overflow-hidden"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-4"
                 >
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+                    <h4 className="text-base font-medium text-gray-900 dark:text-white mb-3">Randevu Özeti</h4>
+                    
+                    {/* Özet bilgiler */}
+                    <div className="p-4 bg-gradient-to-r from-primary-50 to-indigo-50 dark:from-primary-900/10 dark:to-indigo-900/10 rounded-lg border border-primary-100 dark:border-primary-800/30 relative overflow-hidden mb-4">
                   <div className="absolute inset-0 bg-pattern-dots opacity-5 pointer-events-none"></div>
                   
-                      <h3 className="text-sm font-semibold text-primary-800 dark:text-primary-300 mb-2 flex items-center">
-                        <CheckCircle2 size={16} className="mr-2 text-primary-600 dark:text-primary-400" />
-                    Randevu Özeti
-                  </h3>
-                  
-                      <div className="grid grid-cols-1 gap-1">
-                        <div className="flex items-center text-xs bg-white/60 dark:bg-gray-800/60 p-2 rounded-lg shadow-sm backdrop-blur-sm">
-                          <div className="p-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2">
-                            <User size={12} className="text-primary-600 dark:text-primary-400" />
+                      <div className="relative z-10">
+                        <h5 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                          <Calendar className="h-5 w-5 mr-2 text-primary-600 dark:text-primary-400" />
+                          Yeni Randevu
+                        </h5>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-start p-3 bg-white/70 dark:bg-gray-800/70 rounded-lg shadow-sm backdrop-blur-sm">
+                            <div className="p-2 bg-primary-100 dark:bg-primary-900/50 rounded-full mr-3 flex-shrink-0">
+                              <User size={16} className="text-primary-600 dark:text-primary-400" />
                       </div>
-                      <p className="text-gray-800 dark:text-gray-200">
-                        <span className="font-medium">Danışan:</span> {clients.find(c => c.id === formData.clientId)?.full_name}
-                      </p>
+                            <div>
+                              <p className="font-medium text-sm text-gray-900 dark:text-white">Danışan</p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">{selectedClient?.full_name}</p>
+                            </div>
                     </div>
                     
-                        <div className="flex items-center text-xs bg-white/60 dark:bg-gray-800/60 p-2 rounded-lg shadow-sm backdrop-blur-sm">
-                          <div className="p-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2">
-                            <Users size={12} className="text-primary-600 dark:text-primary-400" />
+                          <div className="flex items-start p-3 bg-white/70 dark:bg-gray-800/70 rounded-lg shadow-sm backdrop-blur-sm">
+                            <div className="p-2 bg-primary-100 dark:bg-primary-900/50 rounded-full mr-3 flex-shrink-0">
+                              <Users size={16} className="text-primary-600 dark:text-primary-400" />
                       </div>
-                      <p className="text-gray-800 dark:text-gray-200">
-                        <span className="font-medium">Uzman:</span> {professionals.find(p => p.id === formData.professionalId)?.full_name}
-                    </p>
+                            <div>
+                              <p className="font-medium text-sm text-gray-900 dark:text-white">Uzman</p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                {professionals.find(p => p.id === formData.professionalId)?.full_name || 'Atanmış uzman yok'}
+                              </p>
+                            </div>
                   </div>
                     
-                        <div className="flex items-center text-xs bg-white/60 dark:bg-gray-800/60 p-2 rounded-lg shadow-sm backdrop-blur-sm">
-                          <div className="p-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2">
-                            <Calendar size={12} className="text-primary-600 dark:text-primary-400" />
+                          <div className="flex items-start p-3 bg-white/70 dark:bg-gray-800/70 rounded-lg shadow-sm backdrop-blur-sm">
+                            <div className="p-2 bg-primary-100 dark:bg-primary-900/50 rounded-full mr-3 flex-shrink-0">
+                              <Calendar size={16} className="text-primary-600 dark:text-primary-400" />
                 </div>
-                      <p className="text-gray-800 dark:text-gray-200">
-                        <span className="font-medium">Tarih:</span> {formatTurkishDate(formData.date)}
-                      </p>
+                            <div>
+                              <p className="font-medium text-sm text-gray-900 dark:text-white">Tarih ve Saat</p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                {formatTurkishDay(formData.date)}, {formatTurkishDate(formData.date)} • {formData.time}
+                              </p>
+                            </div>
             </div>
                     
-                        <div className="flex items-center text-xs bg-white/60 dark:bg-gray-800/60 p-2 rounded-lg shadow-sm backdrop-blur-sm">
-                          <div className="p-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2">
-                            <Clock size={12} className="text-primary-600 dark:text-primary-400" />
+                          <div className="flex items-start p-3 bg-white/70 dark:bg-gray-800/70 rounded-lg shadow-sm backdrop-blur-sm">
+                            <div className="p-2 bg-primary-100 dark:bg-primary-900/50 rounded-full mr-3 flex-shrink-0">
+                              <Clock size={16} className="text-primary-600 dark:text-primary-400" />
                       </div>
-                      <p className="text-gray-800 dark:text-gray-200">
-                        <span className="font-medium">Saat:</span> {formData.time} ({formData.duration} dk)
-                      </p>
+                            <div>
+                              <p className="font-medium text-sm text-gray-900 dark:text-white">Süre</p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">{formData.duration} dakika</p>
+                            </div>
           </div>
 
-                        <div className="flex items-center text-xs bg-white/60 dark:bg-gray-800/60 p-2 rounded-lg shadow-sm backdrop-blur-sm">
-                          <div className="p-1.5 rounded-full bg-primary-100 dark:bg-primary-900/50 mr-2">
-                            <Home size={12} className="text-primary-600 dark:text-primary-400" />
+                          <div className="flex items-start p-3 bg-white/70 dark:bg-gray-800/70 rounded-lg shadow-sm backdrop-blur-sm">
+                            <div className="p-2 bg-primary-100 dark:bg-primary-900/50 rounded-full mr-3 flex-shrink-0">
+                              {formData.isOnline ? (
+                                <Video size={16} className="text-primary-600 dark:text-primary-400" />
+                              ) : (
+                                <Home size={16} className="text-primary-600 dark:text-primary-400" />
+                              )}
                       </div>
-                      <p className="text-gray-800 dark:text-gray-200">
-                        <span className="font-medium">Yer:</span> {
-                          formData.isOnline
+                            <div>
+                              <p className="font-medium text-sm text-gray-900 dark:text-white">Görüşme Türü</p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                {formData.isOnline 
                             ? 'Online Görüşme'
-                            : rooms.find(r => r.id === formData.roomId)?.name
+                                  : `Yüz Yüze - ${rooms.find(r => r.id === formData.roomId)?.name || 'Oda seçilmedi'}`
                         }
                       </p>
                     </div>
                   </div>
-                </motion.div>
+
+                          {formData.notes && (
+                            <div className="flex items-start p-3 bg-white/70 dark:bg-gray-800/70 rounded-lg shadow-sm backdrop-blur-sm">
+                              <div className="p-2 bg-primary-100 dark:bg-primary-900/50 rounded-full mr-3 flex-shrink-0">
+                                <PencilLine size={16} className="text-primary-600 dark:text-primary-400" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm text-gray-900 dark:text-white">Notlar</p>
+                                <p className="text-sm text-gray-700 dark:text-gray-300">{formData.notes}</p>
+                              </div>
+                            </div>
               )}
                 </div>
               </div>
+                    </div>
+                    
+                    {/* Onay bilgilendirmesi */}
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/50 rounded-lg">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <CheckCircle2 size={18} className="text-green-600 dark:text-green-400" />
+                        </div>
+                        <div className="ml-3">
+                          <p className="text-sm text-green-700 dark:text-green-300">
+                            Randevu bilgilerinizi kontrol ettikten sonra "Randevuyu Oluştur" butonuna tıklayarak işlemi tamamlayabilirsiniz.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </form>
           </div>
 
-          {/* Footer - Daha Kompakt */}
-          <div className="p-1.5 border-t border-gray-200 dark:border-gray-700 flex justify-end bg-gray-50/80 dark:bg-gray-900/30 backdrop-blur-sm">
-            <div className="flex space-x-2">
+          {/* Footer */}
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between bg-gray-50/80 dark:bg-gray-900/30 backdrop-blur-sm">
+            {/* Önceki adım butonu */}
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 type="button"
-                onClick={onClose}
-                disabled={loading}
-                className="px-2.5 py-1 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                İptal
+              onClick={goToPrevStep}
+              disabled={currentStep === 1 || loading || stepLoading}
+              className={`px-3 py-2 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center ${
+                currentStep === 1 ? 'invisible' : ''
+              }`}
+            >
+              <ArrowLeft size={16} className="mr-1" />
+              Önceki Adım
               </motion.button>
               
+            {/* Sonraki adım veya tamamla butonu */}
+            {currentStep < 5 ? (
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                type="button"
+                onClick={goToNextStep}
+                disabled={!isStepValid(currentStep) || loading || stepLoading}
+                className="px-3 py-2 rounded-md bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white text-sm font-medium transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-primary-600 disabled:hover:to-indigo-600 flex items-center"
+              >
+                {stepLoading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin mr-2" />
+                    Yükleniyor...
+                  </>
+                ) : (
+                  <>
+                    Sonraki Adım
+                    <ArrowRight size={16} className="ml-1" />
+                  </>
+                )}
+              </motion.button>
+            ) : (
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 type="button"
                 onClick={handleSubmit}
-                disabled={
-                  loading ||
-                  !formData.clientId ||
-                  !formData.date ||
-                  !formData.time ||
-                  (!formData.isOnline && !formData.roomId)
-                }
-                className="flex items-center px-2.5 py-1 rounded-md bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white text-xs font-medium transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-primary-600 disabled:hover:to-indigo-600"
+                disabled={loading || stepLoading}
+                className="px-3 py-2 rounded-md bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm font-medium transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 {loading ? (
                   <>
-                    <Loader2 size={12} className="animate-spin mr-1" />
+                    <Loader2 size={16} className="animate-spin mr-2" />
                     İşleniyor...
                   </>
                 ) : (
                   <>
-                Randevuyu Oluştur <CheckCircle2 size={12} className="ml-1" />
+                    Randevuyu Oluştur
+                    <CheckCircle2 size={16} className="ml-1" />
                   </>
                 )}
               </motion.button>
-            </div>
+            )}
           </div>
         </motion.div>
       </div>

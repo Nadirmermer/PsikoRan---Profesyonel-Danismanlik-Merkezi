@@ -179,11 +179,11 @@ export function BlogPost() {
         <meta property="og:url" content={`https://psikoran.com/blog/${post.slug}`} />
         <meta property="og:type" content="article" />
         <meta property="og:site_name" content="PsikoRan" />
-        <meta property="og:image" content={post.cover_image} />
+        <meta property="og:image" content={post.cover_image || '/assets/images/blog-placeholder.jpg'} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={`${post.title} - PsikoRan Blog`} />
         <meta name="twitter:description" content={post.excerpt} />
-        <meta name="twitter:image" content={post.cover_image} />
+        <meta name="twitter:image" content={post.cover_image || '/assets/images/blog-placeholder.jpg'} />
         <div dangerouslySetInnerHTML={structuredData} />
       </Helmet>
 
@@ -242,13 +242,13 @@ export function BlogPost() {
               className="mb-10 rounded-2xl overflow-hidden shadow-xl dark:shadow-primary-900/10"
             >
               <img 
-                src={post.cover_image}
+                src={post.cover_image || '/assets/images/blog-placeholder.jpg'}
                 alt={post.title}
                 className="w-full object-cover h-64 sm:h-80 lg:h-96"
                 loading="lazy"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = '/assets/images/logo_1.png';
+                  target.src = '/assets/images/blog-placeholder.jpg';
                   target.onerror = () => {
                     target.src = '/assets/images/logo_1.png';
                     target.onerror = null;

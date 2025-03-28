@@ -186,7 +186,7 @@ export function generateBlogJsonLd(post: BlogPost, baseUrl: string = 'https://ps
     "@type": "BlogPosting",
     "headline": post.title,
     "description": post.excerpt,
-    "image": post.cover_image,
+    "image": post.cover_image || `${baseUrl}/assets/images/blog-placeholder.jpg`,
     "author": {
       "@type": "Person",
       "name": post.author
@@ -226,7 +226,7 @@ export function generateBlogListJsonLd(posts: BlogPost[], baseUrl: string = 'htt
     "position": index + 1,
     "url": `${baseUrl}/blog/${post.slug}`,
     "name": post.title,
-    "image": post.cover_image,
+    "image": post.cover_image || `${baseUrl}/assets/images/blog-placeholder.jpg`,
     "description": post.excerpt
   }));
 

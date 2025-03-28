@@ -21,6 +21,8 @@ import { useAuth } from './lib/auth';
 import { useTheme } from './lib/theme';
 import { SubscriptionProvider } from './components/payment/SubscriptionContext';
 import { listenForNetworkChanges, listenForInstallPrompt, getDisplayMode } from './utils/pwa';
+import { requestNotificationPermission } from './utils/notificationUtils';
+import { supabase } from './lib/supabase';
 
 // React Router v7 için future flag'leri
 const v7_startTransition = true;
@@ -88,7 +90,7 @@ function AnimatedRoutes() {
           checkUpcomingAppointments(assistant.id, 'assistant');
         }
       } catch (error) {
-        console.error('Randevu kontrolü sırasında hata oluştu:', error);
+        // console.error('Randevu kontrolü sırasında hata oluştu:', error);
       }
     };
 
@@ -231,6 +233,46 @@ export function App() {
   const [isPWA, setIsPWA] = useState<boolean>(false);
   const [isInstallPromptShown, setIsInstallPromptShown] = useState<boolean>(false);
 
+  // Kullanıcı oturum açtığında bildirim izni iste
+  useEffect(() => {
+    const requestNotifications = async () => {
+      if (user) {
+        try {
+          // Kullanıcı tipini bul
+          const { data: professionalData } = await supabase
+            .from('professionals')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+            
+          if (professionalData) {
+            // Profesyonel ise bildirim izni iste
+            await requestNotificationPermission(user.id, 'professional');
+          } else {
+            // Asistan olup olmadığını kontrol et
+            const { data: assistantData } = await supabase
+              .from('assistants')
+              .select('id')
+              .eq('user_id', user.id)
+              .single();
+              
+            if (assistantData) {
+              // Asistan ise bildirim izni iste
+              await requestNotificationPermission(user.id, 'assistant');
+            } else {
+              // Danışan (veya başka bir rol) ise bildirim izni iste
+              await requestNotificationPermission(user.id, 'client');
+            }
+          }
+        } catch (error) {
+          // console.error('Bildirim izni istenirken hata:', error);
+        }
+      }
+    };
+    
+    requestNotifications();
+  }, [user]);
+
   // Uygulama başlatma
   useEffect(() => {
     const initApp = async () => {
@@ -259,7 +301,7 @@ export function App() {
           window.history.replaceState({}, '', '/');
         }
       } catch (error) {
-        console.error('Tema başlatılamadı:', error);
+        // console.error('Tema başlatılamadı:', error);
       } finally {
         // Yükleme durumlarını güncelle
         setIsInitialLoading(false);
@@ -275,11 +317,11 @@ export function App() {
     const cleanup = listenForNetworkChanges(
       () => {
         setIsOnline(true);
-        console.log('Çevrimiçi duruma geçildi');
+        // console.log('Çevrimiçi duruma geçildi');
       },
       () => {
         setIsOnline(false);
-        console.log('Çevrimdışı duruma geçildi');
+        // console.log('Çevrimdışı duruma geçildi');
       }
     );
 
