@@ -4,9 +4,54 @@
   functions = "netlify/functions"
 
 [[redirects]]
+  from = "/login"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/register"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/dashboard/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/appointments/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/clients/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/settings/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/help/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
-  status = 200 
+  status = 404
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
 [[headers]]
   for = "/*"
@@ -16,3 +61,28 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Content-Security-Policy = "default-src 'self' https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*; font-src 'self' data:; object-src 'none'; base-uri 'self';" 
+
+[build.processing.html]
+  pretty_urls = true
+
+[[plugins]]
+  package = "@netlify/plugin-lighthouse"
+
+[[plugins]]
+  package = "@netlify/plugin-sitemap"
+
+[[plugins]]
+  package = "netlify-plugin-image-optim"
+
+[[plugins]]
+  package = "netlify-plugin-minify-html"
+
+[[plugins]]
+  package = "netlify-plugin-no-more-404"
+
+# netlify-plugin-checklinks eklentisi devre dışı bırakıldı - SSL hatası nedeniyle
+# [[plugins]]
+#   package = "netlify-plugin-checklinks"
+
+[[plugins]]
+  package = "netlify-plugin-a11y" 
