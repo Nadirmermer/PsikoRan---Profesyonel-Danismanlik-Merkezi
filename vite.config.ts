@@ -31,11 +31,6 @@ const copyAssetsPlugin = () => {
           fs.copyFileSync('public/assets/meta/seo/robots.txt', 'dist/robots.txt');
           console.log('robots.txt dosyası ana dizine kopyalandı');
         }
-
-        if (fs.existsSync('public/assets/meta/seo/sitemap.xml')) {
-          fs.copyFileSync('public/assets/meta/seo/sitemap.xml', 'dist/sitemap.xml');
-          console.log('sitemap.xml dosyası ana dizine kopyalandı');
-        }
       } catch (error) {
         console.error('Dosya kopyalama hatası:', error);
       }

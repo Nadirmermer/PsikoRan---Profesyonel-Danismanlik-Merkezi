@@ -7,7 +7,7 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /*.json$
 
-# Sitemap URL
+# Sitemap URL - Netlify sitemap eklentisi tarafından otomatik oluşturulur
 Sitemap: https://psikoran.com/sitemap.xml
 
 # Özel crawl oranı

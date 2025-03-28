@@ -177,9 +177,6 @@ export function Footer() {
               <Link to="/blog" className="text-xs text-slate-500 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200">
                 Blog
               </Link>
-              <Link to="/sitemap.xml" className="text-xs text-slate-500 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200">
-                Site Haritası
-              </Link>
             </div>
           </div>
         </div>

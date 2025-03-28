@@ -1,82 +1,71 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Logo } from '../Logo';
 
 interface LoadingSpinnerProps {
-  /**
-   * Sadece veri yükleniyor yazısını göstermeyi kontrol eder
-   */
-  showLoadingText?: boolean;
-  /**
-   * Özel yükleniyor metni
-   */
-  loadingText?: string;
-  /**
-   * Logo boyutu: 'small', 'medium', 'large'
-   */
-  size?: 'small' | 'medium' | 'large';
-  /**
-   * Sayfa genelinde mi yoksa bir bileşen içinde mi gösterileceği
-   */
-  fullPage?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+  color?: 'primary' | 'secondary' | 'white';
+  text?: string;
+  className?: string;
 }
 
-/**
- * Dönen logo animasyonu ile loading bileşeni
- */
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
-  showLoadingText = true,
-  loadingText = 'Veri yükleniyor...',
-  size = 'medium',
-  fullPage = false
+  size = 'md',
+  color = 'primary',
+  text,
+  className = '',
 }) => {
-  // Tam sayfa loading için stil
-  if (fullPage) {
-    return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-slate-900 z-[9999]">
-        <div className="flex flex-col items-center">
-          <motion.div
-            animate={{ 
-              rotate: 360
-            }}
-            transition={{ 
-              repeat: Infinity, 
-              duration: 3,
-              ease: "linear"
-            }}
-            className="relative"
-          >
-            <Logo size={size} showText={false} />
-          </motion.div>
-          <p className="text-primary-600 dark:text-primary-400 font-bold mt-3 text-xl">PsikoRan</p>
-          {showLoadingText && (
-            <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">{loadingText}</p>
-          )}
-        </div>
-      </div>
-    );
-  }
+  // Spinner boyutları
+  const sizeClasses = {
+    sm: 'w-4 h-4',
+    md: 'w-8 h-8',
+    lg: 'w-12 h-12',
+  };
 
-  // Bileşen içi loading için stil
+  // Spinner renkleri
+  const colorClasses = {
+    primary: 'text-primary-600 dark:text-primary-400',
+    secondary: 'text-gray-600 dark:text-gray-400',
+    white: 'text-white',
+  };
+
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center h-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm z-10 rounded-lg">
-      <motion.div
-        animate={{ 
-          rotate: 360
-        }}
-        transition={{ 
-          repeat: Infinity, 
-          duration: 3,
-          ease: "linear"
-        }}
-        className="relative"
-      >
-        <Logo size={size === 'large' ? 'medium' : 'small'} showText={false} />
-      </motion.div>
-      <p className="text-primary-600 dark:text-primary-400 font-bold mt-3">PsikoRan</p>
-      {showLoadingText && (
-        <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">{loadingText}</p>
+    <div className={`flex flex-col items-center justify-center ${className}`}>
+      <div className={`animate-spin ${sizeClasses[size]} ${colorClasses[color]}`}>
+        <svg
+          className="w-full h-full"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          ></circle>
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          ></path>
+        </svg>
+      </div>
+      {text && <p className="mt-2 text-sm text-center">{text}</p>}
+      
+      {/* Sentry Test Butonu - Sadece Geliştirme Ortamında Görünür */}
+      {process.env.NODE_ENV === 'development' && (
+        <button
+          className="mt-4 px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-colors"
+          onClick={() => {
+            throw new Error("Bu bir Sentry test hatasıdır!");
+          }}
+        >
+          Sentry Test Hatası
+        </button>
       )}
     </div>
   );
-}; 
+};
+
+export default LoadingSpinner; 
