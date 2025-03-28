@@ -26,7 +26,11 @@ export const checkServiceWorkerRegistration = (): Promise<ServiceWorkerRegistrat
  */
 export const checkInstallConditions = (): Promise<boolean> => {
   return new Promise((resolve) => {
-    // iOS Safari ve macOS Safari'de beforeinstallprompt olayı desteklenmez
+    if (!('serviceWorker' in navigator)) {
+      resolve(false);
+      return;
+    }
+    
     if (
       /iP(ad|hone|od)/.test(navigator.userAgent) || 
       (navigator.userAgent.includes('Macintosh') && 'ontouchend' in document)
@@ -133,6 +137,24 @@ export const listenForNetworkChanges = (
 };
 
 /**
+ * Base64 string'i Uint8Array'e çeviren yardımcı fonksiyon
+ */
+const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+};
+
+/**
  * Push notification izinlerini kontrol et
  */
 export const checkNotificationPermission = (): Promise<NotificationPermission> => {
@@ -190,9 +212,8 @@ export const subscribeToPushNotifications = async (): Promise<PushSubscription |
       return subscription;
     }
     
-    // VAPID Public Key'i almalıyız (Gerçek uygulamada bir API'den alınmalı)
-    const vapidPublicKeyResponse = await fetch('/api/push/public-key');
-    const vapidPublicKey = await vapidPublicKeyResponse.text();
+    // VAPID Public Key çevresel değişkenlerden alınıyor
+    const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
     
     // VAPID public key'i uint8Array'e dönüştür
     const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
@@ -227,10 +248,16 @@ export const registerBackgroundSync = async (tag: string): Promise<boolean> => {
     if (!('serviceWorker' in navigator) || !('SyncManager' in window)) {
       return false;
     }
-
+    
     const registration = await navigator.serviceWorker.ready;
-    await registration.sync.register(tag);
-    return true;
+    
+    // TypeScript'in SyncManager'ı tanıması için kontrol ekleyelim
+    if ('sync' in registration) {
+      await (registration as any).sync.register(tag);
+      return true;
+    }
+    
+    return false;
   } catch (error) {
     console.error('Background sync kaydedilirken hata oluştu:', error);
     return false;
@@ -244,6 +271,29 @@ export const updateServiceWorker = async (): Promise<void> => {
   if ('serviceWorker' in navigator) {
     const registration = await navigator.serviceWorker.ready;
     await registration.update();
+  }
+};
+
+/**
+ * Bekleyen Service Worker'ı etkinleştir (skipWaiting)
+ */
+export const activateUpdate = async (): Promise<boolean> => {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    
+    if (!registration.waiting) {
+      console.log('Bekleyen bir Service Worker yok');
+      return false;
+    }
+    
+    // skipWaiting mesajını gönder
+    registration.waiting.postMessage('SKIP_WAITING');
+    
+    // Sayfa yenileneceği için true döndür
+    return true;
+  } catch (error) {
+    console.error('Service Worker aktivasyonu sırasında hata oluştu:', error);
+    return false;
   }
 };
 
@@ -296,6 +346,12 @@ export const listenForUpdates = (onUpdateFound: () => void): () => void => {
         }
       });
       
+      // Sayfayı yeniden yükleme durumlarında controller değişimini dinle
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // Yeni service worker aktif hale geldi, sayfayı yenile
+        window.location.reload();
+      });
+      
       // İlk kontrol
       await registration.update();
     } catch (error) {
@@ -315,27 +371,13 @@ export const listenForUpdates = (onUpdateFound: () => void): () => void => {
   };
 };
 
-/**
- * URL-safe base64 string'i Uint8Array'e dönüştür
- */
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
 // Özel Window tipi tanımlaması
 declare global {
   interface Window {
     deferredPrompt: any;
+  }
+  
+  interface Navigator {
+    standalone?: boolean;
   }
 } 

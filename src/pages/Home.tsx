@@ -4,7 +4,7 @@ import { Shield, Calendar, Clipboard, Users, Clock, MessageSquare, BarChart, Awa
 import { motion } from 'framer-motion';
 import { fetchBlogPosts, formatBlogDate } from '../lib/blog';
 import { MainLayout } from '../components/layout/MainLayout';
-import logo1 from '../assets/logos/logo_1.webp';
+import logo1 from '../assets/base-logo.webp';
 import { TurkLiraIcon } from '../components/icons/TurkLiraIcon';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';

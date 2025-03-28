@@ -1,4 +1,4 @@
-import logo1 from '../assets/logos/logo_1.webp';
+import logo1 from '../assets/base-logo.webp';
 
 /**
  * Logo görselini PDF ve diğer uygulamalar için hazırlar

@@ -9,9 +9,12 @@ import {
   checkInstallConditions,
   showInstallPrompt,
   checkForUpdates,
-  listenForUpdates
+  listenForUpdates,
+  listenForNetworkChanges,
+  activateUpdate
 } from '../../utils/pwa';
 import { Smartphone, WifiOff, Download, RefreshCw, Bell, Info, Plus } from 'lucide-react';
+import { startAppointmentChecker } from '../../utils/notificationUtils';
 
 const PWASettings = () => {
   const [displayMode, setDisplayMode] = useState<string>('browser');
@@ -79,6 +82,9 @@ const PWASettings = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     
+    // Bildirim kontrolünü başlat
+    startAppointmentChecker();
+    
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -90,16 +96,25 @@ const PWASettings = () => {
   const handleUpdateApp = async () => {
     setUpdating(true);
     try {
-      await updateServiceWorker();
-      // Güncelleme başarıyla başlatıldı
-      setTimeout(() => {
-        setUpdating(false);
+      // Bekleyen güncellemeleri etkinleştir
+      const activated = await activateUpdate();
+      
+      if (activated) {
+        // Etkinleştirme başarılı, controllerchange olayı sayfayı otomatik olarak yenileyecek
         setShowUpdateSuccess(true);
-        // 3 saniye sonra otomatik olarak sayfayı yenile
+      } else {
+        // Etkinleştirme başarısız, manuel güncelleme dene
+        await updateServiceWorker();
+        
         setTimeout(() => {
-          window.location.reload();
-        }, 3000);
-      }, 1000);
+          setUpdating(false);
+          setShowUpdateSuccess(true);
+          // 3 saniye sonra otomatik olarak sayfayı yenile
+          setTimeout(() => {
+            window.location.reload();
+          }, 3000);
+        }, 1000);
+      }
     } catch (error) {
       console.error('Uygulama güncellenirken hata oluştu:', error);
       setUpdating(false);

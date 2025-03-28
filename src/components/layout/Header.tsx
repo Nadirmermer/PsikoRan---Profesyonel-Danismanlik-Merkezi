@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { LogIn, Sun, Moon, Menu, X, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../hooks/useTheme';
-import logo1 from '../../assets/logos/logo_1.webp';
+import logo1 from '../../assets/base-logo.webp';
 
 interface HeaderProps {
   toggleDarkMode: () => void;

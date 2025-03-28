@@ -7,7 +7,7 @@ import PaymentModal from '../components/payment/PaymentModal';
 import { processPayment, recordBankTransfer, PlanType, BillingPeriod } from '../components/payment/PaymentService';
 import { useSubscription } from '../components/payment/SubscriptionContext';
 
-import logo1 from '../assets/logos/logo_1.webp';
+import logo1 from '../assets/base-logo.webp';
 
 export function Pricing() {
   const [annualBilling, setAnnualBilling] = useState(true);

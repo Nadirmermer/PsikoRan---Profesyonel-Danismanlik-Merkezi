@@ -6,7 +6,6 @@ interface AuthState {
   user: User | null;
   professional: any | null;
   assistant: any | null;
-  client: any | null;
   loading: boolean;
   signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   signOut: () => Promise<void>;
@@ -17,7 +16,6 @@ export const useAuth = create<AuthState>((set, get) => ({
   user: null,
   professional: null,
   assistant: null,
-  client: null,
   loading: true,
 
   signIn: async (email: string, password: string, rememberMe: boolean = false) => {
@@ -53,7 +51,7 @@ export const useAuth = create<AuthState>((set, get) => ({
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      set({ user: null, professional: null, assistant: null, client: null, loading: false });
+      set({ user: null, professional: null, assistant: null, loading: false });
     } catch (error) {
       set({ loading: false });
       throw error;
@@ -68,7 +66,7 @@ export const useAuth = create<AuthState>((set, get) => ({
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        set({ user: null, professional: null, assistant: null, client: null, loading: false });
+        set({ user: null, professional: null, assistant: null, loading: false });
         return;
       }
 
@@ -84,7 +82,6 @@ export const useAuth = create<AuthState>((set, get) => ({
           user,
           assistant: assistantData,
           professional: null,
-          client: null,
           loading: false 
         });
         return;
@@ -101,12 +98,11 @@ export const useAuth = create<AuthState>((set, get) => ({
         user,
         professional: professionalData,
         assistant: null,
-        client: null,
         loading: false
       });
     } catch (error) {
       console.error('Error initializing auth:', error);
-      set({ user: null, professional: null, assistant: null, client: null, loading: false });
+      set({ user: null, professional: null, assistant: null, loading: false });
     }
   }
 }));

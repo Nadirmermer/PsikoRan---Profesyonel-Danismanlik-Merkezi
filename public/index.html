@@ -4,6 +4,29 @@
   <meta charset="utf-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.jitsi.net https://*.jitsi.org; img-src 'self' data: blob: https://www.facebook.com https://images.unsplash.com https://via.placeholder.com https://*.jitsi.net https://*.jitsi.org https://meet.jit.si https://*.supabase.co; font-src 'self' https://fonts.gstatic.com https://*.jitsi.net https://*.jitsi.org; connect-src 'self' https://*.psikoran.com https://*.supabase.co https://meet.jit.si https://*.jitsi.net https://*.jitsi.org wss://*.meet.jit.si; frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; media-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; child-src 'self' https://meet.jit.si;">
   <meta http-equiv="X-Content-Security-Policy" content="frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org;">
+  
+  <!-- PWA Uyumluluk -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="application-name" content="PsikoRan" />
+  <meta name="apple-mobile-web-app-title" content="PsikoRan" />
+  <meta name="theme-color" content="#5f2eea" />
+  <meta name="msapplication-navbutton-color" content="#5f2eea" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="msapplication-starturl" content="/" />
+  
+  <!-- Apple dokunmatik simgeleri -->
+  <link rel="apple-touch-icon" href="images/icons/icon-192x192.webp" />
+  <link rel="apple-touch-icon" sizes="152x152" href="images/icons/icon-152x152.webp" />
+  <link rel="apple-touch-icon" sizes="180x180" href="images/icons/icon-180x180.webp" />
+  <link rel="apple-touch-icon" sizes="167x167" href="images/icons/icon-167x167.webp" />
+  
+  <!-- iPhone X, Xs (1125px x 2436px) -->
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="images/icons/apple-launch-1125x2436.webp" />
+  <!-- iPhone 8, 7, 6s, 6 (750px x 1334px) -->
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="images/icons/apple-launch-750x1334.webp" />
+  
   <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-5M6V976WY8"></script>
 <script>
@@ -33,11 +56,11 @@
   <!-- End Facebook Pixel Code -->
   
   <!-- Favicon -->
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicons/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicons/favicon-16x16.png" />
+  <link rel="icon" type="image/webp" sizes="32x32" href="assets/favicons/favicon-32x32.webp" />
+  <link rel="icon" type="image/webp" sizes="16x16" href="assets/favicons/favicon-16x16.webp" />
   
   <!-- SEO Meta Etiketleri -->
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="description" content="PsikoRan - Psikologlar ve Danışanlar için Profesyonel Danışmanlık ve Randevu Yönetim Sistemi" />
   <meta name="keywords" content="psikolog, danışmanlık, terapi, randevu sistemi, psikoterapi, online terapi, online randevu, psikolojik danışmanlık, ruh sağlığı" />
   <meta name="author" content="PsikoRan" />
@@ -89,6 +112,22 @@
 <body>
   <noscript>Bu uygulamayı çalıştırmak için JavaScript'i etkinleştirmeniz gerekmektedir.</noscript>
   <div id="root"></div>
+  
+  <!-- Service Worker Kaydı -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(function(registration) {
+            console.log('Service Worker başarıyla kaydedildi:', registration.scope);
+          })
+          .catch(function(error) {
+            console.log('Service Worker kaydı başarısız:', error);
+          });
+      });
+    }
+  </script>
+  
   <!-- Yapısal Veri JSON-LD -->
   <script type="application/ld+json">
     {
