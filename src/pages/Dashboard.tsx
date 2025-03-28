@@ -67,13 +67,6 @@ const CreateAppointmentModal = lazy(() =>
 );
 const DatePicker = lazy(() => import('react-datepicker'));
 
-// Chart komponentleri için loading fallback
-const ChartLoadingFallback = () => (
-  <div className="bg-gray-100 rounded-md animate-pulse h-64 w-full flex items-center justify-center">
-    <p className="text-gray-500">Grafik yükleniyor...</p>
-  </div>
-);
-
 interface AppointmentWithRelations extends Appointment {
   client: Client;
   professional: Professional;
@@ -164,7 +157,9 @@ const appointmentStatusStyles: Record<string, string> = {
 // Veri yükleniyor bileşeni
 const LoadingData = () => {
   return (
-    <LoadingSpinner size="small" />
+    <div className="relative h-full w-full flex items-center justify-center">
+      <LoadingSpinner size="small" loadingText="Veri yükleniyor..." showLoadingText={true} />
+    </div>
   );
 };
 
@@ -1944,13 +1939,13 @@ export function Dashboard() {
 
   // Chart bileşenlerini renderla
   const renderLineChart = (data: any, options: any) => (
-    <Suspense fallback={<ChartLoadingFallback />}>
+    <Suspense fallback={<LoadingSpinner size="small" loadingText="Grafik yükleniyor..." />}>
       <Line data={data} options={options} />
     </Suspense>
   );
 
   const renderBarChart = (data: any, options: any) => (
-    <Suspense fallback={<ChartLoadingFallback />}>
+    <Suspense fallback={<LoadingSpinner size="small" loadingText="Grafik yükleniyor..." />}>
       <Bar data={data} options={options} />
     </Suspense>
   );

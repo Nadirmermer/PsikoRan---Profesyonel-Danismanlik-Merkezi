@@ -2,18 +2,10 @@ import { StrictMode, lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import ErrorBoundary from './components/ErrorBoundary';
+import { LoadingSpinner } from './components/ui/LoadingSpinner';
 
 // Ana uygulamayı lazy loading ile yükle
 const App = lazy(() => import('./App').then(module => ({ default: module.App })));
-
-// Yükleme göstergesi için basit komponent
-const LoadingFallback = () => <div style={{ 
-  display: 'flex', 
-  justifyContent: 'center', 
-  alignItems: 'center', 
-  height: '100vh',
-  fontFamily: 'system-ui, sans-serif',
-}}>Yükleniyor...</div>;
 
 // Hata mesajı için fallback komponent
 const ErrorFallback = () => (
@@ -22,7 +14,7 @@ const ErrorFallback = () => (
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    height: '100vh',
+  
     fontFamily: 'system-ui, sans-serif',
     color: '#e53e3e',
     textAlign: 'center',
@@ -50,7 +42,7 @@ const ErrorFallback = () => (
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary fallback={<ErrorFallback />}>
-      <Suspense fallback={<LoadingFallback />}>
+      <Suspense fallback={<LoadingSpinner size="medium" loadingText="Yükleniyor..." />}>
         <App />
       </Suspense>
     </ErrorBoundary>

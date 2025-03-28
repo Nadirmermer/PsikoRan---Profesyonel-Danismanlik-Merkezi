@@ -62,6 +62,23 @@ export const listenForInstallPrompt = (): void => {
     // İstek nesnesini daha sonra kullanmak için sakla
     window.deferredPrompt = e;
     deferredPrompt = e;
+    
+    // PWA kurulum koşulları kontrol için olay tetikle
+    window.dispatchEvent(new Event('pwaInstallable'));
+    console.log('PWA kurulabilir durumda');
+  });
+  
+  // Uygulama yüklendikten sonra
+  window.addEventListener('appinstalled', () => {
+    // Yüklendi olarak işaretle
+    window.deferredPrompt = null;
+    deferredPrompt = null;
+    console.log('PWA başarıyla yüklendi');
+    
+    // Analytics için olay tetikle
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', 'pwa_installed');
+    }
   });
 };
 
@@ -371,12 +388,13 @@ export const listenForUpdates = (onUpdateFound: () => void): () => void => {
   };
 };
 
-// Özel Window tipi tanımlaması
+// TypeScript için tür tanımları
 declare global {
   interface Window {
     deferredPrompt: any;
+    gtag?: (...args: any[]) => void;
   }
-  
+
   interface Navigator {
     standalone?: boolean;
   }

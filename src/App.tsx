@@ -13,7 +13,7 @@ import { AuthGuard } from './components/AuthGuard';
 import { Layout } from './components/Layout';
 import { ThemeProvider } from './lib/theme';
 import { AnimatePresence } from 'framer-motion';
-import { AppLoader } from './components/AppLoader';
+import { LoadingSpinner } from './components/ui/LoadingSpinner';
 import { CookieBanner } from './components/CookieBanner';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { checkUpcomingAppointments } from './utils/notificationUtils';
@@ -308,7 +308,12 @@ export function App() {
               }}
             >
               {isInitialLoading ? (
-                <AppLoader />
+                <LoadingSpinner 
+                  isAppLoading={true} 
+                  size="large" 
+                  loadingText="Uygulama başlatılıyor..." 
+                  showLoadingText={true} 
+                />
               ) : (
                 <>
                   <AnimatedRoutes />

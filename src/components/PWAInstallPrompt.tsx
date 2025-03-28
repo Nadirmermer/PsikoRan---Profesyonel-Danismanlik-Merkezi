@@ -31,12 +31,20 @@ const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ className = '' }) =
     // Kurulum koşullarını kontrol et
     checkCanInstall();
     
+    // PWA yüklenebilir olduğunda olayı dinle
+    const handlePwaInstallable = () => {
+      checkCanInstall();
+    };
+    
+    window.addEventListener('pwaInstallable', handlePwaInstallable);
+    
     // Düzenli aralıklarla kontrol et, çünkü tarayıcı kriterler karşılandığında 
     // herhangi bir zamanda beforeinstallprompt olayını tetikleyebilir
     const interval = setInterval(checkCanInstall, 30000);
     
     return () => {
       clearInterval(interval);
+      window.removeEventListener('pwaInstallable', handlePwaInstallable);
     };
   }, []);
 
@@ -60,10 +68,10 @@ const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ className = '' }) =
   // Android için prompt göster
   if (!isIOS) {
     return (
-      <div className={`pwa-install-card bg-white rounded-lg shadow-lg p-4 mb-4 ${className}`}>
+      <div className={`pwa-install-card bg-white rounded-lg shadow-lg p-4 mb-4 border-l-4 border-indigo-600 ${className}`}>
         <div className="flex items-center">
           <div className="app-icon mr-4 flex-shrink-0">
-            <img src="/assets/icons/icon-192x192.png" alt="PsikoRan" className="w-12 h-12 rounded-lg" />
+            <img src="/images/icons/icon-192x192.webp" alt="PsikoRan" className="w-12 h-12 rounded-lg shadow-sm" />
           </div>
           
           <div className="flex-grow">
@@ -73,7 +81,7 @@ const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ className = '' }) =
           
           <button 
             onClick={handleInstallClick}
-            className="ml-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex-shrink-0"
+            className="ml-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex-shrink-0 transition-all duration-300 ease-in-out transform hover:scale-105"
           >
             Yükle
           </button>
@@ -84,10 +92,10 @@ const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ className = '' }) =
 
   // iOS için talimatlar göster
   return (
-    <div className={`pwa-install-card bg-white rounded-lg shadow-lg p-4 mb-4 ${className}`}>
+    <div className={`pwa-install-card bg-white rounded-lg shadow-lg p-4 mb-4 border-l-4 border-indigo-600 ${className}`}>
       <div className="flex items-start">
         <div className="app-icon mr-4 flex-shrink-0">
-          <img src="/assets/icons/icon-192x192.png" alt="PsikoRan" className="w-12 h-12 rounded-lg" />
+          <img src="/images/icons/icon-192x192.webp" alt="PsikoRan" className="w-12 h-12 rounded-lg" />
         </div>
         
         <div className="flex-grow">
