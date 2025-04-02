@@ -7,8 +7,19 @@ import logo1 from '../assets/base-logo.webp';
 // NOT: Bu anahtarı çevresel değişkenlerden alıyoruz
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || 'BNbKwE3PEBs9qpwLlwJqPKLMur71NoYCUWzDeY9dAQEyNHUs0l3q6-nP4RxjrY8PX0vBeJVqXnYGiqACpV49U0s';
 
+// Cihaz tipini tespit et (mobil veya masaüstü)
+export const isMobileDevice = (): boolean => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+// PWA olarak çalışıp çalışmadığını kontrol et
+export const isPWA = (): boolean => {
+  return window.matchMedia('(display-mode: standalone)').matches || 
+         (navigator.userAgent.includes('iPhone') && window.navigator.standalone === true);
+};
+
 // Base64 string'i Uint8Array'e çeviren yardımcı fonksiyon
-const urlBase64ToUint8Array = (base64String: string) => {
+const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding)
     .replace(/\-/g, '+')
@@ -21,22 +32,22 @@ const urlBase64ToUint8Array = (base64String: string) => {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
-}
+};
 
-// Bildirimleri kaydetmek için bir fonksiyon
+// Bildirim aboneliğini kaydet
 export async function saveNotificationSubscription(
   subscription: PushSubscription,
   userId: string,
   userType: 'professional' | 'assistant' | 'client'
 ) {
   try {
-    // Önce mevcut bir abonelik var mı kontrol et
+    // Aboneliğin zaten var olup olmadığını kontrol et
     const { data: existingSubscription, error: fetchError } = await supabase
       .from('notification_subscriptions')
-      .select('id')
+      .select('*')
       .eq('user_id', userId)
       .eq('endpoint', subscription.endpoint)
-      .single();
+      .maybeSingle();
 
     if (fetchError && fetchError.code !== 'PGRST116') {
       // console.error('Mevcut abonelikler kontrol edilirken hata:', fetchError);
@@ -62,6 +73,8 @@ export async function saveNotificationSubscription(
           ? subscription.toJSON().keys?.auth 
           : '',
         user_type: userType,
+        device_type: isMobileDevice() ? 'mobile' : 'desktop',
+        is_pwa: isPWA(),
         created_at: new Date().toISOString()
       });
 
@@ -117,11 +130,41 @@ export async function deleteAllNotificationSubscriptions(userId: string) {
   }
 }
 
+// Bildirim izni kontrolü
+export async function checkNotificationPermissionStatus(): Promise<{
+  isSupported: boolean;
+  permission: NotificationPermission;
+  isPushSupported: boolean;
+}> {
+  const result = {
+    isSupported: false,
+    permission: 'default' as NotificationPermission,
+    isPushSupported: false
+  };
+
+  // Notification API desteği kontrolü
+  if ('Notification' in window) {
+    result.isSupported = true;
+    result.permission = Notification.permission;
+  }
+
+  // Push API desteği kontrolü
+  if ('PushManager' in window && 'serviceWorker' in navigator) {
+    result.isPushSupported = true;
+  }
+
+  return result;
+}
+
 // Kullanıcıdan bildirim izni iste
 export async function requestNotificationPermission(
   userId: string,
   userType: 'professional' | 'assistant' | 'client'
 ) {
+  const isMobile = isMobileDevice();
+  const isPwaMode = isPWA();
+  
+  // Bildirim desteğini kontrol et
   if (!('Notification' in window)) {
     // console.log('Bu tarayıcı bildirimleri desteklemiyor');
     return false;
@@ -139,16 +182,37 @@ export async function requestNotificationPermission(
       return false;
     }
 
-    // İzin iste
-    const permission = await Notification.requestPermission();
-    
-    if (permission === 'granted') {
-      // İzin alındı, push aboneliğini yap
-      const result = await subscribeUserToPush(userId, userType);
-      return result;
+    // Mobil cihazlarda ve PWA modunda özel davranış
+    if (isMobile && isPwaMode) {
+      try {
+        // PWA modunda izin iste
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          return await subscribeUserToPush(userId, userType);
+        }
+        return false;
+      } catch (mobileError) {
+        // Mobil hata durumunda alternatif yöntem dene
+        try {
+          // Service worker üzerinden bildirimlere abone ol
+          return await subscribeUserToPush(userId, userType);
+        } catch (swError) {
+          // console.error('Mobil PWA bildirim izni alınamadı:', swError);
+          return false;
+        }
+      }
     } else {
-      // console.log('Bildirim izni reddedildi');
-      return false;
+      // Standart bildirim izni isteme
+      const permission = await Notification.requestPermission();
+      
+      if (permission === 'granted') {
+        // İzin alındı, push aboneliğini yap
+        const result = await subscribeUserToPush(userId, userType);
+        return result;
+      } else {
+        // console.log('Bildirim izni reddedildi');
+        return false;
+      }
     }
   } catch (error) {
     // console.error('Bildirim izni istenirken hata:', error);
@@ -163,6 +227,13 @@ async function subscribeUserToPush(
 ) {
   try {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      // Mobil cihazlarda, PWA durumunda ve Service Worker/Push API desteği yoksa
+      // sadece Notification API'si ile devam et
+      if (isMobileDevice() && isPWA() && ('Notification' in window)) {
+        // Mobil PWA için alternatif bildirim metodu
+        return await registerMobilePwaNotification(userId, userType);
+      }
+      
       // console.log('Bu tarayıcı Push API veya Service Worker desteklemiyor');
       return false;
     }
@@ -182,16 +253,50 @@ async function subscribeUserToPush(
       return saved;
     }
 
-    // Yeni bir abonelik oluştur
-    const convertedVapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-    
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: convertedVapidKey
-    });
+    try {
+      // Yeni bir abonelik oluştur
+      const convertedVapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+      
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedVapidKey
+      });
 
-    // Aboneliği veritabanına kaydet
-    const saved = await saveNotificationSubscription(subscription, userId, userType);
+      // Aboneliği veritabanına kaydet
+      const saved = await saveNotificationSubscription(subscription, userId, userType);
+      return saved;
+    } catch (pushError) {
+      // Push aboneliğinde hata - muhtemelen izin reddedildi veya desteklenmiyor
+      if (isMobileDevice() && isPWA()) {
+        // Mobil PWA için alternatif bildirim metodu
+        return await registerMobilePwaNotification(userId, userType);
+      }
+      
+      return false;
+    }
+  } catch (error) {
+    // console.error('Push aboneliği oluşturulurken hata:', error);
+    return false;
+  }
+}
+
+// Mobil PWA için alternatif bildirim kaydı (Push API desteklenmiyorsa)
+async function registerMobilePwaNotification(
+  userId: string, 
+  userType: 'professional' | 'assistant' | 'client'
+) {
+  try {
+    // Basit bir "abonelik" nesnesi oluştur
+    const dummySubscription = {
+      endpoint: `mobile-pwa-${navigator.userAgent}-${Date.now()}`,
+      toJSON: () => ({ 
+        endpoint: `mobile-pwa-${navigator.userAgent}-${Date.now()}`,
+        keys: { p256dh: 'mobile-pwa', auth: 'mobile-pwa' } 
+      })
+    } as unknown as PushSubscription;
+    
+    // Bu "aboneliği" veritabanına kaydet
+    const saved = await saveNotificationSubscription(dummySubscription, userId, userType);
     return saved;
   } catch (error) {
     return false;
@@ -205,27 +310,39 @@ async function registerServiceWorker() {
       return null;
     }
 
-    // Service Worker'ı kaydet
-    const registration = await navigator.serviceWorker.register('/service-worker.js', {
-      scope: '/'
-    });
-    
-    // Service Worker'ın durumunu kontrol et
-    if (registration.installing) {
-    } else if (registration.waiting) {
-    } else if (registration.active) {
-    }
-    
-    // Service Worker güncellendiğinde bildir
-    registration.addEventListener('updatefound', () => {
-      const newWorker = registration.installing;
-      if (newWorker) {
-        newWorker.addEventListener('statechange', () => {
-        });
+    // PWA zaten yüklü ve aktif ise SW kaydını kontrol et
+    if (isPWA()) {
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        if (registration) {
+          return registration;
+        }
+      } catch (swReadyError) {
+        // SW ready değilse, yeni kayıt dene
       }
-    });
-    
-    return registration;
+    }
+
+    // Service Worker'ı kaydet
+    try {
+      const registration = await navigator.serviceWorker.register('/service-worker.js', {
+        scope: '/'
+      });
+      
+      return registration;
+    } catch (regError) {
+      // Service Worker kaydedilemedi, PWA modunda alternatif deneme yap
+      if (isPWA()) {
+        try {
+          // SW zaten aktif olabilir, kontrol et
+          const existingReg = await navigator.serviceWorker.getRegistration();
+          if (existingReg) return existingReg;
+        } catch (existRegError) {
+          return null;
+        }
+      }
+      
+      return null;
+    }
   } catch (error) {
     return null;
   }
@@ -337,7 +454,7 @@ export function createClientReminderNotificationContent(appointment: any) {
   };
 }
 
-// Bildirimleri gönder
+// Bildirimleri gönder - İyileştirilmiş sürüm
 export async function sendNotification(
   userId: string, 
   title: string, 
@@ -346,8 +463,36 @@ export async function sendNotification(
   userType: 'professional' | 'assistant' | 'client' = 'client'
 ) {
   try {
-    // Öncelikle tarayıcıda bildirim göstermeyi dene
-    if ('Notification' in window && Notification.permission === 'granted') {
+    const isMobile = isMobileDevice();
+    const isPwaMode = isPWA();
+    
+    // PWA modunda ve mobil cihazda özel davranış
+    if (isMobile && isPwaMode) {
+      try {
+        // Yeni notification oluştur
+        const notification = new Notification(title, {
+          body,
+          icon: '/images/icons/icon-192x192.webp',
+          badge: '/images/icons/badge-72x72.webp',
+          data,
+          vibrate: [100, 50, 100], // Mobil cihazlarda titreşim
+          requireInteraction: true // Kullanıcı etkileşimi gerektir (özellikle mobil için)
+        });
+        
+        // Bildirime tıklandığında yönlendirme için olay dinleyicisi ekle
+        notification.onclick = function() {
+          if (data && data.url) {
+            window.focus();
+            window.location.href = data.url;
+          }
+        };
+        
+        return true;
+      } catch (mobileNotifError) {
+        // Mobil bildirim gösterilemedi, sunucu API'sini dene
+      }
+    } else if ('Notification' in window && Notification.permission === 'granted') {
+      // Normal tarayıcı bildirimi göstermeyi dene
       try {
         const notification = new Notification(title, {
           body,
@@ -366,10 +511,11 @@ export async function sendNotification(
         
         return true;
       } catch (notifError) {
+        // Normal bildirim gösterilemedi, sunucu API'sini dene
       }
     }
     
-    // Eğer API endpoint'i varsa ve tarayıcı bildirimi başarısız olduysa, sunucuya da bildir
+    // Tarayıcı bildirimleri desteklemiyorsa veya başarısız olduysa sunucu bildirimlerini dene
     try {
       const response = await fetch('/api/push/send', {
         method: 'POST',
@@ -385,6 +531,11 @@ export async function sendNotification(
             icon: '/images/icons/icon-192x192.webp',
             badge: '/images/icons/badge-72x72.webp',
             data
+          },
+          deviceInfo: {
+            isMobile,
+            isPwa: isPwaMode,
+            userAgent: navigator.userAgent
           }
         }),
       });
@@ -392,7 +543,7 @@ export async function sendNotification(
       const result = await response.json();
       return result.success;
     } catch (apiError) {
-      // API erişilemez olduğunda, tarayıcı bildirimi zaten denendi, başarısız olunduysa false dön
+      // API erişilemez olduğunda başarısız
       return false;
     }
   } catch (error) {

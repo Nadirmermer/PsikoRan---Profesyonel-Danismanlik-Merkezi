@@ -147,10 +147,12 @@ export function ClientDetails() {
       tabs.push({ id: 'notes', name: 'Seans Notları' });
       tabs.push({ id: 'tests', name: 'Testler' });
       tabs.push({ id: 'testResults', name: 'Test Sonuçları' });
+    } else if (assistant) {
+      tabs.push({ id: 'tests', name: 'Testler' });
     }
 
     return tabs;
-  }, [professional]);
+  }, [professional, assistant]);
 
   async function loadClient(): Promise<boolean> {
     try {

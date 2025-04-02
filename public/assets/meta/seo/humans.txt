@@ -6,7 +6,7 @@
   Konum: Türkiye
   
 /* SİTE */
-  Son güncelleme: 2024/07/01
+  Son güncelleme: 2025/07/01
   Dil: Türkçe
   Teknolojiler: React, TypeScript, Tailwind CSS, Vite, Supabase
   IDE: Visual Studio Code, Cursor 

@@ -68,7 +68,7 @@ const Settings = () => {
         { id: 'clinic', label: 'Klinik Bilgileri', icon: <Building2 className="h-5 w-5" /> },
         { id: 'security', label: 'Güvenlik', icon: <Shield className="h-5 w-5" /> },
         { id: 'notifications', label: 'Bildirimler', icon: <Bell className="h-5 w-5" /> },
-        { id: 'pwa', label: 'PWA Yönetimi', icon: <Smartphone className="h-5 w-5" /> }
+        { id: 'pwa', label: 'Uygulama Ayarları', icon: <Smartphone className="h-5 w-5" /> }
       ];
         } else if (assistant) {
       return [
@@ -76,7 +76,7 @@ const Settings = () => {
         { id: 'clinic', label: 'Klinik Yönetimi', icon: <Building2 className="h-5 w-5" /> },
         { id: 'security', label: 'Güvenlik', icon: <Shield className="h-5 w-5" /> },
         { id: 'notifications', label: 'Bildirimler', icon: <Bell className="h-5 w-5" /> },
-        { id: 'pwa', label: 'PWA Yönetimi', icon: <Smartphone className="h-5 w-5" /> }
+        { id: 'pwa', label: 'Uygulama Ayarları', icon: <Smartphone className="h-5 w-5" /> }
       ];
     }
     return [];

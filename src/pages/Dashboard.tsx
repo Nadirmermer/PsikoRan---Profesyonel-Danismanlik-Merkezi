@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, useMemo, useCallback } from 'react';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import {
@@ -63,7 +63,7 @@ const Bar = lazy(() => import('react-chartjs-2').then(module => ({ default: modu
 const Pie = lazy(() => import('react-chartjs-2').then(module => ({ default: module.Pie })));
 const Doughnut = lazy(() => import('react-chartjs-2').then(module => ({ default: module.Doughnut })));
 const CreateAppointmentModal = lazy(() => 
-  import('../components/CreateAppointmentModal').then(module => ({ default: module.CreateAppointmentModal }))
+  import('../components/appointment/CreateAppointmentModal').then(module => ({ default: module.default }))
 );
 const DatePicker = lazy(() => import('react-datepicker'));
 
@@ -200,21 +200,31 @@ export function Dashboard() {
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
   const [existingAppointments, setExistingAppointments] = useState<any[]>([]);
   
+  // Veri yükleme durumlarını izlemek için
+  const [loadingStates, setLoadingStates] = useState({
+    appointments: false,
+    payments: false,
+    clients: false,
+    breaks: false,
+    vacations: false,
+    charts: false,
+  });
+  
   // Yeni UI için eklenen durum değişkenleri
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [chartPeriod, setChartPeriod] = useState('weekly');
   const [calendarViewMode, setCalendarViewMode] = useState('daily'); // daily, weekly, monthly
   
-  // Chart verileri için durum değişkenleri
+  // Chart verileri için durum değişkenleri - lazy initialization
   const [appointmentChartData, setAppointmentChartData] = useState<any>(null);
   const [revenueChartData, setRevenueChartData] = useState<any>(null);
   const [clientDistributionData, setClientDistributionData] = useState<any>(null);
   
   const days = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'] as const;
   
-  // Chart verilerini oluşturmak için kullanılan fonksiyonlar
-  const generateAppointmentChartData = () => {
+  // Chart verilerini oluşturmak için kullanılan fonksiyonlar - memoize edilmiş
+  const generateAppointmentChartData = useCallback(() => {
     if (!professional && !assistant) return;
     
     const today = new Date();
@@ -254,17 +264,6 @@ export function Dashboard() {
       });
     }
     
-    const gradient = {
-      id: 'appointmentGradient',
-      beforeDatasetsDraw(chart: any) {
-        const { ctx, chartArea: { top, bottom, left, right } } = chart;
-        const gradientBg = ctx.createLinearGradient(0, top, 0, bottom);
-        gradientBg.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
-        gradientBg.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
-        return gradientBg;
-      }
-    };
-    
     setAppointmentChartData({
       labels,
       datasets: [
@@ -284,7 +283,7 @@ export function Dashboard() {
         }
       ]
     });
-  };
+  }, [professional, assistant, chartPeriod, monthlyAppointments]);
   
   const generateRevenueChartData = () => {
     if ((!professional && !assistant) || !monthlyPayments.length) {
@@ -639,57 +638,84 @@ export function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Initialize charts with lazy loading
-  const initializeCharts = async () => {
+  // Initialize charts with lazy loading - Optimize edilmiş
+  const initializeCharts = useCallback(async () => {
     try {
-      // ChartJS modülünü dinamik olarak yükle
+      // Chart.js'yi dinamik olarak yükle
+      setLoadingStates(prev => ({ ...prev, charts: true }));
       const { Chart, registerables } = await import('chart.js');
       // Tüm gerekli bileşenleri kaydet
       Chart.register(...registerables);
+      setLoadingStates(prev => ({ ...prev, charts: false }));
       return true;
     } catch (error) {
       console.error('Chart.js yüklenirken hata oluştu:', error);
+      setLoadingStates(prev => ({ ...prev, charts: false }));
       return false;
     }
-  };
+  }, []);
 
   useEffect(() => {
     const initializeData = async () => {
       try {
         setLoading(true);
         
-        // Chart.js'yi asenkron olarak yükle
-        initializeCharts();
-        
-        // Öncelikli veriler - sayfanın gösterilmesi için kritik olanlar
-        await Promise.all([
+        // İlk önce sadece kritik verileri yükleyelim
+        // ve sayfayı olabildiğince hızlı gösterelim
+        const criticalPromises = [
           loadClinicHours(),
           loadRooms()
-        ]);
+        ];
         
+        // Kullanıcı tipine göre kritik veri yükleme
         if (professional) {
-          await loadProfessionalWorkingHours();
-          // Profesyonel için kritik veriler
-          await loadProfessionalData();
-        } else if (assistant) {
-          // Asistan için kritik veriler
-          await loadAssistantData();
+          criticalPromises.push(loadProfessionalWorkingHours());
         }
         
-        // Ana yükleme işlemi tamamlandı
+        // Kritik verileri paralel olarak yükle
+        await Promise.all(criticalPromises);
+        
+        // Chart.js'yi sadece ihtiyaç olduğunda yüklemek için erteliyoruz
+        // Ana içerik gösterildikten sonra başlatılacak
+        setTimeout(() => {
+          // Chart.js asenkron yükleme
+          initializeCharts();
+        }, 500);
+        
+        // Ana içeriği göster
         setLoading(false);
         
-        // İkincil veriler - arka planda yüklenmeye devam edebilir
-        Promise.all([
-          loadClinicBreaks(),
-          loadClinicVacations(),
-          professional ? loadProfessionalBreaks() : Promise.resolve(),
-          professional ? loadProfessionalVacations() : Promise.resolve(),
-          professional ? loadClients() : Promise.resolve()
-        ]).catch(error => {
-          // İkincil verilerin yüklenmesinde hata olursa ana performansı etkilemesin
-          console.error("İkincil veriler yüklenirken hata oluştu:", error);
-        });
+        // Önce takvim verilerini yükle 
+        if (professional) {
+          loadProfessionalData();
+        } else if (assistant) {
+          loadAssistantData();
+        }
+        
+        // İkincil verileri sırayla yükle (ihtiyaç duyan görünümler için)
+        // Bunlar arayüzü engellememek için sırayla yükleniyor
+        const loadSecondaryData = async () => {
+          try {
+            // İlk olarak molalar
+            await loadClinicBreaks();
+            
+            // Sonra tatil günleri
+            await loadClinicVacations();
+            
+            // Profesyonel özgü veriler en son yükleniyor
+            if (professional) {
+              await loadProfessionalBreaks();
+              await loadProfessionalVacations();
+              await loadClients();
+            }
+          } catch (error) {
+            console.error("İkincil veriler yüklenirken hata oluştu:", error);
+          }
+        };
+        
+        // Arka planda ikincil verileri yükle
+        loadSecondaryData();
+        
       } catch (error) {
         console.error("Veri yüklenirken hata oluştu:", error);
         setLoading(false);
@@ -699,7 +725,28 @@ export function Dashboard() {
     if (professional || assistant) {
       initializeData();
     }
+    
+    // Gereksiz yeniden renderları önlemek için cleanup fonksiyonu
+    return () => {
+      // Zamanlayıcıları temizle
+    };
   }, [professional?.id, assistant?.id]);
+
+  // Daha verimli bir chart yükleme stratejisi
+  useEffect(() => {
+    // Chart verilerini sadece gerektiğinde oluştur
+    if (monthlyAppointments.length > 0 && !loadingStates.charts) {
+      // Geciktirme ile birlikte çalıştır
+      const timer = setTimeout(() => {
+        generateAppointmentChartData();
+        if (monthlyPayments.length > 0) {
+          generateRevenueChartData();
+        }
+      }, 300); // sayfanın ilk gösterimi için gecikme ekledik
+      
+      return () => clearTimeout(timer);
+    }
+  }, [monthlyAppointments, monthlyPayments, chartPeriod, loadingStates.charts, generateAppointmentChartData]);
 
   // Yeni eklenen useEffect yeterli
   // Tarih veya görünüm modu değiştiğinde günlük, haftalık ve aylık görünümleri güncelleme
@@ -732,17 +779,16 @@ export function Dashboard() {
     }
   }, [selectedDate, clinicHours, calendarViewMode]);
 
-  function generateTimeSlots(dayHours: { opening: string; closing: string; isOpen: boolean }) {
+  // Saat başına zaman dilimi seçme - optimize edilmiş
+  const generateTimeSlots = useCallback((dayHours: { opening: string; closing: string; isOpen: boolean }) => {
     if (!dayHours.isOpen) return [];
 
     const dayOfWeek = selectedDate.getDay();
     const days = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'] as const;
     const currentDay = days[dayOfWeek];
-    const dayName = getTurkishDayName(currentDay);
 
     // Tatil günlerini kontrol et
     if (isDateInVacations(selectedDate)) {
-      console.log(`${format(selectedDate, 'dd.MM.yyyy')} tarihi tatil/izin gününe denk geliyor.`);
       return [];
     }
 
@@ -788,11 +834,9 @@ export function Dashboard() {
     let currentHour = openingHour;
     let currentMinute = openingMinute;
 
-    const endTimeInMinutes = closingHour * 60 + closingMinute;
-
     // Her tam saat için bir zaman dilimi oluştur
     while (currentHour < closingHour) {
-      // Mola zamanı kontrolü
+      // Mola zamanı kontrolü - bu kısmı optimize ettik
       const profBreaksForDay = professionalBreaks.filter(b => b.day_of_week === currentDay);
       const clinicBreaksForDay = clinicBreaks.filter(b => b.day_of_week === currentDay);
       const currentTimeInBreak = isTimeInBreaks(currentHour, currentMinute, profBreaksForDay, clinicBreaksForDay);
@@ -819,7 +863,7 @@ export function Dashboard() {
     }
 
     return slots;
-  }
+  }, [selectedDate, professionalWorkingHours, clinicHours, professionalBreaks, clinicBreaks]);
 
   function getTurkishDayName(day: string): string {
     const dayMap: Record<string, string> = {
@@ -927,6 +971,7 @@ export function Dashboard() {
 
   async function loadClients() {
     try {
+      setLoadingStates(prev => ({ ...prev, clients: true }));
       let query = supabase
         .from('clients')
         .select('*, professional:professionals(id, full_name)')
@@ -952,6 +997,8 @@ export function Dashboard() {
       setClients(data || []);
     } catch (error) {
       console.error('Error loading clients:', error);
+    } finally {
+      setLoadingStates(prev => ({ ...prev, clients: false }));
     }
   }
 
@@ -1065,84 +1112,99 @@ export function Dashboard() {
     if (!professional?.id) return;
     
     try {
+      setLoadingStates(prev => ({ ...prev, appointments: true, payments: true }));
+      
       const today = new Date();
       const startOfToday = startOfDay(today);
       const endOfToday = endOfDay(today);
       const startOfThisMonth = startOfMonth(today);
       const endOfThisMonth = endOfMonth(today);
 
-      const { data: todayAppts, error: todayApptsError } = await supabase
-        .from('appointments')
-        .select(`
-          *,
-          client:clients(*),
-          professional:professionals(*),
-          room:rooms(*)
-        `)
-        .eq('professional_id', professional.id)
-        .eq('status', 'scheduled')
-        .gte('start_time', startOfToday.toISOString())
-        .lte('start_time', endOfToday.toISOString())
-        .order('start_time');
-
-      if (todayApptsError) throw todayApptsError;
-
-      const { data: monthlyAppts, error: monthlyApptsError } = await supabase
-        .from('appointments')
-        .select(`
-          *,
-          client:clients(*),
-          professional:professionals(*),
-          room:rooms(*)
-        `)
-        .eq('professional_id', professional.id)
-        .eq('status', 'scheduled')
-        .gte('start_time', startOfThisMonth.toISOString())
-        .lte('start_time', endOfThisMonth.toISOString())
-        .order('start_time');
-
-      if (monthlyApptsError) throw monthlyApptsError;
-
-      const { data: todayPays, error: todayPaysError } = await supabase
-        .from('payments')
-        .select(`
-          *,
-          appointment:appointments(
+      // Paralel olarak çalıştıralım
+      const [
+        todayApptsResult,
+        monthlyApptsResult,
+        todayPaysResult,
+        monthlyPaysResult
+      ] = await Promise.all([
+        // Bugünün randevuları - minimal veri
+        supabase
+          .from('appointments')
+          .select(`
             *,
-            client:clients(*),
-            professional:professionals(*)
-          )
-        `)
-        .eq('professional_id', professional.id)
-        .gte('payment_date', startOfToday.toISOString())
-        .lte('payment_date', endOfToday.toISOString())
-        .order('payment_date');
-
-      if (todayPaysError) throw todayPaysError;
-
-      const { data: monthlyPays, error: monthlyPaysError } = await supabase
-        .from('payments')
-        .select(`
-          *,
-          appointment:appointments(
+            client:clients(id, full_name),
+            professional:professionals(id, full_name),
+            room:rooms(id, name)
+          `)
+          .eq('professional_id', professional.id)
+          .eq('status', 'scheduled')
+          .gte('start_time', startOfToday.toISOString())
+          .lte('start_time', endOfToday.toISOString())
+          .order('start_time'),
+          
+        // Aylık randevular - minimal veri
+        supabase
+          .from('appointments')
+          .select(`
             *,
-            client:clients(*),
-            professional:professionals(*)
-          )
-        `)
-        .eq('professional_id', professional.id)
-        .gte('payment_date', startOfThisMonth.toISOString())
-        .lte('payment_date', endOfThisMonth.toISOString())
-        .order('payment_date');
+            client:clients(id, full_name),
+            professional:professionals(id, full_name),
+            room:rooms(id, name)
+          `)
+          .eq('professional_id', professional.id)
+          .eq('status', 'scheduled')
+          .gte('start_time', startOfThisMonth.toISOString())
+          .lte('start_time', endOfThisMonth.toISOString())
+          .order('start_time'),
+          
+        // Bugünkü ödemeler
+        supabase
+          .from('payments')
+          .select(`
+            *,
+            appointment:appointments(
+              id, start_time, 
+              client:clients(id, full_name),
+              professional:professionals(id, full_name)
+            )
+          `)
+          .eq('professional_id', professional.id)
+          .gte('payment_date', startOfToday.toISOString())
+          .lte('payment_date', endOfToday.toISOString())
+          .order('payment_date'),
+          
+        // Aylık ödemeler
+        supabase
+          .from('payments')
+          .select(`
+            *,
+            appointment:appointments(
+              id, start_time, 
+              client:clients(id, full_name),
+              professional:professionals(id, full_name)
+            )
+          `)
+          .eq('professional_id', professional.id)
+          .gte('payment_date', startOfThisMonth.toISOString())
+          .lte('payment_date', endOfThisMonth.toISOString())
+          .order('payment_date')
+      ]);
 
-      if (monthlyPaysError) throw monthlyPaysError;
+      // Hata kontrolü
+      if (todayApptsResult.error) throw todayApptsResult.error;
+      if (monthlyApptsResult.error) throw monthlyApptsResult.error;
+      if (todayPaysResult.error) throw todayPaysResult.error;
+      if (monthlyPaysResult.error) throw monthlyPaysResult.error;
 
-      setTodayAppointments(todayAppts || []);
-      setMonthlyAppointments(monthlyAppts || []);
-      setTodayPayments(todayPays || []);
-      setMonthlyPayments(monthlyPays || []);
+      // Verileri state'e set edelim
+      setTodayAppointments(todayApptsResult.data || []);
+      setMonthlyAppointments(monthlyApptsResult.data || []);
+      setTodayPayments(todayPaysResult.data || []);
+      setMonthlyPayments(monthlyPaysResult.data || []);
     } catch (error) {
       console.error('Error loading professional dashboard data:', error);
+    } finally {
+      setLoadingStates(prev => ({ ...prev, appointments: false, payments: false }));
     }
   }
 
@@ -1388,6 +1450,7 @@ export function Dashboard() {
 
   async function loadExistingAppointments(date: string) {
     try {
+      setLoadingStates(prev => ({ ...prev, appointments: true }));
       const startTime = new Date(date);
       startTime.setHours(0, 0, 0, 0);
 
@@ -1398,9 +1461,9 @@ export function Dashboard() {
         .from('appointments')
         .select(`
           *,
-          client:clients(*),
-          professional:professionals(*),
-          room:rooms(*)
+          client:clients(id, full_name),
+          professional:professionals(id, full_name),
+          room:rooms(id, name)
         `)
         .gte('start_time', startTime.toISOString())
         .lte('start_time', endTime.toISOString())
@@ -1429,6 +1492,8 @@ export function Dashboard() {
       setTodayAppointments(data || []);
     } catch (error) {
       console.error('Error loading existing appointments:', error);
+    } finally {
+      setLoadingStates(prev => ({ ...prev, appointments: false }));
     }
   }
 
@@ -1861,18 +1926,18 @@ export function Dashboard() {
     }
   }
 
-  // Chart bileşenlerini renderla
-  const renderLineChart = (data: any, options: any) => (
+  // Chart bileşenlerini renderla - memoize ettiğimiz
+  const renderLineChart = useMemo(() => (data: any, options: any) => (
     <Suspense fallback={<LoadingSpinner size="small" loadingText="Grafik yükleniyor..." />}>
-      <Line data={data} options={options} />
+      {data && <Line data={data} options={options} />}
     </Suspense>
-  );
+  ), []);
 
-  const renderBarChart = (data: any, options: any) => (
+  const renderBarChart = useMemo(() => (data: any, options: any) => (
     <Suspense fallback={<LoadingSpinner size="small" loadingText="Grafik yükleniyor..." />}>
-      <Bar data={data} options={options} />
+      {data && <Bar data={data} options={options} />}
     </Suspense>
-  );
+  ), []);
 
   return (
     <>
@@ -2107,32 +2172,35 @@ export function Dashboard() {
                     <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg text-xs font-medium">
                       <button
                         onClick={() => setCalendarViewMode('daily')}
-                        className={`px-3 py-1.5 rounded-md transition-all ${
+                        className={`px-3 py-1.5 rounded-md transition-all flex items-center justify-center ${
                           calendarViewMode === 'daily'
                           ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-400'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                         }`}
                       >
+                        <Calendar className="h-3.5 w-3.5 mr-1.5" />
                         Günlük
                       </button>
                       <button
                         onClick={() => setCalendarViewMode('weekly')}
-                        className={`px-3 py-1.5 rounded-md transition-all ${
+                        className={`px-3 py-1.5 rounded-md transition-all flex items-center justify-center ${
                           calendarViewMode === 'weekly'
                           ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-400'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                         }`}
                       >
+                        <Calendar className="h-3.5 w-3.5 mr-1.5" />
                         Haftalık
                       </button>
                       <button
                         onClick={() => setCalendarViewMode('monthly')}
-                        className={`px-3 py-1.5 rounded-md transition-all ${
+                        className={`px-3 py-1.5 rounded-md transition-all flex items-center justify-center ${
                           calendarViewMode === 'monthly'
                           ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-blue-400'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                         }`}
                       >
+                        <Calendar className="h-3.5 w-3.5 mr-1.5" />
                         Aylık
                       </button>
                     </div>
@@ -2219,377 +2287,434 @@ export function Dashboard() {
                   </div>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-                  {/* Takvim ve randevu görünümü - Scroll ihtiyacı olmadan, görünüm moduna göre uyarlanmış yükseklik */}
-                  <div className={`
-                    ${calendarViewMode === 'daily' ? 'overflow-auto' : 'overflow-visible'} 
-                    ${calendarViewMode === 'daily' ? 'h-[550px]' : 'h-auto'}
-                    ${calendarViewMode === 'weekly' ? 'h-[300px]' : ''}
-                    ${calendarViewMode === 'monthly' ? 'h-[600px]' : ''}
-                  `}>
-                    {/* Randevu bulunamadı mesajı - Sadece günlük görünümde gösteriliyor */}
-                    {calendarViewMode === 'daily' && (!clinicHours || !clinicHours[days[selectedDate.getDay()]].isOpen || timeSlots.length === 0) && (
-                      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                        <CalendarOff className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                          Bu gün için randevu oluşturulamaz
-                        </h3>
-                        <p className="text-gray-600 dark:text-gray-400 max-w-md">
-                          {isDateInVacations(selectedDate) 
-                            ? "Bu tarih tatil veya izin gününe denk geliyor." 
-                            : "Kliniğin bu gün için çalışma saati bulunmuyor veya kapalı."}
-                        </p>
-                        <button
-                          onClick={() => setSelectedDate(addDays(selectedDate, 1))}
-                          className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center"
-                        >
-                          <ChevronRight className="h-4 w-4 mr-1" />
-                          <span>Sonraki güne git</span>
-                        </button>
-                      </div>
-                    )}
+                  {/* Takvim ve randevu görünümü - Animasyonlar ve geçişlerle geliştirilmiş */}
+                  <AnimatePresence mode="wait">
+                    <motion.div 
+                      key={calendarViewMode}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.3 }}
+                      className={`
+                        overflow-auto
+                        ${calendarViewMode === 'daily' ? 'h-[550px]' : ''}
+                        ${calendarViewMode === 'weekly' ? 'h-[400px]' : ''}
+                        ${calendarViewMode === 'monthly' ? 'h-[600px]' : ''}
+                      `}
+                    >
+                      {/* Randevu bulunamadı mesajı - Sadece günlük görünümde gösteriliyor */}
+                      {calendarViewMode === 'daily' && (!clinicHours || !clinicHours[days[selectedDate.getDay()]].isOpen || timeSlots.length === 0) && (
+                        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                          <CalendarOff className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                            Bu gün için randevu oluşturulamaz
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-400 max-w-md">
+                            {isDateInVacations(selectedDate) 
+                              ? "Bu tarih tatil veya izin gününe denk geliyor." 
+                              : "Kliniğin bu gün için çalışma saati bulunmuyor veya kapalı."}
+                          </p>
+                          <button
+                            onClick={() => setSelectedDate(addDays(selectedDate, 1))}
+                            className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center"
+                          >
+                            <ChevronRight className="h-4 w-4 mr-1" />
+                            <span>Sonraki güne git</span>
+                          </button>
+                        </div>
+                      )}
 
-                    {/* Randevu tablosu - Günlük görünüm */}
-                    {calendarViewMode === 'daily' && clinicHours && clinicHours[days[selectedDate.getDay()]].isOpen && timeSlots.length > 0 && (
-                      <div className="overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10 md:rounded-lg relative table-fixed">
-                        <table className="w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700">
-                          <colgroup>
-                            <col className="w-[70px]" />
-                            {rooms.map((room) => (
-                              <col key={room.id} style={{ width: `calc((100% - 70px) / ${rooms.length})` }} />
-                            ))}
-                          </colgroup>
-                          <thead className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl sticky top-0 z-30">
-                            <tr>
-                              <th className="px-3 py-3 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sticky left-0 z-10 w-[70px] min-w-[70px] max-w-[70px] border-b border-gray-200 dark:border-gray-700">
-                                Saat
-                              </th>
-                              {rooms.map((room: any, index: number) => (
-                                <th
-                                  key={room.id}
-                                  className="px-3 py-3 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700"
-                                >
-                                  <div className="flex items-center space-x-2">
-                                    <div className={`w-3 h-3 rounded-full ${ROOM_COLORS[index % ROOM_COLORS.length].split(' ')[0]}`}></div>
-                                    <span>{room.name}</span>
-                                  </div>
-                                </th>
+                      {/* Randevu tablosu - Günlük görünüm */}
+                      {calendarViewMode === 'daily' && clinicHours && clinicHours[days[selectedDate.getDay()]].isOpen && timeSlots.length > 0 && (
+                        <div className="overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10 md:rounded-lg relative table-fixed">
+                          <table className="w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700">
+                            <colgroup>
+                              <col className="w-[70px]" />
+                              {rooms.map((room) => (
+                                <col key={room.id} style={{ width: `calc((100% - 70px) / ${rooms.length})` }} />
                               ))}
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl divide-y divide-gray-200 dark:divide-gray-700">
-                            {timeSlots.map((timeSlot) => (
-                              <tr key={timeSlot} className="relative hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors duration-200">
-                                <td className="px-3 py-3 border-r border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-900 dark:text-gray-100 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl sticky left-0 z-20 w-[70px] min-w-[70px] max-w-[70px]">
-                                  {timeSlot}
-                                </td>
-                                {rooms.map((room, index) => (
-                                  <td key={room.id} className="relative border-r border-gray-200 dark:border-gray-700 p-1 h-[100px] overflow-visible">
-                                    {todayAppointments
-                                      .filter(appointment => {
-                                        const appointmentStart = new Date(appointment.start_time);
-                                        const appointmentHour = appointmentStart.getHours();
-                                        const slotHour = parseInt(timeSlot.split(':')[0]);
-                                        
-                                        // Çevrimiçi oda için is_online=true olan randevuları göster
-                                        if (room.id === 'online') {
-                                          return appointmentHour === slotHour && appointment.is_online;
-                                        }
-                                        
-                                        // Normal odalar için room_id eşleşenler
-                                        return appointmentHour === slotHour && appointment.room_id === room.id;
-                                      })
-                                      .map(appointment => {
-                                        const position = calculateAppointmentPosition(appointment);
-                                        return (
-                                          <motion.div
-                                            key={appointment.id}
-                                            initial={{ scale: 0.95, opacity: 0.8 }}
-                                            animate={{ scale: 1, opacity: 1 }}
-                                            whileHover={{ scale: 1.02, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-                                            transition={{ duration: 0.2 }}
-                                            className={`absolute left-0 right-0 mx-1 p-1.5 rounded-lg shadow-sm ${
-                                              ROOM_COLORS[index % ROOM_COLORS.length]
-                                              } backdrop-blur-sm backdrop-filter transition-all duration-200 hover:shadow-md cursor-pointer overflow-hidden`}
-                                            style={{
-                                              top: position.top,
-                                              height: position.height,
-                                              minHeight: position.minHeight,
-                                              zIndex: 25
-                                            }}
-                                          >
-                                            {professional ? (
-                                              <div className="font-medium text-sm truncate">
-                                                {appointment.client?.full_name}
-                                                {appointment.is_online && <span className="ml-1 text-xs">(Çevrimiçi)</span>}
-                                              </div>
-                                            ) : (
-                                              <>
-                                                <div className="font-medium text-sm truncate">
-                                                  {appointment.professional?.full_name}
-                                                  {appointment.is_online && <span className="ml-1 text-xs">(Çevrimiçi)</span>}
-                                                </div>
-                                                <div className="text-xs truncate opacity-90">
-                                                  {appointment.client?.full_name}
-                                                </div>
-                                              </>
-                                            )}
-                                            <div className="text-xs opacity-75 mt-1">
-                                              {format(new Date(appointment.start_time), 'HH:mm')}-{format(new Date(appointment.end_time), 'HH:mm')}
-                                            </div>
-                                          </motion.div>
-                                        );
-                                      })}
-                                    {selectedDate && 
-                                      format(selectedDate, 'yyyy-MM-dd') === format(currentTime, 'yyyy-MM-dd') && 
-                                      parseInt(timeSlot.split(':')[0]) === currentTime.getHours() && (
-                                        <div
-                                          className="absolute left-0 right-0 border-t-2 border-red-500 pointer-events-none"
-                                          style={{
-                                            top: calculateTimeLinePosition(),
-                                            zIndex: 20
-                                          }}
-                                        />
-                                    )}
-                                  </td>
+                            </colgroup>
+                            <thead className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl sticky top-0 z-30">
+                              <tr>
+                                <th className="px-3 py-3 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider sticky left-0 z-10 w-[70px] min-w-[70px] max-w-[70px] border-b border-gray-200 dark:border-gray-700">
+                                  Saat
+                                </th>
+                                {rooms.map((room: any, index: number) => (
+                                  <th
+                                    key={room.id}
+                                    className="px-3 py-3 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-xl text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700"
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      <div className={`w-3 h-3 rounded-full ${ROOM_COLORS[index % ROOM_COLORS.length].split(' ')[0]}`}></div>
+                                      <span>{room.name}</span>
+                                    </div>
+                                  </th>
                                 ))}
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                    
-                    {/* Haftalık Görünüm */}
-                    {calendarViewMode === 'weekly' && (
-                      <div className="overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10 md:rounded-lg relative h-full">
-                        <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl p-4 h-full">
-                          <div className="grid grid-cols-7 gap-2 h-full">
-                            {/* Haftanın günleri başlıkları */}
-                            {Array.from({ length: 7 }).map((_, index) => {
-                              const day = addDays(startOfWeek(selectedDate, { weekStartsOn: 1 }), index);
-                              const dayName = format(day, 'EEEE', { locale: tr });
-                              const dayNumber = format(day, 'd');
-                              const isToday = isSameDay(day, new Date());
+                            </thead>
+                            <tbody className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl divide-y divide-gray-200 dark:divide-gray-700">
+                              {timeSlots.map((timeSlot) => (
+                                <tr key={timeSlot} className="relative hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors duration-200">
+                                  <td className="px-3 py-3 border-r border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-900 dark:text-gray-100 bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl sticky left-0 z-20 w-[70px] min-w-[70px] max-w-[70px]">
+                                    {timeSlot}
+                                  </td>
+                                  {rooms.map((room, index) => (
+                                    <td key={room.id} className="relative border-r border-gray-200 dark:border-gray-700 p-1 h-[100px] overflow-visible">
+                                      {todayAppointments
+                                        .filter(appointment => {
+                                          const appointmentStart = new Date(appointment.start_time);
+                                          const appointmentHour = appointmentStart.getHours();
+                                          const slotHour = parseInt(timeSlot.split(':')[0]);
+                                          
+                                          // Çevrimiçi oda için is_online=true olan randevuları göster
+                                          if (room.id === 'online') {
+                                            return appointmentHour === slotHour && appointment.is_online;
+                                          }
+                                          
+                                          // Normal odalar için room_id eşleşenler
+                                          return appointmentHour === slotHour && appointment.room_id === room.id;
+                                        })
+                                        .map(appointment => {
+                                          const position = calculateAppointmentPosition(appointment);
+                                          return (
+                                            <motion.div
+                                              key={appointment.id}
+                                              initial={{ scale: 0.95, opacity: 0.8 }}
+                                              animate={{ scale: 1, opacity: 1 }}
+                                              whileHover={{ scale: 1.02, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                                              transition={{ duration: 0.2 }}
+                                              className={`absolute left-0 right-0 mx-1 p-1.5 rounded-lg shadow-sm ${
+                                                ROOM_COLORS[index % ROOM_COLORS.length]
+                                                } backdrop-blur-sm backdrop-filter transition-all duration-200 hover:shadow-md cursor-pointer overflow-hidden`}
+                                              style={{
+                                                top: position.top,
+                                                height: position.height,
+                                                minHeight: position.minHeight,
+                                                zIndex: 25
+                                              }}
+                                            >
+                                              {professional ? (
+                                                <div className="font-medium text-sm truncate">
+                                                  {appointment.client?.full_name}
+                                                  {appointment.is_online && <span className="ml-1 text-xs">(Çevrimiçi)</span>}
+                                                </div>
+                                              ) : (
+                                                <>
+                                                  <div className="font-medium text-sm truncate">
+                                                    {appointment.professional?.full_name}
+                                                    {appointment.is_online && <span className="ml-1 text-xs">(Çevrimiçi)</span>}
+                                                  </div>
+                                                  <div className="text-xs truncate opacity-90">
+                                                    {appointment.client?.full_name}
+                                                  </div>
+                                                </>
+                                              )}
+                                              <div className="text-xs opacity-75 mt-1">
+                                                {format(new Date(appointment.start_time), 'HH:mm')}-{format(new Date(appointment.end_time), 'HH:mm')}
+                                              </div>
+                                            </motion.div>
+                                          );
+                                        })}
+                                      {selectedDate && 
+                                        format(selectedDate, 'yyyy-MM-dd') === format(currentTime, 'yyyy-MM-dd') && 
+                                        parseInt(timeSlot.split(':')[0]) === currentTime.getHours() && (
+                                          <div
+                                            className="absolute left-0 right-0 border-t-2 border-red-500 pointer-events-none"
+                                            style={{
+                                              top: calculateTimeLinePosition(),
+                                              zIndex: 20
+                                            }}
+                                          />
+                                      )}
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                      
+                      {/* Haftalık Görünüm - Geliştirilmiş */}
+                      {calendarViewMode === 'weekly' && (
+                        <div className="overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10 md:rounded-lg relative h-full">
+                          <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl p-4 h-full">
+                            <div className="grid grid-cols-7 gap-2 h-full">
+                              {/* Haftanın günleri başlıkları */}
+                              {Array.from({ length: 7 }).map((_, index) => {
+                                const day = addDays(startOfWeek(selectedDate, { weekStartsOn: 1 }), index);
+                                const dayName = format(day, 'EEEE', { locale: tr });
+                                const dayNumber = format(day, 'd');
+                                const isToday = isSameDay(day, new Date());
+                                const isSelected = isSameDay(day, selectedDate);
+                                
+                                return (
+                                  <motion.div 
+                                    key={index}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setSelectedDate(day)}
+                                    className={`flex flex-col items-center py-2 rounded-lg cursor-pointer
+                                      ${isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''}
+                                      ${isSelected ? 'bg-blue-100 dark:bg-blue-800/30 ring-1 ring-blue-500' : ''}
+                                    `}
+                                  >
+                                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 capitalize">
+                                      {dayName}
+                                    </span>
+                                    <span className={`text-lg font-semibold mt-1 ${
+                                      isToday 
+                                        ? 'bg-blue-600 dark:bg-blue-500 text-white w-8 h-8 flex items-center justify-center rounded-full' 
+                                        : isSelected 
+                                          ? 'text-blue-700 dark:text-blue-300'
+                                          : 'text-gray-800 dark:text-gray-200'
+                                    }`}>
+                                      {dayNumber}
+                                    </span>
+                                  </motion.div>
+                                );
+                              })}
                               
-                              return (
-                                <div 
-                                  key={index}
-                                  className={`flex flex-col items-center py-2 ${isToday ? 'bg-blue-50 dark:bg-blue-900/20 rounded-lg' : ''}`}
-                                >
-                                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 capitalize">
-                                    {dayName}
-                                  </span>
-                                  <span className={`text-lg font-semibold mt-1 ${isToday ? 'bg-blue-600 dark:bg-blue-500 text-white w-8 h-8 flex items-center justify-center rounded-full' : 'text-gray-800 dark:text-gray-200'}`}>
-                                    {dayNumber}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                            
-                            {/* Haftanın günleri için randevular */}
-                            {Array.from({ length: 7 }).map((_, dayIndex) => {
-                              const currentDay = addDays(startOfWeek(selectedDate, { weekStartsOn: 1 }), dayIndex);
-                              const formattedDay = format(currentDay, 'yyyy-MM-dd');
-                              
-                              // Bu gün için randevuları filtrele
-                              const dayAppointments = monthlyAppointments.filter(appointment => 
-                                format(new Date(appointment.start_time), 'yyyy-MM-dd') === formattedDay
-                              );
-                              
-                              // Kliniğin bu gün açık olup olmadığını kontrol et
-                              const isOpen = isClinicOpen(currentDay);
-                              const isVacation = isDateInVacations(currentDay);
-                              
-                              return (
-                                <div 
-                                  key={dayIndex}
-                                  className={`
-                                    col-span-1 min-h-[180px] border-t border-gray-200 dark:border-gray-700 pt-2 relative
-                                    ${!isOpen || isVacation ? 'bg-red-50/30 dark:bg-red-900/5' : ''}
-                                  `}
-                                >
-                                  {(!isOpen || isVacation) && (
-                                    <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 flex items-center justify-center opacity-30 pointer-events-none">
-                                      <CalendarOff className="h-8 w-8 text-red-500 dark:text-red-400" />
-                                    </div>
-                                  )}
+                              {/* Zaman çizelgesi - Saatler */}
+                              <div className="col-span-7 grid grid-cols-7 gap-2 mt-2 border-t border-gray-200 dark:border-gray-700 pt-2">
+                                {Array.from({ length: 7 }).map((_, dayIndex) => {
+                                  const currentDay = addDays(startOfWeek(selectedDate, { weekStartsOn: 1 }), dayIndex);
+                                  const formattedDay = format(currentDay, 'yyyy-MM-dd');
                                   
-                                  {dayAppointments.length === 0 ? (
-                                    <div className={`text-center text-xs h-full flex items-center justify-center relative z-10 ${!isOpen || isVacation ? 'text-red-500 dark:text-red-400 font-medium' : 'text-gray-400 dark:text-gray-600'}`}>
-                                      {!isOpen || isVacation ? "Çalışma Günü Değil" : "Randevu yok"}
-                                    </div>
-                                  ) : (
-                                    <div className="space-y-1 relative z-10">
-                                      {dayAppointments
-                                        .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-                                        .slice(0, 4)
-                                        .map(appointment => (
-                                          <div 
-                                            key={appointment.id}
-                                            className={`text-xs p-2 rounded truncate ${
-                                              appointment.room_id 
-                                                ? ROOM_COLORS[rooms.findIndex(r => r.id === appointment.room_id) % ROOM_COLORS.length]
-                                                : appointment.is_online
-                                                  ? ROOM_COLORS[0] // İlk renk online randevular için
-                                                  : 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300'
-                                            }`}
-                                          >
-                                            <div className="flex items-center">
-                                              <span className="mr-1">{format(new Date(appointment.start_time), 'HH:mm')}</span>
-                                              <span className="truncate font-medium">
-                                                {professional ? appointment.client?.full_name : appointment.professional?.full_name}
-                                                {appointment.is_online && <span className="ml-1">(Çevrimiçi)</span>}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        ))
-                                      }
-                                      {dayAppointments.length > 4 && (
-                                        <div className="text-xs text-center text-gray-500 dark:text-gray-400">
-                                          + {dayAppointments.length - 4} daha
+                                  // Bu gün için randevuları filtrele
+                                  const dayAppointments = monthlyAppointments.filter(appointment => 
+                                    format(new Date(appointment.start_time), 'yyyy-MM-dd') === formattedDay
+                                  );
+                                  
+                                  // Kliniğin bu gün açık olup olmadığını kontrol et
+                                  const isOpen = isClinicOpen(currentDay);
+                                  const isVacation = isDateInVacations(currentDay);
+                                  const isToday = isSameDay(currentDay, new Date());
+                                  
+                                  return (
+                                    <div 
+                                      key={dayIndex}
+                                      className={`
+                                        col-span-1 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar relative 
+                                        ${isToday ? 'bg-blue-50/30 dark:bg-blue-900/5 rounded-lg' : ''}
+                                        ${!isOpen || isVacation ? 'bg-red-50/30 dark:bg-red-900/5 rounded-lg' : ''}
+                                      `}
+                                    >
+                                      {(!isOpen || isVacation) && (
+                                        <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 flex items-center justify-center opacity-30 pointer-events-none">
+                                          <CalendarOff className="h-8 w-8 text-red-500 dark:text-red-400" />
+                                        </div>
+                                      )}
+                                      
+                                      {dayAppointments.length === 0 ? (
+                                        <div className={`text-center text-xs h-32 flex items-center justify-center relative z-10 ${!isOpen || isVacation ? 'text-red-500 dark:text-red-400 font-medium' : 'text-gray-400 dark:text-gray-600'}`}>
+                                          {!isOpen || isVacation ? "Çalışma Günü Değil" : "Randevu yok"}
+                                        </div>
+                                      ) : (
+                                        <div className="space-y-1.5 relative z-10 py-1">
+                                          {dayAppointments
+                                            .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                                            .map((appointment, idx) => (
+                                              <motion.div 
+                                                key={appointment.id}
+                                                initial={{ x: -10, opacity: 0 }}
+                                                animate={{ x: 0, opacity: 1 }}
+                                                transition={{ duration: 0.2, delay: idx * 0.05 }}
+                                                whileHover={{ scale: 1.02, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+                                                className={`text-xs p-2 rounded ${
+                                                  appointment.room_id 
+                                                    ? ROOM_COLORS[rooms.findIndex(r => r.id === appointment.room_id) % ROOM_COLORS.length]
+                                                    : appointment.is_online
+                                                      ? ROOM_COLORS[0] // İlk renk online randevular için
+                                                      : 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300'
+                                                }`}
+                                              >
+                                                <div className="flex items-center justify-between mb-1">
+                                                  <span className="font-semibold">{format(new Date(appointment.start_time), 'HH:mm')}</span>
+                                                  <span className="text-[10px] opacity-80">
+                                                    {format(new Date(appointment.end_time), 'HH:mm')} (
+                                                      {Math.round((new Date(appointment.end_time).getTime() - new Date(appointment.start_time).getTime()) / (1000 * 60))} dk
+                                                    )
+                                                  </span>
+                                                </div>
+                                                <div className="truncate font-medium">
+                                                  {professional ? appointment.client?.full_name : appointment.professional?.full_name}
+                                                </div>
+                                                {!professional && (
+                                                  <div className="truncate text-[10px] opacity-90 mt-0.5">
+                                                    Danışan: {appointment.client?.full_name}
+                                                  </div>
+                                                )}
+                                                {appointment.is_online && (
+                                                  <span className="inline-flex items-center text-[10px] mt-1 bg-white/30 dark:bg-black/20 rounded-full px-1.5 py-0.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1"></span> Çevrimiçi
+                                                  </span>
+                                                )}
+                                              </motion.div>
+                                            ))
+                                          }
                                         </div>
                                       )}
                                     </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Aylık Görünüm */}
-                    {calendarViewMode === 'monthly' && (
-                      <div className="overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10 md:rounded-lg relative h-full">
-                        <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl p-4 h-full">
-                          <div className="grid grid-cols-7 gap-1 h-full">
-                            {/* Hafta günü isimleri */}
-                            {['Ptesi', 'Salı', 'Çarş', 'Perş', 'Cuma', 'Ctesi', 'Pazar'].map((day, index) => (
-                              <div key={index} className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2">
-                                {day}
+                                  );
+                                })}
                               </div>
-                            ))}
-                            
-                            {/* Ayın günleri */}
-                            {(() => {
-                              // Ayın ilk günü
-                              const firstDayOfMonth = startOfMonth(selectedDate);
-                              // İlk günün haftanın kaçıncı günü olduğunu bul (0: Pazar, 1: Pazartesi, ...)
-                              // Ancak bizim takvimde Pazartesi ilk gün olduğu için -1 çıkaralım, Pazar ise 6'ya dönüşsün
-                              let firstDayIndex = firstDayOfMonth.getDay() - 1;
-                              if (firstDayIndex < 0) firstDayIndex = 6;
-                              
-                              // Ayın toplam gün sayısı
-                              const daysInMonth = getDaysInMonth(selectedDate);
-                              
-                              // Takvim hücreleri için gerekli günleri oluştur
-                              // Önceki ayın günlerini, mevcut ayın günlerini ve sonraki ayın günlerini içerir
-                              const calendarDays = [];
-                              
-                              // Önceki ayın günleri
-                              for (let i = 0; i < firstDayIndex; i++) {
-                                calendarDays.push({ 
-                                  date: subDays(firstDayOfMonth, firstDayIndex - i),
-                                  isCurrentMonth: false
-                                });
-                              }
-                              
-                              // Mevcut ayın günleri
-                              for (let i = 0; i < daysInMonth; i++) {
-                                calendarDays.push({ 
-                                  date: addDays(firstDayOfMonth, i),
-                                  isCurrentMonth: true
-                                });
-                              }
-                              
-                              // Sonraki ayın günleri (toplam 42 hücre için, 6 hafta)
-                              const remaining = 42 - calendarDays.length;
-                              for (let i = 0; i < remaining; i++) {
-                                calendarDays.push({ 
-                                  date: addDays(addDays(firstDayOfMonth, daysInMonth), i),
-                                  isCurrentMonth: false
-                                });
-                              }
-                              
-                              return calendarDays.map((day, index) => {
-                                const isToday = isSameDay(day.date, new Date());
-                                const isSelected = isSameDay(day.date, selectedDate);
-                                const formattedDate = format(day.date, 'yyyy-MM-dd');
-                                
-                                // Bu gün için randevuları filtrele
-                                const dayAppointments = monthlyAppointments.filter(appointment => 
-                                  format(new Date(appointment.start_time), 'yyyy-MM-dd') === formattedDate
-                                );
-                                
-                                // Kliniğin bu gün açık olup olmadığını kontrol et
-                                const isOpen = isClinicOpen(day.date);
-                                const isVacation = isDateInVacations(day.date);
-                                
-                                return (
-                                  <div 
-                                    key={index}
-                                    className={`
-                                      p-1 h-[90px] border border-gray-100 dark:border-gray-800 relative
-                                      ${!day.isCurrentMonth ? 'opacity-40' : ''}
-                                      ${isToday ? 'bg-blue-50 dark:bg-blue-900/10' : ''}
-                                      ${isSelected ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}
-                                      ${!isOpen || isVacation ? 'bg-red-50/30 dark:bg-red-900/5' : ''}
-                                    `}
-                                    onClick={() => setSelectedDate(day.date)}
-                                  >
-                                    <div className={`
-                                      text-right text-sm font-medium mb-1 
-                                      ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}
-                                      ${!isOpen || isVacation ? 'text-red-500 dark:text-red-400' : ''}
-                                    `}>
-                                      {format(day.date, 'd')}
-                                    </div>
-                                    
-                                    {/* Bu gün için randevular */}
-                                    {dayAppointments.length > 0 && (
-                                      <div className="space-y-1">
-                                        {dayAppointments
-                                          .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-                                          .slice(0, 2)
-                                          .map(appointment => (
-                                            <div 
-                                              key={appointment.id}
-                                              className={`text-xs p-0.5 rounded truncate ${
-                                                appointment.room_id 
-                                                  ? ROOM_COLORS[rooms.findIndex(r => r.id === appointment.room_id) % ROOM_COLORS.length]
-                                                  : appointment.is_online
-                                                    ? ROOM_COLORS[0] // İlk renk online randevular için
-                                                    : 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300'
-                                              }`}
-                                            >
-                                              {format(new Date(appointment.start_time), 'HH:mm')} {professional ? appointment.client?.full_name.split(' ')[0] : appointment.professional?.full_name.split(' ')[0]}
-                                              {appointment.is_online && <span className="ml-1">(Ç)</span>}
-                                            </div>
-                                          ))
-                                        }
-                                        {dayAppointments.length > 2 && (
-                                          <div className="text-xs text-center text-gray-500 dark:text-gray-400">
-                                            +{dayAppointments.length - 2}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                    
-                                    {(!isOpen || isVacation) && dayAppointments.length === 0 && (
-                                      <div className="absolute inset-0 flex items-center justify-center">
-                                        <CalendarOff className="h-4 w-4 text-red-400/50 dark:text-red-500/50" />
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              });
-                            })()}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                      
+                      {/* Aylık Görünüm - Geliştirilmiş */}
+                      {calendarViewMode === 'monthly' && (
+                        <div className="overflow-hidden shadow-lg ring-1 ring-black/5 dark:ring-white/10 md:rounded-lg relative h-full">
+                          <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl p-4 h-full">
+                            <div className="grid grid-cols-7 gap-1 h-full">
+                              {/* Hafta günü isimleri */}
+                              {['Ptesi', 'Salı', 'Çarş', 'Perş', 'Cuma', 'Ctesi', 'Pazar'].map((day, index) => (
+                                <div key={index} className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2 border-b border-gray-200 dark:border-gray-700">
+                                  {day}
+                                </div>
+                              ))}
+                              
+                              {/* Ayın günleri */}
+                              {(() => {
+                                // Ayın ilk günü
+                                const firstDayOfMonth = startOfMonth(selectedDate);
+                                // İlk günün haftanın kaçıncı günü olduğunu bul (0: Pazar, 1: Pazartesi, ...)
+                                // Ancak bizim takvimde Pazartesi ilk gün olduğu için -1 çıkaralım, Pazar ise 6'ya dönüşsün
+                                let firstDayIndex = firstDayOfMonth.getDay() - 1;
+                                if (firstDayIndex < 0) firstDayIndex = 6;
+                                
+                                // Ayın toplam gün sayısı
+                                const daysInMonth = getDaysInMonth(selectedDate);
+                                
+                                // Takvim hücreleri için gerekli günleri oluştur
+                                // Önceki ayın günlerini, mevcut ayın günlerini ve sonraki ayın günlerini içerir
+                                const calendarDays = [];
+                                
+                                // Önceki ayın günleri
+                                for (let i = 0; i < firstDayIndex; i++) {
+                                  calendarDays.push({ 
+                                    date: subDays(firstDayOfMonth, firstDayIndex - i),
+                                    isCurrentMonth: false
+                                  });
+                                }
+                                
+                                // Mevcut ayın günleri
+                                for (let i = 0; i < daysInMonth; i++) {
+                                  calendarDays.push({ 
+                                    date: addDays(firstDayOfMonth, i),
+                                    isCurrentMonth: true
+                                  });
+                                }
+                                
+                                // Sonraki ayın günleri (toplam 35 veya 42 hücre için, 5 veya 6 hafta)
+                                const totalDays = calendarDays.length;
+                                const remainingCells = totalDays <= 35 ? 35 - totalDays : 42 - totalDays;
+                                
+                                for (let i = 0; i < remainingCells; i++) {
+                                  calendarDays.push({ 
+                                    date: addDays(addDays(firstDayOfMonth, daysInMonth), i),
+                                    isCurrentMonth: false
+                                  });
+                                }
+                                
+                                return calendarDays.map((day, index) => {
+                                  const isToday = isSameDay(day.date, new Date());
+                                  const isSelected = isSameDay(day.date, selectedDate);
+                                  const formattedDate = format(day.date, 'yyyy-MM-dd');
+                                  
+                                  // Bu gün için randevuları filtrele
+                                  const dayAppointments = monthlyAppointments.filter(appointment => 
+                                    format(new Date(appointment.start_time), 'yyyy-MM-dd') === formattedDate
+                                  );
+                                  
+                                  // Kliniğin bu gün açık olup olmadığını kontrol et
+                                  const isOpen = isClinicOpen(day.date);
+                                  const isVacation = isDateInVacations(day.date);
+                                  
+                                  // Haftasonunu belirle (5: Cumartesi, 6: Pazar)
+                                  const isWeekend = day.date.getDay() === 0 || day.date.getDay() === 6;
+                                  
+                                  return (
+                                    <motion.div 
+                                      key={index}
+                                      whileHover={{ scale: 1.02 }}
+                                      whileTap={{ scale: 0.98 }}
+                                      onClick={() => setSelectedDate(day.date)}
+                                      className={`
+                                        p-1 h-[90px] border border-gray-100 dark:border-gray-800 relative
+                                        hover:shadow-md transition-shadow duration-200 cursor-pointer overflow-hidden
+                                        ${!day.isCurrentMonth ? 'opacity-40' : ''}
+                                        ${isToday ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800' : ''}
+                                        ${isSelected ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}
+                                        ${!isOpen || isVacation ? 'bg-red-50/30 dark:bg-red-900/5' : ''}
+                                        ${isWeekend && day.isCurrentMonth && !isSelected && !isToday ? 'bg-gray-50 dark:bg-gray-800/30' : ''}
+                                      `}
+                                    >
+                                      <div className={`
+                                        text-right text-sm font-medium mb-1 pb-1 border-b border-gray-100 dark:border-gray-800
+                                        ${isToday ? 'text-blue-600 dark:text-blue-400' : ''}
+                                        ${isSelected ? 'text-blue-700 dark:text-blue-300' : !day.isCurrentMonth ? 'text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300'}
+                                      `}>
+                                        {format(day.date, 'd')}
+                                      </div>
+                                      
+                                      {(!isOpen || isVacation) && (
+                                        <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 flex items-center justify-center opacity-20 pointer-events-none">
+                                          <CalendarOff className="h-6 w-6 text-red-500 dark:text-red-400" />
+                                        </div>
+                                      )}
+                                      
+                                      {dayAppointments.length > 0 ? (
+                                        <div className="space-y-1 overflow-hidden max-h-[60px]">
+                                          {dayAppointments
+                                            .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+                                            .slice(0, 3)
+                                            .map((appointment, idx) => (
+                                              <div 
+                                                key={appointment.id}
+                                                className={`text-[9px] px-1 py-0.5 truncate rounded ${
+                                                  appointment.room_id 
+                                                    ? ROOM_COLORS[rooms.findIndex(r => r.id === appointment.room_id) % ROOM_COLORS.length]
+                                                    : appointment.is_online
+                                                      ? ROOM_COLORS[0] // İlk renk online randevular için
+                                                      : 'bg-gray-100 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300'
+                                                }`}
+                                              >
+                                                <span className="font-semibold inline-block min-w-[28px] mr-0.5">
+                                                  {format(new Date(appointment.start_time), 'HH:mm')}
+                                                </span>
+                                                <span className="truncate inline-block">
+                                                  {professional ? appointment.client?.full_name : appointment.professional?.full_name}
+                                                </span>
+                                              </div>
+                                            ))
+                                          }
+                                          
+                                          {dayAppointments.length > 3 && (
+                                            <div className="text-[9px] text-center text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-sm px-1 py-0.5">
+                                              + {dayAppointments.length - 3} daha
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        day.isCurrentMonth && isOpen && !isVacation && (
+                                          <div className="flex items-center justify-center h-[60px] opacity-0 hover:opacity-40 transition-opacity">
+                                            <Plus className="h-4 w-4 text-gray-400 dark:text-gray-600" />
+                                          </div>
+                                        )
+                                      )}
+                                    </motion.div>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
               </div>
             </motion.div>

@@ -17,7 +17,7 @@ import {
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addMonths } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useAuth } from '../lib/auth';
-import { CreateAppointmentModal } from '../components/CreateAppointmentModal';
+import CreateAppointmentModal from '../components/appointment/CreateAppointmentModal';
 import { requestNotificationPermission } from '../utils/notificationUtils';
 import logo1 from '../assets/base-logo.webp';
 import AppointmentShareModal from '../components/AppointmentShareModal';
@@ -963,7 +963,7 @@ export function Appointments() {
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           onAppointmentCreated={loadAppointments}
-          clinicHours={clinicHours}
+          externalClinicHours={clinicHours}
         />
       )}
 

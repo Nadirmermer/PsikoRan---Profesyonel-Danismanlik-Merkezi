@@ -224,7 +224,6 @@ export function NotificationSettings() {
   // Bildirim test fonksiyonu
   const handleTestNotification = async () => {
     if (!user) return;
-    
     setTestingNotification(true);
     setTestResult(null);
     
@@ -236,30 +235,48 @@ export function NotificationSettings() {
         userType = 'assistant';
       }
       
+      // Bildirim izni eğer yoksa, izin iste
+      if (notificationStatus !== 'granted') {
+        const success = await requestNotificationPermission(user.id, userType);
+        if (!success) {
+          setTestResult({
+            success: false,
+            message: 'Bildirim izni alınamadı. Bildirim testi yapılamıyor.'
+          });
+          setTestingNotification(false);
+          return;
+        }
+        
+        // İzin durumunu güncelle
+        if ('Notification' in window) {
+          setNotificationStatus(Notification.permission);
+        }
+      }
+      
+      // Test bildirimi gönder
       const success = await sendNotification(
         user.id,
         'Test Bildirimi',
         'Bu bir test bildirimidir. Bildirimler başarıyla çalışıyor!',
-        { url: '/settings', action: 'test' },
+        { url: '/settings?tab=notifications' },
         userType
       );
       
       if (success) {
-        setTestResult({ 
-          success: true, 
-          message: 'Bildirim başarıyla gönderildi! Eğer göremediyseniz, tarayıcı izinlerinizi kontrol edin.' 
+        setTestResult({
+          success: true,
+          message: 'Test bildirimi başarıyla gönderildi!'
         });
       } else {
-        setTestResult({ 
-          success: false, 
-          message: 'Bildirim gönderilemedi. Lütfen tarayıcı izinlerinizi kontrol edin.' 
+        setTestResult({
+          success: false,
+          message: 'Bildirim gönderilemedi. Tarayıcı ayarlarınızı kontrol edin.'
         });
       }
     } catch (error) {
-      // console.error('Bildirim testi sırasında hata:', error);
-      setTestResult({ 
-        success: false, 
-        message: 'Bildirim gönderilirken bir hata oluştu.' 
+      setTestResult({
+        success: false,
+        message: 'Bildirim gönderilirken hata oluştu.'
       });
     } finally {
       setTestingNotification(false);

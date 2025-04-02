@@ -29,7 +29,7 @@ export const TestsTab: React.FC<TestsTabProps> = ({
   clientId, 
   client
 }) => {
-  const { professional } = useAuth();
+  const { professional, assistant } = useAuth();
   const [searchTest, setSearchTest] = useState('');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [shareOptions, setShareOptions] = useState<any[]>([]);
@@ -81,9 +81,9 @@ export const TestsTab: React.FC<TestsTabProps> = ({
       // Modal arka planını temizle ve overflow'u kontrol et
       document.body.classList.add('overflow-hidden');
       
-      // Professional null kontrolü
-      if (!professional) {
-        throw new Error('Profesyonel bilgileri bulunamadı. Lütfen tekrar giriş yapın.');
+      // Professional veya assistant null kontrolü
+      if (!professional && !assistant) {
+        throw new Error('Kullanıcı bilgileri bulunamadı. Lütfen tekrar giriş yapın.');
       }
       
       // Veritabanından çekmek yerine AVAILABLE_TESTS'ten test bilgilerini al
@@ -126,7 +126,7 @@ export const TestsTab: React.FC<TestsTabProps> = ({
       const insertData = {
         p_test_id: testId,
         p_client_id: clientId,
-        p_professional_id: professional.id,
+        p_professional_id: professional ? professional.id : assistant.professional_id,
         p_token: randomToken,
         p_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 gün
       };
@@ -296,7 +296,7 @@ ${professionalTitle} ${professionalName}`;
                           Paylaş
                         </button>
                       )}
-                      {test.reference && (
+                      {test.reference && professional && (
                         <button
                           onClick={() => window.open(test.reference, '_blank')}
                           className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
@@ -305,14 +305,16 @@ ${professionalTitle} ${professionalName}`;
                           Kaynakça
                         </button>
                       )}
-                      <button
-                        onClick={() => {
-                          window.open(`/test/${test.id}/${clientId}`, '_blank');
-                        }}
-                        className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg transition-colors"
-                      >
-                        Testi Başlat
-                      </button>
+                      {professional && (
+                        <button
+                          onClick={() => {
+                            window.open(`/test/${test.id}/${clientId}`, '_blank');
+                          }}
+                          className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg transition-colors"
+                        >
+                          Testi Başlat
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -608,6 +610,4 @@ ${professionalTitle} ${professionalName}`;
       )}
     </div>
   );
-};
-
-export default TestsTab; 
+}; 
