@@ -31,8 +31,8 @@ Disallow: /*.css.map$
 Disallow: /test/
 Disallow: /public-test/
 
-# Site haritası URL
-Sitemap: https://psikoran.com/sitemap.xml
+# Site haritası URL - Ana sitemap indeksi (tüm sitemapları içerir)
+Sitemap: https://psikoran.com/sitemap-index.xml
 
 # Özel Arama Motorları için yapılandırmalar
 User-agent: Googlebot

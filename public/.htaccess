@@ -1,114 +1,131 @@
-# PsikoRan .htaccess Dosyası
-Options -Indexes
-ServerSignature Off
+# PsikoRan .htaccess - Son Güncelleme: 03.04.2025
+# Güvenlik ayarları ve yönlendirmeler
 
-# GZIP Sıkıştırma
-<IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE text/plain
-  AddOutputFilterByType DEFLATE text/html
-  AddOutputFilterByType DEFLATE text/xml
-  AddOutputFilterByType DEFLATE text/css
-  AddOutputFilterByType DEFLATE application/xml
-  AddOutputFilterByType DEFLATE application/xhtml+xml
-  AddOutputFilterByType DEFLATE application/rss+xml
-  AddOutputFilterByType DEFLATE application/javascript
-  AddOutputFilterByType DEFLATE application/x-javascript
-  AddOutputFilterByType DEFLATE application/json
+# HTTPS Yönlendirmesi
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# www olmadan yönlendirme
+RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+RewriteRule ^(.*)$ https://%1%{REQUEST_URI} [L,R=301]
+
+# Dosya tiplerini belirt
+<IfModule mod_mime.c>
+  # XML dosyaları
+  AddType application/xml .xml
+  AddType text/xml .xml
+  AddType application/xml .xsl
+  AddType text/xsl .xsl
+  
+  # Sitemap dosyaları
+  <Files ~ "sitemap\.xml|sitemap-index\.xml|blog-sitemap\.xml">
+    Header set Content-Type "application/xml; charset=UTF-8"
+  </Files>
+  
+  # XSL dosyaları
+  <Files ~ "sitemap\.xsl|sitemap-index\.xsl">
+    Header set Content-Type "text/xsl; charset=UTF-8"
+  </Files>
+  
+  # Web font dosyaları
+  AddType font/ttf .ttf
+  AddType font/otf .otf
+  AddType font/woff .woff
+  AddType font/woff2 .woff2
+  AddType application/vnd.ms-fontobject .eot
+  
+  # Görüntü dosyaları
+  AddType image/webp .webp
+  AddType image/svg+xml .svg
 </IfModule>
 
-# Tarayıcı Önbelleği
+# CORS ayarları
+<IfModule mod_headers.c>
+  <FilesMatch "\.(ttf|ttc|otf|eot|woff|woff2|font.css|css|js|json|xml|webp|jpg|jpeg|png|gif|svg)$">
+    Header set Access-Control-Allow-Origin "*"
+  </FilesMatch>
+</IfModule>
+
+# Tarayıcı önbelleği ayarları
 <IfModule mod_expires.c>
   ExpiresActive On
-
-  # CSS, JavaScript, JSON
-  ExpiresByType text/css "access plus 1 year"
-  ExpiresByType application/javascript "access plus 1 year"
-  ExpiresByType application/x-javascript "access plus 1 year"
-  ExpiresByType application/json "access plus 1 month"
-
-  # Görseller
-  ExpiresByType image/jpg "access plus 1 year"
-  ExpiresByType image/jpeg "access plus 1 year"
-  ExpiresByType image/png "access plus 1 year"
-  ExpiresByType image/gif "access plus 1 year"
-  ExpiresByType image/webp "access plus 1 year"
-  ExpiresByType image/svg+xml "access plus 1 year"
-  ExpiresByType image/x-icon "access plus 1 year"
-
-  # Web Fonts
+  
+  # Site haritaları için kısa önbellek süresi
+  <FilesMatch "sitemap\.xml|sitemap-index\.xml|blog-sitemap\.xml">
+    ExpiresDefault "access plus 1 day"
+    Header set Cache-Control "max-age=86400, public"
+  </FilesMatch>
+  
+  # Statik varlıklar için uzun önbellek süresi
+  ExpiresByType text/css "access plus 1 month"
+  ExpiresByType text/javascript "access plus 1 month"
+  ExpiresByType application/javascript "access plus 1 month"
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType image/webp "access plus 1 month"
+  ExpiresByType image/svg+xml "access plus 1 month"
   ExpiresByType font/ttf "access plus 1 year"
   ExpiresByType font/otf "access plus 1 year"
   ExpiresByType font/woff "access plus 1 year"
   ExpiresByType font/woff2 "access plus 1 year"
-  ExpiresByType application/font-woff "access plus 1 year"
-  ExpiresByType application/font-woff2 "access plus 1 year"
-  ExpiresByType application/vnd.ms-fontobject "access plus 1 year"
-  
-  # Genel
-  ExpiresDefault "access plus 1 month"
 </IfModule>
 
-# CORS Başlıkları
-<IfModule mod_headers.c>
-  <FilesMatch "\.(ttf|ttc|otf|eot|woff|woff2|font\.css|css|js)$">
-    Header set Access-Control-Allow-Origin "*"
-  </FilesMatch>
+# Sıkıştırma
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json application/xml
   
-  # Güvenlik Başlıkları
-  Header set X-Content-Type-Options "nosniff"
-  Header set X-XSS-Protection "1; mode=block"
-  Header set X-Frame-Options "SAMEORIGIN"
-  Header set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-  
-  # Ana CSP politikası - index.html'deki meta etiketiyle çakışmayacak
-  Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.jitsi.net https://*.jitsi.org; img-src 'self' data: blob: https://www.facebook.com https://images.unsplash.com https://via.placeholder.com https://*.jitsi.net https://*.jitsi.org https://meet.jit.si https://*.supabase.co; font-src 'self' https://fonts.gstatic.com https://*.jitsi.net https://*.jitsi.org; connect-src 'self' https://*.psikoran.com https://*.supabase.co https://meet.jit.si https://*.jitsi.net https://*.jitsi.org wss://*.meet.jit.si; frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; media-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org"
-  
-  Header set Referrer-Policy "strict-origin-when-cross-origin"
-  Header set Permissions-Policy "camera=(), microphone=(), geolocation=(self), interest-cohort=()"
-  
-  # Önbellek kontrolüne yardımcı olacak başlıklar
-  <FilesMatch "\.(html|htm)$">
-    Header set Cache-Control "max-age=0, no-cache, no-store, must-revalidate"
-    Header set Pragma "no-cache"
-    Header set Expires "Wed, 11 Jan 1984 05:00:00 GMT"
-  </FilesMatch>
-  
-  <FilesMatch "\.(json|txt)$">
-    Header set Cache-Control "max-age=86400"
+  # Site haritalarının sıkıştırılması
+  <FilesMatch "sitemap\.xml|sitemap-index\.xml|blog-sitemap\.xml|\.xsl$">
+    SetOutputFilter DEFLATE
   </FilesMatch>
 </IfModule>
 
-# HTTP -> HTTPS yönlendirme
+# SPA Yönlendirmesi (history API için gerekli)
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  
-  # HTTPS yönlendirmesi
-  RewriteCond %{HTTPS} off
-  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-  
-  # WWW to non-WWW yönlendirme
-  RewriteCond %{HTTP_HOST} ^www\.(.*)$ [NC]
-  RewriteRule ^(.*)$ https://%1/$1 [R=301,L]
-  
-  # SPA uygulaması için tüm istekleri index.html'e yönlendir (API hariç)
   RewriteBase /
   RewriteRule ^index\.html$ - [L]
-  # Gerçek dosya ve dizinlere izin ver
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  # API endpoint'leri hariç tüm istekleri index.html'e yönlendir
+  RewriteCond %{REQUEST_URI} !^/api/ [NC]
   RewriteRule . /index.html [L]
 </IfModule>
 
-# 404 hata sayfasına yönlendirme
+# Error sayfaları
 ErrorDocument 404 /index.html
+ErrorDocument 500 /index.html
 
-# PHP Güvenlik Ayarları (eğer PHP kullanılıyorsa)
-<IfModule mod_php7.c>
-  php_flag display_errors Off
-  php_flag log_errors On
-  php_flag register_globals Off
-  php_flag magic_quotes_gpc Off
-  php_flag allow_url_fopen Off
-  php_flag allow_url_include Off
-</IfModule> 
+# Dizin listesini kapat
+Options -Indexes
+
+# Güvenlik başlıkları 
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-XSS-Protection "1; mode=block"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Bazı dosyaları gizle
+<FilesMatch "^(\.htaccess|\.git|\.env|\.editorconfig|package.json|package-lock.json|README\.md)$">
+  Order Allow,Deny
+  Deny from all
+</FilesMatch>
+
+# HTTP sıkıştırma etkinleştirme
+<IfModule mod_gzip.c>
+  mod_gzip_on Yes
+  mod_gzip_dechunk Yes
+  mod_gzip_item_include file \.(html?|xml|txt|css|js)$
+  mod_gzip_item_include handler ^cgi-script$
+  mod_gzip_item_include mime ^text/.*
+  mod_gzip_item_include mime ^application/x-javascript.*
+  mod_gzip_item_exclude mime ^image/.*
+  mod_gzip_item_exclude rspheader ^Content-Encoding:.*gzip.*
+</IfModule>
+
+# 1 yıl için Service Worker önbelleği
+<FilesMatch "service-worker\.js$">
+  Header set Cache-Control "max-age=0, no-cache, no-store, must-revalidate"
+</FilesMatch> 
