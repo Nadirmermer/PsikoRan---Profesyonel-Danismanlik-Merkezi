@@ -25,6 +25,7 @@ interface CreateAppointmentModalProps {
   onClose: () => void;
   professionalId?: string;
   assistantId?: string;
+  initialClientId?: string;
   onSuccess?: () => void;
   onAppointmentCreated?: () => void;
   externalClinicHours?: {
@@ -102,18 +103,19 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
   onClose,
   professionalId: initialProfessionalId,
   assistantId,
+  initialClientId,
   onSuccess,
   onAppointmentCreated,
   externalClinicHours
 }) => {
   // Form state
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(initialClientId ? 2 : 1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Randevu bilgileri
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(initialProfessionalId || null);
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(initialClientId || null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -401,7 +403,7 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
   const resetForm = () => {
     setStep(1);
     setSelectedProfessionalId(initialProfessionalId || (professional ? professional.id : null));
-    setSelectedClientId(null);
+    setSelectedClientId(initialClientId || (assistant ? assistant.id : null));
     setSelectedDate(null);
     setSelectedTime(null);
     setSelectedRoomId(null);

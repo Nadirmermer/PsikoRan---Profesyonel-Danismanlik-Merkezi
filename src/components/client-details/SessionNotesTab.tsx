@@ -1,21 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Fragment } from 'react';
+import { Dialog, Transition } from '@headlessui/react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
-import TextAlign from '@tiptap/extension-text-align';
 import Underline from '@tiptap/extension-underline';
-import Placeholder from '@tiptap/extension-placeholder';
+import TextAlign from '@tiptap/extension-text-align';
+import Link from '@tiptap/extension-link';
 import Highlight from '@tiptap/extension-highlight';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
-import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
+import Placeholder from '@tiptap/extension-placeholder';
+import { motion } from 'framer-motion';
 import { 
-  Plus, 
   Edit, 
   Trash, 
-  Bold, 
-  Italic, 
+  FileText,
+  Plus,
+  Bold,
+  Italic,
   Underline as UnderlineIcon,
   List,
   ListOrdered,
@@ -29,14 +30,7 @@ import {
   Heading2,
   Heading3,
   Highlighter,
-  Image as ImageIcon,
-  FileText,
-  X,
-  Paperclip,
-  Download,
-  Eye,
-  FileText as FilePdf,
-  File as FileIcon
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
@@ -51,10 +45,9 @@ import {
   decryptFile,
   retrieveKeyPair
 } from '../../utils/encryption';
+
 // import Image from 'next/image'; // Eğer kullanmıyorsak kaldıralım
 // import { Button } from '../ui/button'; // Eğer kullanmıyorsak kaldıralım
-// import CircularProgress from '../circular-progress'; // Eğer kullanmıyorsak kaldıralım
-// import { toast } from 'react-toastify'; // toast yerine alert kullanacağız
 
 // MenuBar bileşenini genişletelim
 interface MenuBarProps {
@@ -466,7 +459,6 @@ interface SessionNote {
     full_name: string;
   };
   client_id: string;
-  attachments?: string[];
   created_at: string;
 }
 
@@ -634,8 +626,8 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
         encrypted_content: encryptedData,
         client_public_key: encryptedKey,
         professional_id: professional?.id,
-        client_id: clientId,
-        attachments: null, // Dosya ekleme devre dışı
+        client_id: clientId
+        // attachments alanı veritabanında olmadığı için kaldırıldı
       });
       
       if (error) throw error;
@@ -702,8 +694,8 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
         .update({
           title: editingNote.title,
           encrypted_content: encryptedData,
-          client_public_key: encryptedKey,
-          attachments: null // Dosya ekleme devre dışı
+          client_public_key: encryptedKey
+          // attachments alanı veritabanında olmadığı için kaldırıldı
         })
         .eq('id', editingNote.id);
       
@@ -777,8 +769,8 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
           if (submitEvent.nativeEvent.submitter?.getAttribute('type') === 'submit') {
             handleAddNote(e);
           }
-        }} 
-        className="space-y-3 sm:space-y-4"
+        }}
+        className="bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:shadow-xl"
         onKeyDown={(e) => {
           if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'BUTTON') {
             e.stopPropagation();
@@ -789,31 +781,50 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
           }
         }}
       >
-        <div className="relative">
-          <input
-            type="text"
-            value={newNoteTitle}
-            onChange={(e) => setNewNoteTitle(e.target.value)}
-            className="w-full h-10 sm:h-12 px-3 sm:px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm text-sm sm:text-base"
-            placeholder="Not başlığı (opsiyonel)"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-              }
-            }}
-          />
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 border-b border-gray-200/70 dark:border-gray-700/70">
+          <h3 className="text-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+            Yeni Seans Notu
+          </h3>
         </div>
-        
-        <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+
+        <div className="px-4 py-3">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="relative"
+          >
+            <input
+              type="text"
+              value={newNoteTitle}
+              onChange={(e) => setNewNoteTitle(e.target.value)}
+              className="w-full h-10 sm:h-12 px-3 sm:px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm text-sm sm:text-base"
+              placeholder="Not başlığı (opsiyonel)"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                }
+              }}
+            />
+          </motion.div>
           
-          <MenuBar editor={newNoteEditor} />
-          <EditorContent editor={newNoteEditor} />
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="mt-3 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm"
+          >
+            <MenuBar editor={newNoteEditor} />
+            <EditorContent editor={newNoteEditor} />
+          </motion.div>
         </div>
         
-        <div className="flex justify-end">
-          <button
+        <div className="px-4 pb-4 flex justify-end">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             type="submit"
-            className="flex items-center px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            className="flex items-center px-4 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:shadow-none"
             disabled={loading || !newNoteEditor?.getHTML() || newNoteEditor?.getHTML() === '<p></p>'}
           >
             {loading ? (
@@ -830,11 +841,11 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
                 Not Ekle
               </>
             )}
-          </button>
+          </motion.button>
         </div>
       </form>
 
-      {/* Not düzenleme modalı - Standart Modal Tasarımı */}
+      {/* Düzenleme Diyaloğu */}
       <Transition appear show={isEditDialogOpen} as={Fragment}>
         <Dialog
           as="div"
@@ -855,7 +866,6 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
               <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm" />
             </Transition.Child>
 
-            {/* Bu eleman tarayıcıların diyalog içeriğini dikey olarak ortalamalarına yardımcı olur */}
             <span
               className="inline-block h-screen align-middle"
               aria-hidden="true"
@@ -872,84 +882,76 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="inline-block w-full max-w-2xl p-4 sm:p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
-                <Dialog.Title className="text-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4" ref={editDialogRef}>
-                  Notu Düzenle
-                </Dialog.Title>
-
-                <form 
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const submitEvent = e as unknown as { nativeEvent: { submitter: HTMLElement | null } };
-                    if (submitEvent.nativeEvent.submitter?.getAttribute('type') === 'submit') {
-                      handleEditNote(e);
-                    }
-                  }}
-                  className="space-y-4"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'BUTTON') {
-                      e.stopPropagation();
-                      if ((e.target as HTMLElement).closest('.ProseMirror')) {
-                        return;
-                      }
-                      e.preventDefault();
-                    }
-                  }}
+              <Dialog.Panel className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  <input
-                    type="text"
-                    value={editingNote?.title || ''}
-                    onChange={(e) => setEditingNote(prev => prev ? { ...prev, title: e.target.value } : null)}
-                    className="w-full h-10 sm:h-12 px-3 sm:px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 backdrop-blur-sm text-sm sm:text-base"
-                    placeholder="Not başlığı (opsiyonel)"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                      }
-                    }}
-                  />
-                  
-                  <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
-                    
-                    <MenuBar editor={editNoteEditor} />
-                    <EditorContent editor={editNoteEditor} />
+                  <Dialog.Title className="text-xl font-bold text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    Seans Notu Düzenle
+                  </Dialog.Title>
+                  <p className="text-center text-gray-500 dark:text-gray-400 mt-1 mb-4">
+                    Danışanınız için seans notunu güncelleyin.
+                  </p>
+
+                  <div className="mt-4 space-y-4">
+                    <div className="space-y-2">
+                      <label className="block font-medium text-gray-700 dark:text-gray-300">
+                        Başlık (İsteğe Bağlı)
+                      </label>
+                      <input
+                        value={editingNote?.title || ""}
+                        onChange={(e) =>
+                          setEditingNote((prev) => prev ? { ...prev, title: e.target.value } : null)
+                        }
+                        placeholder="Not başlığı"
+                        className="w-full h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block font-medium text-gray-700 dark:text-gray-300">
+                        Not İçeriği
+                      </label>
+                      <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <MenuBar editor={editNoteEditor} />
+                        <EditorContent editor={editNoteEditor} />
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex justify-end space-x-3 mt-6">
-                    <button
+                  <div className="mt-6 flex gap-2 justify-end">
+                    <button 
                       type="button"
                       onClick={() => setIsEditDialogOpen(false)}
-                      className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-xl transition-all duration-200"
-                      disabled={loading}
+                      className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
                     >
                       İptal
                     </button>
-                    <button
-                      type="submit"
-                      className="flex items-center px-4 py-2 text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    <motion.button
+                      whileHover={{ scale: 1.02 }} 
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleEditNote}
                       disabled={loading || !editedNoteContent || editedNoteContent === '<p></p>'}
+                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading ? (
                         <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Kaydediliyor...
+                          <Loader2 className="inline-block mr-2 h-4 w-4 animate-spin" />
+                          Güncelleniyor
                         </>
-                      ) : (
-                        'Kaydet'
-                      )}
-                    </button>
+                      ) : "Notu Güncelle"}
+                    </motion.button>
                   </div>
-                </form>
+                </motion.div>
               </Dialog.Panel>
             </Transition.Child>
           </div>
         </Dialog>
       </Transition>
 
-      {/* Not silme onay modalı - Standart Modal Tasarımı */}
+      {/* Silme Onay Diyaloğu */}
       <Transition appear show={isDeleteDialogOpen} as={Fragment}>
         <Dialog
           as="div"
@@ -986,43 +988,49 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="inline-block w-full max-w-md p-4 sm:p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
-                <Dialog.Title className="text-lg font-medium text-red-600 dark:text-red-400 mb-4" ref={deleteDialogRef}>
-                  Notu Sil
-                </Dialog.Title>
+              <Dialog.Panel className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Dialog.Title className="text-xl font-medium text-center text-red-600 dark:text-red-500">
+                    Seans Notunu Sil
+                  </Dialog.Title>
+                  <div className="mt-2 text-center">
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Bu seans notunu silmek istediğinizden emin misiniz?
+                      <br />
+                      <span className="font-medium text-gray-700 dark:text-gray-300">
+                        Bu işlem geri alınamaz.
+                      </span>
+                    </p>
+                  </div>
 
-                <p className="text-gray-700 dark:text-gray-300 mb-6">
-                  Bu notu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
-                </p>
-
-                <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsDeleteDialogOpen(false)}
-                    className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-xl transition-all duration-200"
-                    disabled={loading}
-                  >
-                    İptal
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDeleteNote}
-                    className="flex items-center px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Siliniyor...
-                      </>
-                    ) : (
-                      'Sil'
-                    )}
-                  </button>
-                </div>
+                  <div className="mt-4 flex w-full justify-between sm:justify-center gap-3">
+                    <button 
+                      type="button"
+                      onClick={() => setIsDeleteDialogOpen(false)}
+                      className="flex-1 sm:flex-initial px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
+                    >
+                      İptal
+                    </button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }} 
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleDeleteNote}
+                      disabled={loading}
+                      className="flex-1 sm:flex-initial px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="inline-block mr-2 h-4 w-4 animate-spin" />
+                          Siliniyor
+                        </>
+                      ) : "Evet, Sil"}
+                    </motion.button>
+                  </div>
+                </motion.div>
               </Dialog.Panel>
             </Transition.Child>
           </div>
@@ -1152,73 +1160,112 @@ export const SessionNotesTab: React.FC<SessionNotesTabProps> = ({
       {/* Notların listesi */}
       <div className="space-y-4">
         {sessionNotes.length === 0 ? (
-          <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg p-6 text-center border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm">
-            <p className="text-gray-500 dark:text-gray-400">Henüz not eklenmemiş.</p>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg p-8 text-center border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm"
+          >
+            <FileText className="h-12 w-12 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
+            <p className="text-gray-600 dark:text-gray-300 font-medium text-lg mb-1">Henüz not eklenmemiş</p>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">Bu danışan için hiç seans notu bulunmuyor.</p>
+          </motion.div>
         ) : (
-          sessionNotes.map((note) => (
-            <div 
-              key={note.id} 
-              className="bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg overflow-hidden border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-200 hover:shadow-xl"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-gradient-to-r from-gray-50/90 to-gray-100/90 dark:from-gray-700/90 dark:to-gray-800/90 border-b border-gray-200/50 dark:border-gray-700/50">
-                <div className="mb-2 sm:mb-0">
-                  {note.title && (
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      {note.title}
-                    </h3>
-                  )}
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-gray-500 dark:text-gray-400">
-                    <span>
-                      {new Date(note.created_at).toLocaleString('tr-TR', {
-                        dateStyle: 'long',
-                        timeStyle: 'short',
-                      })}
-                    </span>
-                    {note.professional && (
-                      <>
-                        <span className="hidden sm:inline">•</span>
-                        <span>{note.professional.full_name}</span>
-                      </>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-4"
+          >
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                <FileText className="h-5 w-5 text-blue-500 dark:text-blue-400" />
+                Seans Notları <span className="ml-2 text-xs text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 py-0.5 px-2 rounded-full">
+                  {sessionNotes.length}
+                </span>
+              </h3>
+            </div>
+            
+            {sessionNotes.map((note, index) => (
+              <motion.div 
+                key={note.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ 
+                  duration: 0.4, 
+                  delay: index * 0.05,
+                  type: "spring",
+                  stiffness: 100 
+                }}
+                className="bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg overflow-hidden border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-200 hover:shadow-xl group"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-gradient-to-r from-gray-50/90 to-gray-100/90 dark:from-gray-700/90 dark:to-gray-800/90 border-b border-gray-200/50 dark:border-gray-700/50">
+                  <div className="mb-2 sm:mb-0">
+                    {note.title ? (
+                      <h3 className="font-medium text-gray-900 dark:text-white">
+                        {note.title}
+                      </h3>
+                    ) : (
+                      <h3 className="font-medium text-gray-400 dark:text-gray-500 italic">
+                        İsimsiz Not
+                      </h3>
                     )}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm text-gray-500 dark:text-gray-400">
+                      <span>
+                        {new Date(note.created_at).toLocaleString('tr-TR', {
+                          dateStyle: 'long',
+                          timeStyle: 'short',
+                        })}
+                      </span>
+                      {note.professional && (
+                        <>
+                          <span className="hidden sm:inline">•</span>
+                          <span>{note.professional.full_name}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-1.5 sm:space-x-2">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setEditingNote(note);
+                        setEditedNoteContent(note.content);
+                        setIsEditDialogOpen(true);
+                      }}
+                      className="inline-flex items-center justify-center p-1.5 sm:p-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 bg-white/60 dark:bg-gray-700/60 hover:bg-white dark:hover:bg-gray-700 rounded-lg border border-gray-200/70 dark:border-gray-600/70 shadow-sm transition-all duration-200 hover:shadow-md"
+                      aria-label="Not Düzenle"
+                    >
+                      <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    </motion.button>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setNoteToDelete(note.id);
+                        setIsDeleteDialogOpen(true);
+                      }}
+                      className="inline-flex items-center justify-center p-1.5 sm:p-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 bg-white/60 dark:bg-gray-700/60 hover:bg-white dark:hover:bg-gray-700 rounded-lg border border-gray-200/70 dark:border-gray-600/70 shadow-sm transition-all duration-200 hover:shadow-md"
+                      aria-label="Not Sil"
+                    >
+                      <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    </motion.button>
                   </div>
                 </div>
                 
-                <div className="flex space-x-1.5 sm:space-x-2">
-                  <button
-                    onClick={() => {
-                      setEditingNote(note);
-                      setEditedNoteContent(note.content);
-                      setIsEditDialogOpen(true);
-                    }}
-                    className="inline-flex items-center justify-center p-1.5 sm:p-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-200 bg-white/60 dark:bg-gray-700/60 hover:bg-white dark:hover:bg-gray-700 rounded-lg border border-gray-200/70 dark:border-gray-600/70 shadow-sm transition-all duration-200 hover:shadow-md"
-                    aria-label="Not Düzenle"
-                  >
-                    <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </button>
-                  
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setNoteToDelete(note.id);
-                      setIsDeleteDialogOpen(true);
-                    }}
-                    className="inline-flex items-center justify-center p-1.5 sm:p-2 text-xs sm:text-sm font-medium text-red-600 dark:text-red-400 bg-white/60 dark:bg-gray-700/60 hover:bg-white dark:hover:bg-gray-700 rounded-lg border border-gray-200/70 dark:border-gray-600/70 shadow-sm transition-all duration-200 hover:shadow-md"
-                    aria-label="Not Sil"
-                  >
-                    <Trash className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </button>
+                <div className="p-4 sm:p-5">
+                  <div 
+                    className="prose prose-sm sm:prose dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: note.content }}
+                  />
                 </div>
-              </div>
-              
-              <div className="p-4 sm:p-5">
-                <div 
-                  className="prose prose-sm sm:prose dark:prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: note.content }}
-                />
-              </div>
-            </div>
-          ))
+              </motion.div>
+            ))}
+          </motion.div>
         )}
       </div>
     </div>

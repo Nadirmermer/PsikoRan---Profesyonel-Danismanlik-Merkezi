@@ -1,41 +1,99 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, BrowserRouter } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Calendar, Clock, Users, MapPin, Video, Edit, Trash2, AlertTriangle, Share2, FileText, Printer, Bell, X, ExternalLink, Monitor, Maximize, Phone, Clipboard } from 'react-feather';
 import { useAuth } from '../lib/auth';
+import { motion } from 'framer-motion';
+import { format, formatDistance } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { 
+  ArrowLeft,
+  Calendar,
+  Clock,
+  User,
+  MapPin,
+  Video,
+  Edit,
+  Trash2,
+  AlertTriangle,
+  Share2,
+  FileText,
+  Printer,
+  Bell,
+  X,
+  ExternalLink,
+  Phone,
+  Clipboard,
+  CheckCircle,
+  XCircle,
+  Users,
+  MessageSquare,
+  Paperclip,
+  Layers,
+  ChevronDown,
+  BarChart,
+  FileCheck,
+  AlertCircle,
+  Tag,
+  Menu,
+  Maximize2
+} from 'lucide-react';
+
+// Import required components
 import AppointmentShareModal from './AppointmentShareModal';
 import AppointmentActions from './AppointmentActions';
 import { JitsiMeetingLauncher } from './JitsiMeeting';
 import MeetingTimer from './MeetingTimer';
 
-// Danışan detayları için gerekli komponentleri import et
+// Import client detail components
 import { ClientDetailsTab } from './client-details/ClientDetailsTab';
 import { AppointmentsTab } from './client-details/AppointmentsTab';
 import { SessionNotesTab } from './client-details/SessionNotesTab';
 import { TestsTab } from './client-details/TestsTab';
 import TestResultsTab from './client-details/TestResultsTab';
+import { LoadingSpinner } from './ui/LoadingSpinner';
 
+// Types
 interface AppointmentDetailsProps {
   id?: string;  // Eğer prop olarak id geçilirse kullanılır, yoksa URL'den alınır
 }
 
+interface AppointmentNote {
+  id: string;
+  content: string;
+  created_at: string;
+  created_by: string;
+  createdByName?: string;
+}
+
+// Main component
 export default function AppointmentDetails({ id: propId }: AppointmentDetailsProps) {
   const { id: urlId } = useParams<{ id: string }>();
   const appointmentId = propId || urlId;
   const navigate = useNavigate();
-  const { professional } = useAuth();
+  const { professional, assistant } = useAuth();
   
+  // State variables
   const [loading, setLoading] = useState(true);
   const [appointment, setAppointment] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [activeTab, setActiveTab] = useState<'details' | 'notes' | 'files'>('details');
+  const [showJoinOptions, setShowJoinOptions] = useState(false);
+  const [showClientPanel, setShowClientPanel] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [pastAppointments, setPastAppointments] = useState<any[]>([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
+  const [loadingAppointments, setLoadingAppointments] = useState(false);
 
+  // Fetch appointment data
   useEffect(() => {
     if (appointmentId) {
       loadAppointmentDetails(appointmentId);
     }
   }, [appointmentId]);
 
+  // Load appointment details
   async function loadAppointmentDetails(id: string) {
     try {
       setLoading(true);
@@ -61,6 +119,12 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
       }
 
       setAppointment(data);
+      
+      // If the appointment is loaded successfully, load related data
+      if (data.client?.id) {
+        loadClientAppointments(data.client.id);
+      }
+      
     } catch (error: any) {
       console.error('Randevu detayları yüklenirken hata oluştu:', error);
       setError(error.message || 'Bir hata oluştu');
@@ -69,45 +133,87 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
     }
   }
 
+  // Load client's past and upcoming appointments
+  async function loadClientAppointments(clientId: string) {
+    try {
+      setLoadingAppointments(true);
+      const now = new Date().toISOString();
+      
+      // Load past appointments
+      const { data: pastData, error: pastError } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          professional:professionals(full_name),
+          room:rooms(name)
+        `)
+        .eq('client_id', clientId)
+        .lt('start_time', now)
+        .order('start_time', { ascending: false });
+      
+      if (pastError) throw pastError;
+      setPastAppointments(pastData || []);
+      
+      // Load upcoming appointments
+      const { data: upcomingData, error: upcomingError } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          professional:professionals(full_name),
+          room:rooms(name)
+        `)
+        .eq('client_id', clientId)
+        .gte('start_time', now)
+        .order('start_time', { ascending: true });
+      
+      if (upcomingError) throw upcomingError;
+      setUpcomingAppointments(upcomingData || []);
+    } catch (error) {
+      console.error('Danışan randevuları yüklenirken hata oluştu:', error);
+    } finally {
+      setLoadingAppointments(false);
+    }
+  }
+
   // Format date to human readable format
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('tr-TR', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    return format(date, 'PPP', { locale: tr });
   };
 
   // Format time to human readable format
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('tr-TR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return format(date, 'HH:mm', { locale: tr });
   };
 
-  // Görüşmeye katıl - doğrudan mod seçim ekranını gösterir
+  // Format relative time (e.g. "2 days ago")
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return formatDistance(date, new Date(), { locale: tr, addSuffix: true });
+  };
+
+  // Join meeting function
   const joinMeeting = () => {
     if (appointment?.is_online && appointment?.meeting_url) {
-      // Meeting URL'den room name'i çıkar
+      // Check if the meeting URL is valid
+      try {
+        // Extract room name from meeting URL
       const extractRoomName = (url?: string): string => {
         if (!url) return '';
         
         try {
-          // URL formatında ise
+            // If URL format
           if (url.startsWith('http')) {
             const urlObj = new URL(url);
-            // Son path segment'ı al (örn: https://meet.jit.si/odaismi -> odaismi)
+              // Get the last path segment (e.g., https://meet.jit.si/odaismi -> odaismi)
             const pathParts = urlObj.pathname.split('/').filter(Boolean);
             return pathParts[pathParts.length - 1] || '';
           } 
-          // Direkt oda ismi ise
+            // If direct room name
           return url;
         } catch (error) {
-          console.error('Meeting URL çözümlenirken hata:', error);
+            console.error('Meeting URL parsing error:', error);
           return url;
         }
       };
@@ -115,540 +221,127 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
       const roomName = extractRoomName(appointment.meeting_url);
       
       if (roomName) {
-        // Modal içeriğini doğrudan render edecek bir div oluştur
-        const modalContainer = document.createElement('div');
-        modalContainer.id = 'jitsi-selection-modal';
-        modalContainer.style.position = 'fixed';
-        modalContainer.style.top = '0';
-        modalContainer.style.left = '0';
-        modalContainer.style.width = '100%';
-        modalContainer.style.height = '100%';
-        modalContainer.style.zIndex = '9999';
-        document.body.appendChild(modalContainer);
-        
-        // React modüllerini yükle ve render et
-        import('react-dom/client').then(({ createRoot }) => {
-          const root = createRoot(modalContainer);
-          
-          // Özel bir Wrapper bileşeni oluştur
-          // Bu bileşen, JitsiMeetingLauncher'ın showModeSelection durumunu force eder
-          const ModalWrapper = () => {
-            const [isOpen, setIsOpen] = useState(true);
-            const [showIframe, setShowIframe] = useState(false);
-            
-            // Client bilgilerini gösterme durumu
-            const [showClientPanel, setShowClientPanel] = useState(false);
-            const [activeClientTab, setActiveClientTab] = useState<'details' | 'appointments' | 'notes' | 'tests' | 'testResults'>('details');
-            
-            // Client data state
-            const [clientData, setClientData] = useState<any>(null);
-            const [sessionNotes, setSessionNotes] = useState<any[]>([]);
-            const [pastAppointments, setPastAppointments] = useState<any[]>([]);
-            const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
-            const [testResults, setTestResults] = useState<any[]>([]);
-            const [loadingClientData, setLoadingClientData] = useState(false);
-            
-            // Danışan verilerini yükle
-            const loadClientData = async () => {
-              if (!appointment?.client?.id) return;
-              
-              setLoadingClientData(true);
-              try {
-                // Danışan bilgilerini yükle
-                const { data: clientData, error: clientError } = await supabase
-                  .from('clients')
-                  .select(`
-                    *,
-                    professional:professionals(
-                      id,
-                      full_name,
-                      title,
-                      email,
-                      phone,
-                      assistant_id
-                    )
-                  `)
-                  .eq('id', appointment.client.id)
-                  .single();
-                
-                if (clientError) throw clientError;
-                setClientData(clientData);
-                
-                const now = new Date().toISOString();
-                
-                // Geçmiş randevuları yükle
-                const { data: pastData, error: pastError } = await supabase
-                  .from('appointments')
-                  .select(`
-                    *,
-                    professional:professionals(full_name),
-                    room:rooms(name)
-                  `)
-                  .eq('client_id', appointment.client.id)
-                  .lt('end_time', now)
-                  .order('start_time', { ascending: false });
-                
-                if (pastError) throw pastError;
-                setPastAppointments(pastData || []);
-                
-                // Gelecek randevuları yükle
-                const { data: upcomingData, error: upcomingError } = await supabase
-                  .from('appointments')
-                  .select(`
-                    *,
-                    professional:professionals(full_name),
-                    room:rooms(name)
-                  `)
-                  .eq('client_id', appointment.client.id)
-                  .gte('end_time', now)
-                  .order('start_time', { ascending: true });
-                
-                if (upcomingError) throw upcomingError;
-                setUpcomingAppointments(upcomingData || []);
-                
-                // Seans notlarını yükle
-                const { data: notesData, error: notesError } = await supabase
-                  .from('session_notes')
-                  .select(`
-                    *,
-                    professional:professionals(full_name)
-                  `)
-                  .eq('client_id', appointment.client.id)
-                  .order('created_at', { ascending: false });
-                
-                if (notesError) throw notesError;
-                setSessionNotes(notesData || []);
-                
-                // Test sonuçlarını yükle
-                const { data: resultsData, error: resultsError } = await supabase
-                  .from('test_results')
-                  .select(`
-                    *,
-                    professional:professionals(full_name)
-                  `)
-                  .eq('client_id', appointment.client.id)
-                  .order('created_at', { ascending: false });
-                
-                if (resultsError) throw resultsError;
-                
-                // Test sonuçlarını formatla
-                const formattedResults = resultsData?.map(result => ({
-                  id: result.id,
-                  client_id: result.client_id,
-                  test_type: result.test_type,
-                  test_id: result.test_type,
-                  test_name: result.test_type,
-                  created_at: result.created_at,
-                  score: result.score,
-                  answers: result.answers || {},
-                  professional_id: result.professional_id,
-                  professional_name: result.professional?.full_name,
-                  notes: result.notes,
-                  encrypted_answers: result.encrypted_answers,
-                  encryption_key: result.encryption_key,
-                  iv: result.iv
-                }));
-                
-                setTestResults(formattedResults || []);
-              } catch (error) {
-                console.error('Danışan bilgileri yüklenirken hata:', error);
-              } finally {
-                setLoadingClientData(false);
-              }
-            };
-            
-            // Client paneli açıldığında verileri yükle
-            useEffect(() => {
-              if (showClientPanel) {
-                loadClientData();
-              }
-            }, [showClientPanel]);
-            
-            // Tab değiştiğinde ekstra render işlemlerini engelle
-            const handleTabChange = React.useCallback((tab: 'details' | 'appointments' | 'notes' | 'tests' | 'testResults') => {
-              setActiveClientTab(tab);
-            }, []);
-            
-            // Önbelleğe alınmış görünür sekmeler
-            const visibleTabs = React.useMemo(() => [
-              { id: 'details', name: 'Danışan Bilgileri' },
-              { id: 'appointments', name: 'Randevular' },
-              { id: 'notes', name: 'Seans Notları' },
-              { id: 'tests', name: 'Testler' },
-              { id: 'testResults', name: 'Test Sonuçları' }
-            ], []);
-            
-            // Sayfa kapanmadan önce temizlik işlemi yap
-            useEffect(() => {
-              // Jitsi API'sini temizle
-              return () => {
-                try {
-                  // Eğer modalContainer hala sayfadaysa ve DOM'da mevcutsa kaldır
-                  if (document.body.contains(modalContainer)) {
-                    document.body.removeChild(modalContainer);
-                  }
-                } catch (e) {
-                  console.error("Modal kapatılırken hata:", e);
-                }
-              };
-            }, []);
-            
-            // Modal kapatıldığında container'ı kaldır
-            const onClose = () => {
-              setIsOpen(false);
-              // İşlemi geciktirerek animasyonun tamamlanmasını bekle
-              setTimeout(() => {
-                try {
-                  if (document.body.contains(modalContainer)) {
-                    document.body.removeChild(modalContainer);
-                  }
-                } catch (e) {
-                  console.error("Modal kapatılırken hata:", e);
-                }
-              }, 300);
-            };
-            
-            if (!isOpen) return null;
-            
-            // Tab seçim fonksiyonu
-            // const handleTabChange = (tab: 'details' | 'appointments' | 'notes' | 'tests' | 'testResults') => {
-            //   setActiveClientTab(tab);
-            // };
-            
-            // Görünür sekmeleri belirle
-            // const visibleTabs = [
-            //   { id: 'details', name: 'Danışan Bilgileri' },
-            //   { id: 'appointments', name: 'Randevular' },
-            //   { id: 'notes', name: 'Seans Notları' },
-            //   { id: 'tests', name: 'Testler' },
-            //   { id: 'testResults', name: 'Test Sonuçları' }
-            // ];
-            
-            return (
-              <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-                <div className={showIframe ? 
-                  "w-full h-full max-w-full max-h-full flex flex-col bg-white dark:bg-gray-800" : 
-                  "bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-6 max-w-md w-full"
-                }>
-                  {!showIframe ? (
-                    <>
-                      <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Görüşme Katılım Seçenekleri</h2>
-                        <button 
-                          onClick={onClose}
-                          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                        </button>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div 
-                          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:shadow-md cursor-pointer transition-all duration-300"
-                          onClick={() => {
-                            // Bu pencerede katıl - iframe içinde göster
-                            setShowIframe(true);
-                          }}
-                        >
-                          <div className="flex items-center">
-                            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                              <Video className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Bu Pencerede Katıl</h3>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">Görüşme bu sayfada açılır</p>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div 
-                          className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:shadow-md cursor-pointer transition-all duration-300"
-                          onClick={() => {
-                            // Yeni sekmede katıl
-                            window.open(`https://meet.jit.si/${roomName}`, '_blank');
-                            onClose();
-                          }}
-                        >
-                          <div className="flex items-center">
-                            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                              <ExternalLink className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                            </div>
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Yeni Sekmede Katıl</h3>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">Görüşme yeni bir browser sekmesinde açılır</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-6 text-xs bg-amber-50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-300 p-3 rounded-lg border border-amber-100 dark:border-amber-800/20">
-                        <p>Not: Tarayıcı güvenlik ayarlarınız nedeniyle açılır pencere engellenirse, "Yeni Sekmede Katıl" seçeneğini kullanın.</p>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-col h-full">
-                      <div className="flex-1 relative">
-                        <iframe 
-                          src={`https://meet.jit.si/${roomName}`} 
-                          allow="camera; microphone; fullscreen; display-capture; autoplay" 
-                          className="w-full h-full border-none"
-                          title="Jitsi Meeting"
-                        ></iframe>
-                        
-                        {/* Danışan bilgi paneli */}
-                        {showClientPanel && clientData && (
-                          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex justify-center overflow-auto z-[55]">
-                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-4 m-4 lg:m-8 w-full max-w-4xl max-h-full overflow-auto">
-                              <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{clientData.full_name}</h2>
-                                <button 
-                                  onClick={() => setShowClientPanel(false)}
-                                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                >
-                                  <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                                </button>
-                              </div>
-                              
-                              {/* Sekmeler */}
-                              <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto pb-1 mb-6">
-                                <nav className="-mb-px flex space-x-2 md:space-x-8" aria-label="Tabs">
-                                  {visibleTabs.map((tab) => (
-                                    <button
-                                      key={tab.id}
-                                      onClick={() => handleTabChange(tab.id as any)}
-                                      className={`whitespace-nowrap border-b-2 py-3 px-1 text-xs sm:text-sm font-medium transition-all duration-200 flex-shrink-0 ${
-                                        activeClientTab === tab.id
-                                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                                      }`}
-                                    >
-                                      {tab.name}
-                                    </button>
-                                  ))}
-                                </nav>
-                              </div>
-                              
-                              {/* Tab içerikleri */}
-                              {loadingClientData ? (
-                                <div className="flex justify-center items-center p-12">
-                                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                                </div>
-                              ) : (
-                                <div className="tab-content overflow-auto">
-                                  {activeClientTab === 'details' && (
-                                    <div className="bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg p-4 sm:p-6 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50">
-                                      <BrowserRouter>
-                                        <ClientDetailsTab client={clientData} />
-                                      </BrowserRouter>
-                                    </div>
-                                  )}
-                                  
-                                  {activeClientTab === 'appointments' && (
-                                    <div className="bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg p-4 sm:p-6 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50">
-                                      <AppointmentsTab 
-                                        clientId={clientData.id} 
-                                        appointments={{
-                                          upcoming: upcomingAppointments,
-                                          past: pastAppointments
-                                        }}
-                                        loadAppointments={() => Promise.resolve(true)}
-                                      />
-                                    </div>
-                                  )}
-                                  
-                                  {activeClientTab === 'notes' && (
-                                    <div className="bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg p-4 sm:p-6 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50">
-                                      <SessionNotesTab 
-                                        clientId={clientData.id}
-                                        sessionNotes={sessionNotes}
-                                        loadSessionNotes={() => Promise.resolve(true)}
-                                      />
-                                    </div>
-                                  )}
-                                  
-                                  {activeClientTab === 'tests' && (
-                                    <div className="bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg p-4 sm:p-6 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50">
-                                      <BrowserRouter>
-                                        <TestsTab 
-                                          clientId={clientData.id}
-                                          client={clientData}
-                                        />
-                                      </BrowserRouter>
-                                    </div>
-                                  )}
-                                  
-                                  {activeClientTab === 'testResults' && (
-                                    <div className="bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg p-4 sm:p-6 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50">
-                                      <TestResultsTab 
-                                        clientId={clientData.id}
-                                        testResults={testResults}
-                                        loadTestResults={() => Promise.resolve(true)}
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <button 
-                            onClick={() => {
-                              if (document.fullscreenElement) {
-                                document.exitFullscreen();
-                              } else {
-                                document.documentElement.requestFullscreen();
-                              }
-                            }}
-                            className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors flex items-center"
-                            title="Tam ekran"
-                          >
-                            <Maximize className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                          </button>
-                          <div className="flex items-center space-x-3">
-                            <div className="flex items-center bg-gray-100 dark:bg-gray-700/50 rounded-lg px-3 py-1.5">
-                              <Clock className="h-4 w-4 text-gray-500 dark:text-gray-400 mr-2" />
-                              <span className="text-xs text-gray-600 dark:text-gray-300">
-                                {new Date().toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'})}
-                              </span>
-                            </div>
-                            <div className="flex items-center bg-green-100 dark:bg-green-900/30 rounded-lg px-3 py-1.5">
-                              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse mr-2"></div>
-                              <div className="font-mono text-xs text-green-800 dark:text-green-300">
-                                <MeetingTimer startTime={new Date(appointment.start_time)} />
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Danışan bilgileri sekmesi */}
-                          {appointment?.client?.id && (
-                            <div className="ml-3 relative group">
-                              <button
-                                onClick={() => setShowClientPanel(!showClientPanel)}
-                                className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-800/50 text-indigo-800 dark:text-indigo-400 text-sm font-medium flex items-center"
-                              >
-                                <Users className="h-4 w-4 mr-1.5" />
-                                <span>Danışan</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ml-1 transform transition-transform duration-150 ${showClientPanel ? 'rotate-0' : 'rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                </svg>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="hidden md:flex items-center space-x-3">
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {appointment?.client?.full_name ? `Görüşme: ${appointment.client.full_name}` : 'Çevrimiçi Görüşme'}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          {appointment?.client?.id && (
-                            <button
-                              onClick={() => {
-                                // Özel sonlandırma pop-up'ı oluştur
-                                const confirmDialog = document.createElement('div');
-                                confirmDialog.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]';
-                                confirmDialog.innerHTML = `
-                                  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 p-5 max-w-sm w-full">
-                                    <div class="flex items-center mb-4">
-                                      <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-full mr-3">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600 dark:text-red-400 transform rotate-135"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                                      </div>
-                                      <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Görüşmeyi Sonlandır</h3>
-                                    </div>
-                                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-5">Görüşmeyi sonlandırmak istediğinizden emin misiniz? Bu işlem geri alınamaz.</p>
-                                    <div class="flex space-x-3 justify-end">
-                                      <button id="cancel-btn" class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">İptal</button>
-                                      <button id="confirm-btn" class="px-3 py-1.5 text-sm rounded-md text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 transition-colors">Sonlandır</button>
-                                    </div>
-                                  </div>
-                                `;
-                                document.body.appendChild(confirmDialog);
-                                
-                                // Butonlara event listener ekle
-                                const cancelBtn = confirmDialog.querySelector('#cancel-btn');
-                                const confirmBtn = confirmDialog.querySelector('#confirm-btn');
-                                
-                                cancelBtn?.addEventListener('click', () => {
-                                  document.body.removeChild(confirmDialog);
-                                });
-                                
-                                confirmBtn?.addEventListener('click', () => {
-                                  document.body.removeChild(confirmDialog);
-                                  onClose();
-                                });
-                              }}
-                              className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 rounded-md hover:bg-red-200 dark:hover:bg-red-800/50 text-red-800 dark:text-red-400 text-sm font-medium flex items-center"
-                            >
-                              <Phone className="h-4 w-4 mr-1.5 transform rotate-135" />
-                              <span>Görüşmeyi Sonlandır</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          };
-          
-          root.render(<ModalWrapper />);
-        }).catch(err => {
-          console.error("Modal render edilirken hata oluştu:", err);
-        });
-      }
-    }
-  };
-
-  // Seans notu ekleme sayfasına yönlendirme
-  const handleAddNote = () => {
-    navigate(`/session-notes/create/${appointment.id}`);
-  };
-
-  // Randevu düzenleme sayfasına yönlendirme
-  const handleEditAppointment = () => {
-    navigate(`/appointments/edit/${appointment.id}`);
-  };
-
-  // Randevuyu sil
-  const handleDeleteAppointment = async () => {
-    if (window.confirm('Bu randevuyu silmek istediğinize emin misiniz?')) {
-      try {
-        const { error } = await supabase
-          .from('appointments')
-          .delete()
-          .eq('id', appointment.id);
-        
-        if (error) throw error;
-        
-        navigate('/appointments');
+          setShowJoinOptions(true);
+        } else {
+          alert('Geçerli bir görüşme odası bulunamadı.');
+        }
       } catch (error) {
-        console.error('Randevu silinirken hata oluştu:', error);
-        alert('Randevu silinirken bir hata oluştu.');
+        console.error('Görüşme katılımı hatası:', error);
+        alert('Görüşmeye katılırken bir hata oluştu.');
       }
+    } else {
+      alert('Bu randevu için bir çevrimiçi görüşme linki bulunmamaktadır.');
     }
   };
 
-  // Randevu oluşturulmuşsa ve online bir görüşme ise, toplantı URL'sini kontrol et
+  // Edit appointment
+  const handleEditAppointment = () => {
+    navigate(`/appointments/edit/${appointmentId}`);
+  };
+
+  // Delete appointment
+  const handleDeleteAppointment = async () => {
+    try {
+      setShowConfirmDelete(false);
+      
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', appointmentId);
+      
+      if (error) throw error;
+      
+      // Show success message and navigate back
+      alert('Randevu başarıyla silindi.');
+      navigate('/appointments');
+    } catch (error) {
+      console.error('Randevu silinirken hata oluştu:', error);
+      alert('Randevu silinirken bir hata oluştu.');
+    }
+  };
+
+  // Handle status update
+  const handleUpdateStatus = async (newStatus: 'scheduled' | 'completed' | 'cancelled') => {
+    try {
+      // If changing from completed to scheduled, check for payment record
+      if (newStatus === 'scheduled' && appointment?.status === 'completed') {
+        if (!window.confirm('Bu işlem randevuya ait ödeme kaydını da silecektir. Devam etmek istiyor musunuz?')) {
+          return;
+        }
+
+        // Delete associated payment record
+        const { error: paymentDeleteError } = await supabase
+          .from('payments')
+          .delete()
+          .eq('appointment_id', appointmentId);
+
+        if (paymentDeleteError) throw paymentDeleteError;
+      }
+
+      // Update the appointment status
+      const { error: appointmentError } = await supabase
+                  .from('appointments')
+        .update({ status: newStatus })
+        .eq('id', appointmentId);
+
+      if (appointmentError) throw appointmentError;
+
+      // If marking as completed, create payment record
+      if (newStatus === 'completed') {
+        // Get the appointment details with client and professional info
+        const { data: appointmentData, error: fetchError } = await supabase
+                  .from('appointments')
+                  .select(`
+                    *,
+            client:clients(session_fee, professional_share_percentage, clinic_share_percentage),
+            professional:professionals(*)
+          `)
+          .eq('id', appointmentId)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        if (appointmentData && appointmentData.client) {
+          const sessionFee = appointmentData.client.session_fee;
+          const professionalShare = (sessionFee * appointmentData.client.professional_share_percentage) / 100;
+          const clinicShare = (sessionFee * appointmentData.client.clinic_share_percentage) / 100;
+
+          // Create payment record
+          const { error: paymentError } = await supabase
+            .from('payments')
+            .insert({
+              appointment_id: appointmentId,
+              professional_id: appointmentData.professional_id,
+              amount: sessionFee,
+              professional_amount: professionalShare,
+              clinic_amount: clinicShare,
+              payment_status: 'pending',
+              collected_by: 'clinic',
+              payment_date: new Date().toISOString()
+            });
+
+          if (paymentError) throw paymentError;
+        }
+      }
+
+      // Reload appointment details
+      await loadAppointmentDetails(appointmentId);
+      
+              } catch (error) {
+      console.error('Randevu durumu güncellenirken hata oluştu:', error);
+      alert('Randevu durumu güncellenirken bir hata oluştu.');
+    }
+  };
+
+  // Check if the meeting is joinable (online, has meeting URL)
   const canJoinOnline = appointment?.is_online && appointment?.meeting_url;
 
+  // Rendering loading state
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300">Randevu detayları yükleniyor...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullPage size="medium" showLoadingText={true} loadingText="Randevu detayları yükleniyor..." />;
   }
 
+  // Rendering error state
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -671,6 +364,7 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
     );
   }
 
+  // If appointment not found
   if (!appointment) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -688,198 +382,742 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
     );
   }
 
+  // Implement main UI here in the next sections
   return (
-    <div className="container mx-auto max-w-5xl px-4 py-6">
-      <div className="mb-6 flex items-center">
-        <button
-          onClick={() => navigate('/appointments')}
-          className="mr-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors duration-200"
-        >
-          <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-        </button>
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-          Randevu Detayları
-        </h1>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
-          {/* Ana randevu bilgileri */}
-          <AppointmentActions 
-            appointment={appointment} 
-            onAddNote={handleAddNote}
-            onJoinMeeting={joinMeeting}
-          />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Üst bilgi bölümü */}
+      <header className="sticky top-0 z-10 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center">
+              <button
+                onClick={() => navigate('/appointments')}
+                className="flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <ArrowLeft className="mr-2 h-5 w-5" />
+                <span className="text-sm font-medium">Randevulara Dön</span>
+              </button>
+            </div>
             
-          {/* Danışan Bilgileri */}
-          <div className="mt-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-5 shadow-lg">
-            <h4 className="text-md font-medium text-gray-800 dark:text-gray-300 mb-3">
-              Danışan Bilgileri
-            </h4>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-500 dark:text-gray-400">Ad Soyad:</span>
-                <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{appointment.client?.full_name}</span>
+            <div className="flex items-center space-x-4">
+              {/* Durum göstergesi */}
+              <div className="hidden md:flex items-center">
+                <span className="mr-2 text-sm text-gray-500 dark:text-gray-400">Durum:</span>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  appointment.status === 'scheduled' 
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                    : appointment.status === 'completed'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                }`}>
+                  {appointment.status === 'scheduled' ? 'Planlandı' : 
+                   appointment.status === 'completed' ? 'Tamamlandı' : 'İptal Edildi'}
+                </span>
               </div>
-              {appointment.client?.email && (
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">E-posta:</span>
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{appointment.client?.email}</span>
-                </div>
-              )}
-              {appointment.client?.phone && (
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Telefon:</span>
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{appointment.client?.phone}</span>
-                </div>
-              )}
-            </div>
-          </div>
-            
-          {/* Notlar */}
-          {appointment.notes && (
-            <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-800/20">
-              <h4 className="text-md font-medium text-amber-800 dark:text-amber-300 mb-2">
-                Randevu Notları
-              </h4>
-              <p className="text-sm text-gray-700 dark:text-gray-300 italic">
-                {appointment.notes}
-              </p>
-            </div>
-          )}
-        </div>
+              
+              {/* Tür göstergesi */}
+              <div className="hidden md:flex items-center">
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  appointment.is_online 
+                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+                    : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300'
+                }`}>
+                  {appointment.is_online ? 'Çevrimiçi' : 'Yüz Yüze'}
+                </span>
+              </div>
+              
+              {/* İşlemler dropdown */}
+              <div className="relative">
+                        <button 
+                          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  onClick={() => setShowMobileMenu(!showMobileMenu)}
+                        >
+                  <Menu className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                        </button>
+                
+                {showMobileMenu && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-lg bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5">
+                    <div className="py-1" role="menu" aria-orientation="vertical">
+                      <button
+                          onClick={() => {
+                          setShowMobileMenu(false);
+                          handleEditAppointment();
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                        role="menuitem"
+                      >
+                        <Edit className="mr-3 h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        Düzenle
+                      </button>
+                      
+                      <button
+                          onClick={() => {
+                          setShowMobileMenu(false);
+                          setShowShareModal(true);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                        role="menuitem"
+                      >
+                        <Share2 className="mr-3 h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        Paylaş
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setShowMobileMenu(false);
+                          window.print();
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                        role="menuitem"
+                      >
+                        <Printer className="mr-3 h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        Yazdır
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setShowMobileMenu(false);
+                          setShowConfirmDelete(true);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center"
+                        role="menuitem"
+                      >
+                        <Trash2 className="mr-3 h-4 w-4" />
+                        Sil
+                      </button>
+                            </div>
+                            </div>
+                )}
+                          </div>
+                        </div>
+                      </div>
+                      </div>
+      </header>
 
-        <div>
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-5 shadow-lg mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Hızlı İşlemler
-            </h3>
+      {/* Ana içerik */}
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        {/* Başlık Bölümü */}
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mb-6"
+        >
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 md:mb-0">
+              {appointment.client?.full_name ? `Randevu: ${appointment.client.full_name}` : 'Randevu Detayları'}
+            </h1>
             
-            <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
               {canJoinOnline && (
-                <button
+                                <button 
                   onClick={joinMeeting}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center justify-center"
-                >
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none"
+                                >
                   <Video className="h-4 w-4 mr-2" />
-                  <span>Görüşmeye Katıl</span>
-                </button>
+                  Görüşmeye Katıl
+                                </button>
               )}
-              
-              <button
-                onClick={handleAddNote}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors duration-200 flex items-center justify-center"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                <span>Seans Notu Ekle</span>
-              </button>
-              
-              <button
+                              
+                                    <button
                 onClick={handleEditAppointment}
-                className="w-full py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none"
               >
-                <Edit className="h-4 w-4 mr-2" />
-                <span>Düzenle</span>
-              </button>
-              
-              {canJoinOnline && (
-                <button
-                  onClick={() => setShowShareModal(true)}
-                  className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors duration-200 flex items-center justify-center"
-                >
-                  <Share2 className="h-4 w-4 mr-2" />
-                  <span>Bağlantıyı Paylaş</span>
-                </button>
-              )}
+                <Edit className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+                Düzenle
+                                    </button>
               
               <button
-                onClick={handleDeleteAppointment}
-                className="w-full py-3 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                onClick={() => setShowShareModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                <span>Sil</span>
+                <Share2 className="h-4 w-4 mr-2 text-gray-500 dark:text-gray-400" />
+                Paylaş
               </button>
+                                </div>
+                                    </div>
+        </motion.div>
+
+        {/* Durum değiştirme kartı */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="mb-6"
+        >
+          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
+            <div className="p-4 sm:p-6">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Randevu Durumu</h2>
+              
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => handleUpdateStatus('scheduled')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    appointment.status === 'scheduled'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-800/40 dark:text-blue-200 ring-2 ring-blue-500'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    <span>Planlandı</span>
+                                    </div>
+                </button>
+                
+                <button
+                  onClick={() => handleUpdateStatus('completed')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    appointment.status === 'completed'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-800/40 dark:text-green-200 ring-2 ring-green-500'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-green-50 dark:hover:bg-green-900/20'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    <span>Tamamlandı</span>
+                                    </div>
+                </button>
+                
+                <button
+                  onClick={() => handleUpdateStatus('cancelled')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    appointment.status === 'cancelled'
+                      ? 'bg-red-100 text-red-800 dark:bg-red-800/40 dark:text-red-200 ring-2 ring-red-500'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 hover:bg-red-50 dark:hover:bg-red-900/20'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <XCircle className="h-4 w-4 mr-2" />
+                    <span>İptal Edildi</span>
+                                    </div>
+                </button>
+                                </div>
+              
+              {appointment.status === 'cancelled' && (
+                <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/10 text-red-800 dark:text-red-300 text-sm rounded-lg border border-red-100 dark:border-red-900/30">
+                  <div className="flex">
+                    <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium">İptal edilmiş randevu</p>
+                      <p className="mt-1">Bu randevu iptal edildi. Gerekirse tekrar planlamak için düzenleme yapabilirsiniz.</p>
+                    </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+          </div>
+        </motion.div>
+
+        {/* Ana detay kartı */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="mb-6 grid gap-6 grid-cols-1 lg:grid-cols-3"
+        >
+          {/* Sol kolon: Randevu bilgileri */}
+          <div className="lg:col-span-2">
+            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
+              <div className="p-4 sm:p-6">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Randevu Bilgileri</h2>
+                
+                <div className="space-y-4">
+                  {/* Tarih ve saat bilgileri */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-start">
+                        <Calendar className="h-5 w-5 text-blue-500 mr-3 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Tarih</p>
+                          <p className="text-base text-gray-900 dark:text-white">
+                            {formatDate(appointment.start_time)}
+                          </p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                    <div className="flex-1">
+                      <div className="flex items-start">
+                        <Clock className="h-5 w-5 text-green-500 mr-3 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Saat</p>
+                          <p className="text-base text-gray-900 dark:text-white">
+                            {formatTime(appointment.start_time)} - {formatTime(appointment.end_time)}
+                          </p>
+                            </div>
+                      </div>
+                    </div>
+                        </div>
+                        
+                  {/* Uzman ve danışan bilgileri */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
+                    <div className="flex-1">
+                      <div className="flex items-start">
+                        <User className="h-5 w-5 text-purple-500 mr-3 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Uzman</p>
+                          <p className="text-base text-gray-900 dark:text-white">
+                            {appointment.professional?.full_name || 'Belirtilmemiş'}
+                          </p>
+                        </div>
+                          </div>
+                        </div>
+                        
+                    <div className="flex-1">
+                      <div className="flex items-start">
+                        <Users className="h-5 w-5 text-indigo-500 mr-3 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Danışan</p>
+                          <p className="text-base text-gray-900 dark:text-white">
+                            {appointment.client?.full_name || 'Belirtilmemiş'}
+                          </p>
+                                      </div>
+                                    </div>
+                                    </div>
+                                  </div>
+                  
+                  {/* Lokasyon bilgisi */}
+                  <div className="flex items-start">
+                    {appointment.is_online ? (
+                      <Video className="h-5 w-5 text-teal-500 mr-3 mt-0.5" />
+                    ) : (
+                      <MapPin className="h-5 w-5 text-red-500 mr-3 mt-0.5" />
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {appointment.is_online ? 'Çevrimiçi Görüşme' : 'Lokasyon'}
+                      </p>
+                      <p className="text-base text-gray-900 dark:text-white">
+                        {appointment.is_online 
+                          ? (appointment.meeting_url || 'Toplantı linki belirtilmemiş')
+                          : (appointment.room?.name || 'Oda belirtilmemiş')}
+                      </p>
+                        </div>
+                  </div>
+                  
+                  {/* Notlar */}
+                  {appointment.notes && (
+                    <div className="flex items-start">
+                      <MessageSquare className="h-5 w-5 text-amber-500 mr-3 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Notlar</p>
+                        <p className="text-base text-gray-900 dark:text-white whitespace-pre-wrap">
+                          {appointment.notes}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
           
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-gray-700/50 p-5 shadow-lg">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Randevu Detayları
-            </h3>
-            <div className="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-              <div className="flex justify-between">
-                <span>Randevu ID:</span>
-                <span className="font-medium">#{appointment.id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Oluşturulma:</span>
-                <span>{new Date(appointment.created_at).toLocaleDateString('tr-TR')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Uzman:</span>
-                <span>{appointment.professional?.full_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Durum:</span>
-                <span className={`font-medium ${
-                  appointment.status === 'scheduled' ? 'text-blue-600 dark:text-blue-400' :
-                  appointment.status === 'completed' ? 'text-green-600 dark:text-green-400' :
-                  'text-red-600 dark:text-red-400'
-                }`}>
-                  {appointment.status === 'scheduled' ? 'Planlandı' :
-                  appointment.status === 'completed' ? 'Tamamlandı' :
-                  'İptal Edildi'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Görüşme Tipi:</span>
-                <span>{appointment.is_online ? 'Çevrimiçi' : 'Yüz Yüze'}</span>
-              </div>
-              {appointment.is_online && (
-                <div className="flex justify-between items-center border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                  <span>Görüşme Linki:</span>
-                  {appointment.meeting_url ? (
+          {/* Sağ kolon: Hızlı işlemler */}
+          <div className="lg:col-span-1">
+            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-xl shadow-sm border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
+              <div className="p-4 sm:p-6">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Hızlı İşlemler</h2>
+                
+                <div className="space-y-3">
+                  {appointment.client?.id && (
                     <button
-                      onClick={joinMeeting}
-                      className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md transition-colors duration-200 text-xs flex items-center"
+                      onClick={() => setShowClientPanel(true)}
+                      className="w-full flex items-center justify-between px-4 py-2 rounded-lg text-left bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
                     >
-                      <Video className="h-3 w-3 mr-1" />
-                      <span>Görüşmeye Katıl</span>
+                      <div className="flex items-center">
+                        <Users className="h-5 w-5 mr-3 text-gray-500 dark:text-gray-400" />
+                        <span>Danışan Detayları</span>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
                     </button>
-                  ) : (
-                    <span className="text-amber-600 dark:text-amber-400 text-xs">Görüşme başlamadı</span>
                   )}
-                </div>
-              )}
-              {appointment.room && !appointment.is_online && (
-                <div className="flex justify-between">
-                  <span>Görüşme Odası:</span>
-                  <span>{appointment.room.name}</span>
-                </div>
-              )}
+                  
+                  <button
+                    onClick={() => window.print()}
+                    className="w-full flex items-center justify-between px-4 py-2 rounded-lg text-left bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
+                  >
+                    <div className="flex items-center">
+                      <Printer className="h-5 w-5 mr-3 text-gray-500 dark:text-gray-400" />
+                      <span>Yazdır</span>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowConfirmDelete(true)}
+                    className="w-full flex items-center justify-between px-4 py-2 rounded-lg text-left bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/20 transition-colors text-red-800 dark:text-red-300"
+                  >
+                    <div className="flex items-center">
+                      <Trash2 className="h-5 w-5 mr-3" />
+                      <span>Randevuyu Sil</span>
+        </div>
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+      </div>
             </div>
           </div>
+          </div>
+        </motion.div>
+      </main>
+
+      {/* Modaller */}
+      {/* Paylaşım Modalı */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 relative"
+          >
+          <button
+              onClick={() => setShowShareModal(false)}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+              <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          </button>
+            
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Randevuyu Paylaş</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Randevu Linki</label>
+                <div className="mt-1 flex rounded-md shadow-sm">
+                  <input
+                    type="text"
+                    readOnly
+                    className="flex-1 min-w-0 block w-full px-3 py-2 rounded-l-md sm:text-sm border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                    value={`${window.location.origin}/appointments/${appointmentId}`}
+                  />
+        <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/appointments/${appointmentId}`)
+                        .then(() => alert('Link kopyalandı'))
+                        .catch(err => console.error('Kopyalama hatası:', err));
+                    }}
+                    className="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-r-md hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
+                  >
+                    <Clipboard className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
-      {canJoinOnline && (
-        <AppointmentShareModal
-          show={showShareModal}
-          onHide={() => setShowShareModal(false)}
-          appointmentInfo={{
-            id: appointment.id,
-            client: {
-              full_name: appointment.client?.full_name,
-              email: appointment.client?.email
-            },
-            professional: {
-              full_name: professional?.full_name || appointment.professional?.full_name,
-              title: professional?.title || appointment.professional?.title
-            },
-            start_time: appointment.start_time,
-            meeting_url: appointment.meeting_url
-          }}
-        />
+              {canJoinOnline && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Toplantı Linki</label>
+                  <div className="mt-1 flex rounded-md shadow-sm">
+                    <input
+                      type="text"
+                      readOnly
+                      className="flex-1 min-w-0 block w-full px-3 py-2 rounded-l-md sm:text-sm border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+                      value={appointment.meeting_url || ''}
+                    />
+          <button
+                      onClick={() => {
+                        if (appointment.meeting_url) {
+                          navigator.clipboard.writeText(appointment.meeting_url)
+                            .then(() => alert('Toplantı linki kopyalandı'))
+                            .catch(err => console.error('Kopyalama hatası:', err));
+                        }
+                      }}
+                      className="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-r-md hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
+                    >
+                      <Clipboard className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+              )}
+
+              <div className="pt-4">
+        <button
+                  onClick={() => {
+                    // Whatsapp ile paylaşma
+                    const text = `${appointment.client?.full_name || 'Danışan'} ile randevu: ${formatDate(appointment.start_time)} ${formatTime(appointment.start_time)} - ${formatTime(appointment.end_time)}${appointment.meeting_url ? `\nToplantı linki: ${appointment.meeting_url}` : ''}`;
+                    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                    window.open(whatsappUrl, '_blank');
+                  }}
+                  className="inline-flex w-full justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none"
+                >
+                  <span>WhatsApp ile Paylaş</span>
+        </button>
+      </div>
+
+        <div>
+                <button
+                  onClick={() => {
+                    // E-posta ile paylaşma
+                    const subject = `Randevu: ${appointment.client?.full_name || 'Danışan'} - ${formatDate(appointment.start_time)}`;
+                    const body = `Randevu Detayları:\n\nTarih: ${formatDate(appointment.start_time)}\nSaat: ${formatTime(appointment.start_time)} - ${formatTime(appointment.end_time)}\nUzman: ${appointment.professional?.full_name || 'Belirtilmemiş'}\nDanışan: ${appointment.client?.full_name || 'Belirtilmemiş'}\n${appointment.is_online ? `\nToplantı Linki: ${appointment.meeting_url || 'Belirtilmemiş'}` : `\nLokasyon: ${appointment.room?.name || 'Belirtilmemiş'}`}`;
+                    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    window.open(mailtoUrl, '_blank');
+                  }}
+                  className="inline-flex w-full justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none"
+                >
+                  <span>E-posta ile Paylaş</span>
+                </button>
+              </div>
+                </div>
+          </motion.div>
+                </div>
+              )}
+
+      {/* Silme Onay Modalı */}
+      {showConfirmDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6"
+          >
+            <div className="flex items-center mb-4">
+              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-full mr-4">
+                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+            </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Randevuyu Sil</h3>
+          </div>
+            
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              Bu randevuyu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+            </p>
+            
+            <div className="flex justify-end space-x-4">
+                <button
+                onClick={() => setShowConfirmDelete(false)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none"
+                >
+                İptal
+                </button>
+              
+              <button
+                onClick={handleDeleteAppointment}
+                className="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none"
+              >
+                Sil
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Çevrimiçi Görüşme Katılım Modalı */}
+      {showJoinOptions && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Görüşmeye Katıl</h3>
+              <button
+                onClick={() => setShowJoinOptions(false)}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div 
+                onClick={() => {
+                  // Bu pencerede aç (JitsiMeetingLauncher bileşenine geç)
+                  window.open(appointment.meeting_url, '_blank');
+                  setShowJoinOptions(false);
+                }}
+                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:shadow-md cursor-pointer transition-all duration-300"
+              >
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                    <Video className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Yeni Pencerede Aç</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Görüşme yeni bir sekmede açılır</p>
+                  </div>
+            </div>
+          </div>
+          
+              <div 
+                onClick={() => {
+                  // Linki kopyala
+                  navigator.clipboard.writeText(appointment.meeting_url)
+                    .then(() => {
+                      alert('Toplantı linki kopyalandı');
+                      setShowJoinOptions(false);
+                    })
+                    .catch(err => console.error('Kopyalama hatası:', err));
+                }}
+                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:shadow-md cursor-pointer transition-all duration-300"
+              >
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                    <Clipboard className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Linki Kopyala</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Görüşme linkini panoya kopyalar</p>
+              </div>
+              </div>
+              </div>
+              </div>
+            
+            <div className="mt-6 text-xs bg-amber-50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-300 p-3 rounded-lg border border-amber-100 dark:border-amber-800/20">
+              <p>Not: Tarayıcı güvenlik ayarlarınız nedeniyle açılır pencere engellenirse, linki kopyalayıp tarayıcınıza manuel olarak yapıştırın.</p>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Danışan Detay Paneli */}
+      {showClientPanel && appointment?.client?.id && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-4xl w-full p-6 my-8"
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                {appointment.client.full_name}
+              </h2>
+              <button
+                onClick={() => setShowClientPanel(false)}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+            
+            {/* Burada ClientDetailsTab bileşeni kullanılabilir (gerçek uygulamada) */}
+            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Danışan Bilgileri</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start">
+                      <User className="h-5 w-5 text-blue-500 mr-3 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">İsim</p>
+                        <p className="text-base text-gray-900 dark:text-white">
+                          {appointment.client.full_name}
+                        </p>
+            </div>
+          </div>
+          
+                    <div className="flex items-start">
+                      <Phone className="h-5 w-5 text-green-500 mr-3 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Telefon</p>
+                        <p className="text-base text-gray-900 dark:text-white">
+                          {appointment.client.phone || 'Belirtilmemiş'}
+                        </p>
+              </div>
+              </div>
+                    
+                    <div className="flex items-start">
+                      <MessageSquare className="h-5 w-5 text-purple-500 mr-3 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">E-posta</p>
+                        <p className="text-base text-gray-900 dark:text-white">
+                          {appointment.client.email || 'Belirtilmemiş'}
+                        </p>
+              </div>
+              </div>
+              </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Randevu Geçmişi</h3>
+                  {loadingAppointments ? (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Toplam: {pastAppointments.length + upcomingAppointments.length} randevu</p>
+                      
+                      {upcomingAppointments.length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-2">Gelecek Randevular</p>
+                          <div className="pl-4 border-l-2 border-blue-400 dark:border-blue-600 space-y-2">
+                            {upcomingAppointments.slice(0, 3).map(app => (
+                              <div 
+                                key={app.id} 
+                                className="text-sm"
+                                onClick={() => {
+                                  navigate(`/appointments/${app.id}`);
+                                  setShowClientPanel(false);
+                                }}
+                              >
+                                <p className="font-medium text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer">
+                                  {formatDate(app.start_time)} - {formatTime(app.start_time)}
+                                </p>
+                              </div>
+                            ))}
+                            {upcomingAppointments.length > 3 && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                +{upcomingAppointments.length - 3} daha...
+                              </p>
+                            )}
+                          </div>
+                </div>
+              )}
+                      
+                      {pastAppointments.length > 0 && (
+                        <div className="mt-4">
+                          <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Geçmiş Randevular</p>
+                          <div className="pl-4 border-l-2 border-gray-300 dark:border-gray-600 space-y-2">
+                            {pastAppointments.slice(0, 3).map(app => (
+                              <div 
+                                key={app.id} 
+                                className="text-sm"
+                                onClick={() => {
+                                  navigate(`/appointments/${app.id}`);
+                                  setShowClientPanel(false);
+                                }}
+                              >
+                                <p className="font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer">
+                                  {formatDate(app.start_time)} - {formatTime(app.start_time)}
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {app.status === 'completed' ? '✓ Tamamlandı' : app.status === 'cancelled' ? '✗ İptal Edildi' : '◯ Planlandı'}
+                                </p>
+                </div>
+                            ))}
+                            {pastAppointments.length > 3 && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                +{pastAppointments.length - 3} daha...
+                              </p>
+              )}
+            </div>
+          </div>
+                      )}
+                    </div>
+                  )}
+        </div>
+      </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => {
+                    navigate(`/clients/${appointment.client.id}`);
+                    setShowClientPanel(false);
+                  }}
+                  className="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"
+                >
+                  Danışan Profiline Git
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       )}
     </div>
   );

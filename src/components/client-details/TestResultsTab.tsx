@@ -1,14 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Search as SearchIcon, FileText as FileTextIcon, Trash2 as TrashIcon, ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon, AlertTriangle as AlertTriangleIcon } from 'lucide-react';
+import { 
+  Search as SearchIcon, 
+  FileText as FileTextIcon, 
+  Trash2 as TrashIcon, 
+  ChevronDown as ChevronDownIcon, 
+  ChevronUp as ChevronUpIcon, 
+  AlertTriangle as AlertTriangleIcon,
+  Download,
+  FileCheck,
+  Clock,
+  RefreshCw,
+  Calendar,
+  CheckCircle,
+  Info,
+  XCircle,
+  Link,
+  BarChart 
+} from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { AVAILABLE_TESTS } from '../../data/tests';
 import { generateTestPDF } from '../../utils/generateTestPDF';
 import { Test } from '../../data/tests/types';
 import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
+import { motion } from 'framer-motion';
 
 interface TestResult {
   id: string;
@@ -331,147 +348,263 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
-        <h2 className="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100">Test Sonuçları</h2>
-        <div className="relative w-full sm:w-auto">
+      {/* Arkaplan Gradient */}
+      <div className="absolute inset-0 overflow-hidden -z-10 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(40%_40%_at_50%_60%,rgba(120,119,198,0.1),transparent)]"></div>
+      </div>
+
+      {/* Başlık ve Arama Kısmı */}
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col md:flex-row justify-between md:items-center gap-4"
+      >
+        <h2 className="text-lg md:text-xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent flex items-center gap-2">
+          <FileCheck className="h-5 w-5 text-blue-500 dark:text-blue-400" />
+          Test Sonuçları
+        </h2>
+        
+        <div className="relative w-full md:w-64">
           <input
             type="text"
             placeholder="Test sonucu ara..."
             value={searchResult}
             onChange={(e) => setSearchResult(e.target.value)}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm dark:bg-gray-800 dark:border-gray-700 h-9 sm:h-10 px-3 sm:px-4"
+            className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm dark:bg-gray-800 pr-10 h-9"
           />
           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            <SearchIcon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" aria-hidden="true" />
+            <SearchIcon className="h-4 w-4 text-gray-400" aria-hidden="true" />
           </div>
+          {searchResult && (
+            <div className="absolute inset-y-0 right-10 flex items-center">
+              <button 
+                onClick={() => setSearchResult('')}
+                className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+              >
+                <XCircle className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
-      </div>
+      </motion.div>
 
       {filteredResults.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-sm text-gray-500 dark:text-gray-400">Henüz test sonucu bulunmamaktadır.</p>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="text-center py-10"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4"
+          >
+            <BarChart className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+          </motion.div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            {searchResult 
+              ? "Arama kriterlerine uygun sonuç bulunamadı" 
+              : "Henüz hiç test sonucu bulunmuyor"}
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto text-sm">
+            {searchResult 
+              ? "Farklı bir arama terimi deneyin veya arama kriterlerini temizleyin" 
+              : "Tamamlanan testler burada görüntülenecektir. Bir test gönderip danışanınızın tamamlamasını bekleyin."}
+          </p>
+          {searchResult && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setSearchResult('')}
+              className="mt-4 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-400 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 rounded-lg inline-flex items-center"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Filtreleri Temizle
+            </motion.button>
+          )}
+        </motion.div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
-            <thead>
-              <tr>
-                <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  Test Adı
-                </th>
-                <th scope="col" className="px-3 py-3.5 text-left text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  Tarih / Saat
-                </th>
-                <th scope="col" className="px-3 py-3.5 text-left text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  Sonuç
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-              {filteredResults.map((result) => (
-                <React.Fragment key={result.id}>
-                  <tr 
-                    className={`hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer ${expandedRowId === result.id ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`}
-                    onClick={() => toggleRowExpansion(result.id)}
-                  >
-                    <td className="py-4 pl-4 pr-3 text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 max-w-xs flex items-center">
-                      {expandedRowId === result.id ? (
-                        <ChevronUpIcon className="h-4 w-4 mr-2 text-gray-500" />
-                      ) : (
-                        <ChevronDownIcon className="h-4 w-4 mr-2 text-gray-500" />
-                      )}
-                    {result.test_name}
-                  </td>
-                    <td className="px-3 py-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      {format(new Date(result.created_at), 'PPP HH:mm', { locale: tr })}
-                  </td>
-                    <td className="px-3 py-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                    {result.score !== undefined ? `${result.score} puan` : result.result || '-'}
-                  </td>
-                  </tr>
-                  
-                  {/* Genişletilmiş satır içeriği */}
-                  {expandedRowId === result.id && (
-                    <tr className="bg-gray-50 dark:bg-gray-800/30">
-                      <td colSpan={3} className="px-4 py-4">
-                        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
-                          <div className="space-y-4">
-                            <div>
-                              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Test Özeti</h3>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">Test Adı</p>
-                                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{result.test_name}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">Sonuç</p>
-                                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {result.score !== undefined ? `${result.score} puan` : result.result || '-'}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">Süre</p>
-                                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {result.duration_seconds 
-                                      ? `${Math.floor(result.duration_seconds / 60)}:${(result.duration_seconds % 60).toString().padStart(2, '0')}`
-                                      : '-'}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">Tamamlama Yöntemi</p>
-                                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {result.is_public_access 
-                                      ? 'Danışan tarafından çevrimiçi link ile tamamlandı' 
-                                      : 'Seans sırasında tamamlandı'}
-                                  </p>
-                                </div>
-                              </div>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="bg-white/60 dark:bg-gray-800/40 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden shadow-md"
+        >
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800/60">
+                <tr>
+                  <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    Test Adı
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      Tarih / Saat
+                    </div>
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center">
+                      <BarChart className="h-4 w-4 mr-1" />
+                      Sonuç
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-100 dark:divide-gray-700 dark:bg-gray-800/30">
+                {filteredResults.map((result, index) => (
+                  <Fragment key={result.id}>
+                    <motion.tr 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      className={`hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors cursor-pointer ${expandedRowId === result.id ? 'bg-blue-50/70 dark:bg-blue-900/20' : ''}`}
+                      onClick={() => toggleRowExpansion(result.id)}
+                    >
+                      <td className="py-3 pl-4 pr-3 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 mr-3">
+                            {expandedRowId === result.id ? (
+                              <ChevronUpIcon className="h-5 w-5" />
+                            ) : (
+                              <ChevronDownIcon className="h-5 w-5" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {result.test_name}
                             </div>
-                            
-                            {/* İşlemler */}
-                            <div className="flex flex-wrap gap-3 pt-2 border-t border-gray-100 dark:border-gray-700">
-                              <button
-                                onClick={(e) => handleDownloadResult(result, e)}
-                                className="inline-flex items-center rounded-md bg-green-50 dark:bg-green-900/30 px-3 py-2 text-xs sm:text-sm font-medium text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
-                                disabled={isLoading && currentPdfId === result.id}
-                              >
-                                {isLoading && currentPdfId === result.id ? (
-                                  <>
-                                    <svg className="animate-spin h-4 w-4 mr-2 text-green-700 dark:text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    PDF İndiriliyor...
-                                  </>
-                                ) : (
-                                  <>
-                                    <FileTextIcon className="h-4 w-4 mr-2" />
-                                    PDF İndir
-                                  </>
-                                )}
-                              </button>
-                              
-                    <button
-                                onClick={(e) => handleDeleteClick(result.id, result.test_name, e)}
-                                className="inline-flex items-center rounded-md bg-red-50 dark:bg-red-900/30 px-3 py-2 text-xs sm:text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
-                              >
-                                <TrashIcon className="h-4 w-4 mr-2" />
-                                Sil
-                    </button>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center mt-0.5">
+                              <Info className="h-3 w-3 mr-1" />
+                              {result.test_type}
                             </div>
                           </div>
                         </div>
-                  </td>
-                </tr>
-                  )}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 dark:text-gray-100">
+                          {format(new Date(result.created_at), 'd MMMM yyyy', { locale: tr })}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center mt-0.5">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {format(new Date(result.created_at), 'HH:mm', { locale: tr })}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          {result.score !== undefined ? `${result.score} puan` : result.result || '-'}
+                        </div>
+                      </td>
+                    </motion.tr>
+                    
+                    {/* Genişletilmiş satır içeriği */}
+                    {expandedRowId === result.id && (
+                      <motion.tr 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="bg-blue-50/30 dark:bg-blue-900/10"
+                      >
+                        <td colSpan={3} className="px-4 py-4">
+                          <div className="rounded-lg border border-blue-200 dark:border-blue-800/50 bg-white dark:bg-gray-800 p-5 shadow-sm">
+                            <div className="space-y-4">
+                              <div>
+                                <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                                  <FileCheck className="h-5 w-5 mr-2 text-blue-500 dark:text-blue-400" />
+                                  Test Detayları
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  <div className="bg-gray-50 dark:bg-gray-800/60 p-3 rounded-lg">
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Test Adı</p>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{result.test_name}</p>
+                                  </div>
+                                  <div className="bg-gray-50 dark:bg-gray-800/60 p-3 rounded-lg">
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Sonuç</p>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                      {result.score !== undefined ? `${result.score} puan` : result.result || '-'}
+                                    </p>
+                                  </div>
+                                  <div className="bg-gray-50 dark:bg-gray-800/60 p-3 rounded-lg">
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Süre</p>
+                                    <div className="flex items-center">
+                                      <Clock className="h-4 w-4 mr-1 text-gray-400 dark:text-gray-500" />
+                                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {result.duration_seconds 
+                                          ? `${Math.floor(result.duration_seconds / 60)}:${(result.duration_seconds % 60).toString().padStart(2, '0')}`
+                                          : '-'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="bg-gray-50 dark:bg-gray-800/60 p-3 rounded-lg">
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1">Tamamlama Yöntemi</p>
+                                    <div className="flex items-center">
+                                      {result.is_public_access 
+                                        ? <Link className="h-4 w-4 mr-1 text-blue-500 dark:text-blue-400" />
+                                        : <CheckCircle className="h-4 w-4 mr-1 text-green-500 dark:text-green-400" />
+                                      }
+                                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {result.is_public_access 
+                                          ? 'Çevrimiçi link ile tamamlandı' 
+                                          : 'Seans sırasında tamamlandı'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* İşlemler */}
+                              <div className="flex flex-wrap gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                                <motion.button
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  onClick={(e) => handleDownloadResult(result, e)}
+                                  className="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-sm transition-all"
+                                  disabled={isLoading && currentPdfId === result.id}
+                                >
+                                  {isLoading && currentPdfId === result.id ? (
+                                    <>
+                                      <svg className="animate-spin h-4 w-4 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                      </svg>
+                                      PDF İndiriliyor...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Download className="h-4 w-4 mr-2" />
+                                      PDF Raporu İndir
+                                    </>
+                                  )}
+                                </motion.button>
+                                
+                                <motion.button
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  onClick={(e) => handleDeleteClick(result.id, result.test_name, e)}
+                                  className="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg border border-red-200 dark:border-red-800/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                                >
+                                  <TrashIcon className="h-4 w-4 mr-2" />
+                                  Sonucu Sil
+                                </motion.button>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
       )}
 
-      {/* Silme Onay Modalı - Standart Modal Tasarımı */}
+      {/* Silme Onay Modalı */}
       <Transition appear show={isDeleteModalOpen} as={Fragment}>
         <Dialog
           as="div"
@@ -488,7 +621,7 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm" />
+              <div className="fixed inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm" />
             </Transition.Child>
 
             <span
@@ -507,10 +640,15 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <div className="inline-block w-full max-w-md p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="inline-block w-full max-w-md p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50"
+              >
                 {/* Header */}
-                <div className="p-6 pb-2 border-b border-gray-100 dark:border-gray-700">
-                  <Dialog.Title className="text-xl font-semibold bg-gradient-to-r from-red-600 to-rose-600 dark:from-red-400 dark:to-rose-400 bg-clip-text text-transparent">
+                <div className="p-6 pb-2 border-b border-gray-200 dark:border-gray-700">
+                  <Dialog.Title className="text-xl font-bold bg-gradient-to-r from-red-600 to-rose-600 dark:from-red-400 dark:to-rose-400 bg-clip-text text-transparent">
                     Test Sonucunu Sil
                   </Dialog.Title>
                   <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -519,11 +657,20 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
                 </div>
                 
                 {/* Uyarı içeriği */}
-                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50">
+                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/60">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div className="flex-shrink-0 w-12 h-12 bg-red-100 dark:bg-red-900/30 flex items-center justify-center rounded-full">
-                      <AlertTriangleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
-                    </div>
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ 
+                        type: "spring",
+                        stiffness: 260,
+                        damping: 20 
+                      }}
+                      className="flex-shrink-0 w-12 h-12 bg-gradient-to-tr from-red-500 to-rose-500 dark:from-red-400 dark:to-rose-400 flex items-center justify-center rounded-full text-white shadow-md"
+                    >
+                      <AlertTriangleIcon className="w-6 h-6" />
+                    </motion.div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Bu işlem geri alınamaz!
@@ -536,17 +683,21 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
                 </div>
                 
                 {/* Footer */}
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3">
-                  <button
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/60 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setIsDeleteModalOpen(false)}
-                    className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                     disabled={isDeleting}
                   >
                     İptal
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={handleDeleteConfirm}
-                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 rounded-lg transition-colors flex items-center"
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 rounded-lg transition-colors shadow-sm flex items-center"
                     disabled={isDeleting}
                   >
                     {isDeleting ? (
@@ -558,17 +709,20 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
                         Siliniyor...
                       </>
                     ) : (
-                      'Sil'
+                      <>
+                        <TrashIcon className="h-4 w-4 mr-2" />
+                        Sil
+                      </>
                     )}
-                  </button>
+                  </motion.button>
                 </div>
-              </div>
+              </motion.div>
             </Transition.Child>
           </div>
         </Dialog>
       </Transition>
 
-      {/* Başarı Modalı - Standart Modal Tasarımı */}
+      {/* Başarı Modalı */}
       <Transition appear show={isSuccessModalOpen} as={Fragment}>
         <Dialog
           as="div"
@@ -585,7 +739,7 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <div className="fixed inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm" />
+              <div className="fixed inset-0 bg-black/70 dark:bg-black/80 backdrop-blur-sm" />
             </Transition.Child>
 
             <span
@@ -604,36 +758,51 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <div className="inline-block w-full max-w-sm p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="inline-block w-full max-w-sm p-0 my-8 overflow-hidden text-left align-middle transition-all transform bg-white/95 dark:bg-gray-800/95 rounded-2xl shadow-xl backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50"
+              >
                 {/* Başlık */}
-                <div className="p-6 pb-2 border-b border-gray-100 dark:border-gray-700">
-                  <Dialog.Title className="text-xl font-semibold bg-gradient-to-r from-green-500 to-emerald-600 dark:from-green-400 dark:to-emerald-500 bg-clip-text text-transparent">
+                <div className="p-6 pb-2 border-b border-gray-200 dark:border-gray-700">
+                  <Dialog.Title className="text-xl font-bold bg-gradient-to-r from-green-500 to-emerald-600 dark:from-green-400 dark:to-emerald-500 bg-clip-text text-transparent">
                     Başarılı!
                   </Dialog.Title>
                 </div>
                 
                 {/* İçerik */}
                 <div className="p-6 flex items-center space-x-4">
-                  <div className="flex-shrink-0 w-12 h-12 bg-green-100 dark:bg-green-900/30 flex items-center justify-center rounded-full">
-                    <svg className="w-6 h-6 text-green-600 dark:text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <p className="flex-1 text-gray-700 dark:text-gray-300">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ 
+                      type: "spring",
+                      stiffness: 260,
+                      damping: 20,
+                      delay: 0.1
+                    }}
+                    className="flex-shrink-0 w-12 h-12 bg-gradient-to-tr from-green-500 to-emerald-500 dark:from-green-400 dark:to-emerald-400 flex items-center justify-center rounded-full text-white shadow-md"
+                  >
+                    <CheckCircle className="h-6 w-6" />
+                  </motion.div>
+                  <p className="flex-1 text-gray-700 dark:text-gray-300 font-medium">
                     {successMessage}
                   </p>
                 </div>
 
                 {/* Alt kısım */}
-                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-                  <button
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/60 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setIsSuccessModalOpen(false)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-lg transition-colors shadow-sm"
                   >
                     Tamam
-                  </button>
+                  </motion.button>
                 </div>
-              </div>
+              </motion.div>
             </Transition.Child>
           </div>
         </Dialog>
