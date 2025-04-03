@@ -14,8 +14,8 @@ import {
   Legend 
 } from 'chart.js';
 
-// Varsayılan logo URL'si
-const DEFAULT_LOGO_URL = "https://testler.app/logo.png";
+// Varsayılan logo URL'si - uygulama logosu
+const DEFAULT_LOGO_URL = "/assets/logo/logo.webp";
 
 // Chart.js bileşenlerini kaydet
 ChartJS.register(
@@ -194,6 +194,11 @@ const TestReport: React.FC<TestReportProps> = ({
     <>
       {/* A4 Yazdırma Stilleri */}
       <style dangerouslySetInnerHTML={{ __html: `
+        @page {
+          size: A4 portrait;
+          margin: 0;
+        }
+        
         @media print {
           body, html {
             margin: 0 !important;
@@ -201,6 +206,8 @@ const TestReport: React.FC<TestReportProps> = ({
             width: 210mm;
             height: 297mm;
             background: #fff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
 
           .no-print, .no-print * {
@@ -208,22 +215,34 @@ const TestReport: React.FC<TestReportProps> = ({
           }
           
           .test-report {
-            width: 100%;
-            min-height: 270mm;
-            margin: 0 auto !important;
-            padding: 15mm !important;
+            width: 210mm;
+            height: 297mm;
+            margin: 0 !important;
+            padding: 15mm 20mm !important; /* Standart A4 kenar boşlukları */
             border: none !important;
             box-shadow: none !important;
             background: #fff !important;
             page-break-after: always;
+            overflow: hidden;
+            box-sizing: border-box !important;
           }
 
           .relative {
             position: static !important;
           }
 
-          .cookie-banner {
+          /* Cookie banner ve diğer istenmeyen içerikleri gizle */
+          .cookie-banner, div[id*='cookie'], div[class*='cookie'], 
+          div[id*='consent'], div[class*='consent'],
+          #cookie-consent, .cookie-notice, #gdpr, .gdpr-banner {
             display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            width: 0 !important;
+            position: absolute !important;
+            top: -9999px !important;
+            left: -9999px !important;
           }
 
           table, figure, .card, .border.rounded-lg {
@@ -236,6 +255,17 @@ const TestReport: React.FC<TestReportProps> = ({
 
           .signature {
             page-break-before: auto;
+          }
+          
+          /* Tablo ve diğer uzun içerikler için ek ayarlar */
+          .overflow-hidden, .overflow-x-auto {
+            overflow: visible !important;
+          }
+          
+          /* Renkli yazdırma için gerekli */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
         }
       ` }} />
@@ -276,8 +306,14 @@ const TestReport: React.FC<TestReportProps> = ({
                 alt={`${clinic.name} Logo`}
                 className="h-16 w-auto object-contain"
                 onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-                  // Logo yüklenemezse varsayılan logoyu göster
+                  // Logo yüklenemezse ya da CSP hatası oluşursa varsayılan logoyu göster
+                  console.log("Logo yüklenemedi, varsayılan logo kullanılıyor");
                   e.currentTarget.src = DEFAULT_LOGO_URL;
+                  // CSP hatası durumunda bu da çalışmazsa, görüntüyü gizle
+                  e.currentTarget.onerror = () => {
+                    console.log("Varsayılan logo da yüklenemedi, logo gizleniyor");
+                    e.currentTarget.style.display = 'none';
+                  };
                 }}
               />
               <div>
