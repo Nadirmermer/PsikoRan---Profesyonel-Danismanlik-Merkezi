@@ -396,7 +396,7 @@ export function Payments() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Danışan veya psikolog ara..."
+                placeholder="Danışan veya Psikoterapist ara..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full h-10 pl-10 pr-4 rounded-xl border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
@@ -411,7 +411,7 @@ export function Payments() {
                     Danışan
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Psikolog
+                    Psikoterapist
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Tutar
@@ -442,7 +442,7 @@ export function Payments() {
                         })}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
-                        Psikolog:{' '}
+                        Psikoterapist:{' '}
                         {Number(payment.professional_amount).toLocaleString(
                           'tr-TR',
                           {
@@ -565,7 +565,7 @@ export function Payments() {
           </div>
           <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
             <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
-              Psikologlardan Alınacaklar
+              Psikoterapistlardan Alınacaklar
             </h3>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
               {cashStatus.from_professionals.toLocaleString('tr-TR', {
@@ -576,7 +576,7 @@ export function Payments() {
           </div>
           <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50">
             <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent mb-4">
-              Psikologlara Ödenecekler
+              Psikoterapistlara Ödenecekler
             </h3>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400">
               {cashStatus.to_professionals.toLocaleString('tr-TR', {

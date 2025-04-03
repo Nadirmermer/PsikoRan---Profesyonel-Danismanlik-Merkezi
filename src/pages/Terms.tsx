@@ -135,7 +135,7 @@ export function Terms() {
                 <p>Ruh sağlığı profesyonelleri olarak sorumluluklarınız:</p>
                 <ul>
                   <li><strong>Mesleki Yetkinlik:</strong> Mesleki yetkinlik belgelerinizi güncel tutmak ve sisteme doğru şekilde yüklemek zorunludur.</li>
-                  <li><strong>Etik Kurallar:</strong> Türk Psikologlar Derneği ve diğer meslek birliklerince belirlenen etik kurallara uymak zorundasınız.</li>
+                  <li><strong>Etik Kurallar:</strong> Türk Psikoterapistlar Derneği ve diğer meslek birliklerince belirlenen etik kurallara uymak zorundasınız.</li>
                   <li><strong>Gizlilik:</strong> Danışan gizliliğini korumak yasal ve etik bir zorunluluktur. Danışan bilgilerini izinsiz paylaşmayınız.</li>
                   <li><strong>Kayıt Tutma:</strong> Randevu ve seans kayıtlarını düzenli tutmak ve yasal saklama sürelerine uygun şekilde muhafaza etmek zorundasınız.</li>
                   <li><strong>Acil Durum Protokolleri:</strong> Acil durum protokollerine uymak ve gerektiğinde müdahale etmek için hazırlıklı olmalısınız.</li>

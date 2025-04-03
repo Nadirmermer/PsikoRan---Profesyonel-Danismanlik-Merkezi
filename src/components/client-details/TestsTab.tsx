@@ -232,7 +232,7 @@ export const TestsTab: React.FC<TestsTabProps> = ({
       
       console.log('Test URL:', testUrl);
       
-      // Danışan ve psikolog bilgilerini paylaşım için hazırla
+      // Danışan ve Psikoterapist bilgilerini paylaşım için hazırla
       const clientName = client?.full_name || "Sayın Danışanımız";
       const professionalName = professional?.full_name || "Uzmanınız";
       const professionalTitle = professional?.title || "Ruh Sağlığı Uzmanı";

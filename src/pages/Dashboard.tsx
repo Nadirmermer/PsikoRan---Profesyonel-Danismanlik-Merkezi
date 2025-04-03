@@ -302,8 +302,8 @@ export function Dashboard() {
     
     const today = new Date();
     let labels: string[] = [];
-    let incomeData: number[] = []; // Psikologlardan Alınacaklar (gelir)
-    let expenseData: number[] = []; // Psikologlara Ödenecekler (gider)
+    let incomeData: number[] = []; // Psikoterapistlardan Alınacaklar (gelir)
+    let expenseData: number[] = []; // Psikoterapistlara Ödenecekler (gider)
     let netIncomeData: number[] = []; // Kasada Olan Para (net gelir)
     
     if (chartPeriod === 'weekly') {
@@ -322,12 +322,12 @@ export function Dashboard() {
           isSameDay(new Date(payment.payment_date), date)
         );
         
-        // Gelir: Psikologlardan alınacaklar (paid_to_professional statüsündeki klinik payı)
+        // Gelir: Psikoterapistlardan alınacaklar (paid_to_professional statüsündeki klinik payı)
         const income = dayPayments
           .filter(payment => payment.payment_status === 'paid_to_professional')
           .reduce((sum, payment) => sum + Number(payment.clinic_amount || 0), 0);
         
-        // Gider: Psikologlara ödenecekler (paid_to_clinic statüsündeki profesyonel payı)
+        // Gider: Psikoterapistlara ödenecekler (paid_to_clinic statüsündeki profesyonel payı)
         const expense = dayPayments
           .filter(payment => payment.payment_status === 'paid_to_clinic')
           .reduce((sum, payment) => sum + Number(payment.professional_amount || 0), 0);
@@ -351,12 +351,12 @@ export function Dashboard() {
           isSameDay(new Date(payment.payment_date), date)
         );
         
-        // Gelir: Psikologlardan alınacaklar (paid_to_professional statüsündeki klinik payı)
+        // Gelir: Psikoterapistlardan alınacaklar (paid_to_professional statüsündeki klinik payı)
         const income = dayPayments
           .filter(payment => payment.payment_status === 'paid_to_professional')
           .reduce((sum, payment) => sum + Number(payment.clinic_amount || 0), 0);
         
-        // Gider: Psikologlara ödenecekler (paid_to_clinic statüsündeki profesyonel payı)
+        // Gider: Psikoterapistlara ödenecekler (paid_to_clinic statüsündeki profesyonel payı)
         const expense = dayPayments
           .filter(payment => payment.payment_status === 'paid_to_clinic')
           .reduce((sum, payment) => sum + Number(payment.professional_amount || 0), 0);
@@ -371,7 +371,7 @@ export function Dashboard() {
       labels,
       datasets: [
         {
-          label: 'Psikologlardan Alınacaklar (gelir)',
+          label: 'Psikoterapistlardan Alınacaklar (gelir)',
           data: incomeData,
           backgroundColor: 'rgba(16, 185, 129, 0.0)',
           borderColor: 'rgb(16, 185, 129)',
@@ -383,7 +383,7 @@ export function Dashboard() {
           pointRadius: 4,
         },
         {
-          label: 'Psikologlara Ödenecekler (gider)',
+          label: 'Psikoterapistlara Ödenecekler (gider)',
           data: expenseData,
           backgroundColor: 'rgba(239, 68, 68, 0.0)',
           borderColor: 'rgb(239, 68, 68)',

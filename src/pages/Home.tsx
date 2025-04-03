@@ -42,7 +42,7 @@ export function Home() {
   const [loading, setLoading] = useState(true);
     
   useEffect(() => {
-    document.title = "PsikoRan - Psikolog Randevu ve Danışan Yönetim Sistemi";
+    document.title = "PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi";
     loadBlogPosts();
   }, []);
     
@@ -756,7 +756,7 @@ export function Home() {
             className="mt-10 sm:mt-16 max-w-3xl mx-auto text-center"
           >
             <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400">
-              PsikoRan, psikologlar ve danışman asistanlarının iş süreçlerini kolaylaştırmak için tasarlanmış kullanıcı dostu bir platformdur. Her gün yüzlerce profesyonel, PsikoRan'ı tercih ediyor.
+              PsikoRan, Psikoterapistlar ve danışman asistanlarının iş süreçlerini kolaylaştırmak için tasarlanmış kullanıcı dostu bir platformdur. Her gün yüzlerce profesyonel, PsikoRan'ı tercih ediyor.
             </p>
           </motion.div>
           

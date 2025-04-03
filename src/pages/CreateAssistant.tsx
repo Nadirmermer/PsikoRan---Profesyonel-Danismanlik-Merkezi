@@ -123,7 +123,7 @@ export function Register() {
               Asistan Hesabı Oluştur
             </h2>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-              Psikolog asistanları için hızlı ve kolay kayıt
+              Psikoterapist asistanları için hızlı ve kolay kayıt
             </p>
           </div>
 
