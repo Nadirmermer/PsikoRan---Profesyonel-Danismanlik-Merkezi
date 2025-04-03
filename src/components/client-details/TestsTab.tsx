@@ -62,7 +62,7 @@ export const TestsTab: React.FC<TestsTabProps> = ({
   } catch (e) {
     // Router bağlamında değilsek, bir dummy fonksiyon kullan
     navigate = (path: string) => {
-      console.log('Navigation used outside Router context to: ', path);
+      // Logları kaldır
     };
   }
 
@@ -140,8 +140,6 @@ export const TestsTab: React.FC<TestsTabProps> = ({
   // Test paylaşım fonksiyonu
   const handleShareTest = async (testId: string) => {
     try {
-      console.log("Test paylaşımı başlatılıyor...", { testId, clientId, professionalId: professional?.id });
-      
       // Önceki modallar açıksa kapat
       setIsShareModalOpen(false);
       setIsSuccessDialogOpen(false);
@@ -160,17 +158,14 @@ export const TestsTab: React.FC<TestsTabProps> = ({
       if (testInfo) {
         setTestInfo(testInfo);
       } else {
-        console.error("Test bilgileri bulunamadı:", testId);
+        throw new Error('Test bilgileri bulunamadı.');
       }
       
       // Ensure we have a valid session
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
-        console.error('Oturum bulunamadı');
         throw new Error('Oturum süresi dolmuş. Lütfen tekrar giriş yapın.');
       }
-      
-      console.log('Kullanıcı oturumu:', sessionData.session.user.id);
 
       // Danışan bilgilerini al
       const { data: clientData, error: clientError } = await supabase
@@ -180,7 +175,6 @@ export const TestsTab: React.FC<TestsTabProps> = ({
         .single();
       
       if (clientError) {
-        console.error('Danışan bilgileri alınamadı:', clientError);
         throw new Error('Danışan bilgileri alınamadı.');
       }
       
@@ -188,8 +182,6 @@ export const TestsTab: React.FC<TestsTabProps> = ({
       const randomToken = Math.random().toString(36).substring(2, 15) + 
                           Math.random().toString(36).substring(2, 15) +
                           Date.now().toString(36);
-      
-      console.log('Oluşturulan token:', randomToken);
 
       // Test token oluştur
       const insertData = {
@@ -199,17 +191,11 @@ export const TestsTab: React.FC<TestsTabProps> = ({
         p_token: randomToken,
         p_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 gün
       };
-      
-      console.log('RPC fonksiyonu için parametreler:', insertData);
 
       // RPC fonksiyonunu çağır
       const { data: rpcData, error: rpcError } = await supabase.rpc('create_test_token', insertData);
       
-      console.log('RPC sonucu:', rpcData);
-      
       if (rpcError) {
-        console.error('RPC hatası:', rpcError);
-        
         if (rpcError.message.includes('Bu işlemi gerçekleştirme yetkiniz yok')) {
           throw new Error('Yetki hatası: Bu işlemi gerçekleştirme izniniz yok.');
         } else if (rpcError.message.includes('Kullanıcı oturumu bulunamadı')) {
@@ -223,14 +209,10 @@ export const TestsTab: React.FC<TestsTabProps> = ({
         throw new Error('Token oluşturulurken beklenmeyen bir hata oluştu.');
       }
 
-      console.log('Token başarıyla oluşturuldu');
-
       // Paylaşım seçeneklerini ayarla
       const token = randomToken;
       // Kısa ve temiz URL formatı
       const testUrl = `${window.location.origin}/public-test/${token}`;
-      
-      console.log('Test URL:', testUrl);
       
       // Danışan ve Psikoterapist bilgilerini paylaşım için hazırla
       const clientName = client?.full_name || "Sayın Danışanımız";
@@ -305,12 +287,10 @@ ${professionalTitle} ${professionalName}`;
       
       // Kısa bir gecikme ekleyerek modalın daha güvenli açılmasını sağla
       setTimeout(() => {
-        console.log('Modal açılıyor...');
         setIsShareModalOpen(true);
       }, 300);
       
     } catch (error: any) {
-      console.error('Error sharing test:', error);
       setErrorMessage(error.message || 'Test paylaşılırken bir hata oluştu.');
       setTimeout(() => setIsErrorDialogOpen(true), 300);
     }

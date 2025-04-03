@@ -438,6 +438,7 @@ export function Dashboard() {
     },
     scales: {
       x: {
+        type: 'category' as const,
         grid: {
           display: false,
         },
@@ -473,11 +474,25 @@ export function Dashboard() {
     barPercentage: 0.6,
     categoryPercentage: 0.7,
     scales: {
-      ...lineChartOptions.scales,
-      y: {
-        ...lineChartOptions.scales.y,
+      x: {
+        type: 'category' as const,
+        grid: {
+          display: false,
+        },
         ticks: {
-          ...lineChartOptions.scales.y.ticks,
+          color: '#9CA3AF',
+        },
+      },
+      y: {
+        type: 'linear' as const,
+        beginAtZero: true,
+        grid: {
+          borderDash: [2, 2],
+          color: 'rgba(0, 0, 0, 0.06)',
+        },
+        ticks: {
+          color: '#9CA3AF',
+          padding: 10,
           stepSize: 100,
         }
       }
@@ -548,6 +563,7 @@ export function Dashboard() {
     },
     scales: {
       x: {
+        type: 'category' as const,
         grid: {
           display: false,
         },
@@ -660,8 +676,10 @@ export function Dashboard() {
       try {
         setLoading(true);
         
-        // İlk önce sadece kritik verileri yükleyelim
-        // ve sayfayı olabildiğince hızlı gösterelim
+        // Chart.js'yi ilk önce yükle ve kaydet
+        await initializeCharts();
+        
+        // Ardından kritik verileri yükleyelim
         const criticalPromises = [
           loadClinicHours(),
           loadRooms()
@@ -674,13 +692,6 @@ export function Dashboard() {
         
         // Kritik verileri paralel olarak yükle
         await Promise.all(criticalPromises);
-        
-        // Chart.js'yi sadece ihtiyaç olduğunda yüklemek için erteliyoruz
-        // Ana içerik gösterildikten sonra başlatılacak
-        setTimeout(() => {
-          // Chart.js asenkron yükleme
-          initializeCharts();
-        }, 500);
         
         // Ana içeriği göster
         setLoading(false);

@@ -152,8 +152,6 @@ export function Test() {
         setTimerActive(true);
         setShowIntro(false);
       }
-      
-      console.log("Test ilerlemesi yüklendi:", progress);
     } catch (error) {
       console.error("Test ilerlemesi yüklenirken hata oluştu:", error);
     }
@@ -259,8 +257,6 @@ export function Test() {
         // Token ile gelen public test URL'si için kontrol
         // /public-test/:token formatında URL
         if (!testId && !clientId && token) {
-          console.log("Public test URL formatı algılandı, token ile test bilgileri alınıyor...");
-          
           try {
             // Veritabanında token ile ilişkili test ve client bilgilerini ara
             const { data: tokenData, error: tokenError } = await supabase
@@ -270,15 +266,12 @@ export function Test() {
               .single();
               
             if (tokenError) {
-              console.error("Token veritabanında bulunamadı:", tokenError);
               setError('Geçersiz test linki veya süresi dolmuş.');
               setLoading(false);
               return;
             }
             
             if (tokenData) {
-              console.log("Token bilgileri bulundu:", tokenData);
-              
               // Token süresini kontrol et
               const expiresAt = new Date(tokenData.expires_at);
               if (expiresAt < new Date()) {
@@ -291,21 +284,16 @@ export function Test() {
               const foundTestId = tokenData.test_id;
               const foundClientId = tokenData.client_id;
               
-              console.log("Token içinden çıkarılan bilgiler:", { 
-                testId: foundTestId, 
-                clientId: foundClientId
-              });
-              
-        // Test varlığını kontrol et
+              // Test varlığını kontrol et
               const test = AVAILABLE_TESTS.find(t => t.id === foundTestId);
-        if (!test) {
-          setError('Test bulunamadı.');
-          setLoading(false);
-          return;
-        }
+              if (!test) {
+                setError('Test bulunamadı.');
+                setLoading(false);
+                return;
+              }
               
               // Test ve client bilgilerini ayarla
-        setSelectedTest(test);
+              setSelectedTest(test);
               setTokenVerified(true);
               setAuthorized(true);
               
@@ -320,11 +308,10 @@ export function Test() {
               return;
             } else {
               setError('Geçersiz test linki.');
-            setLoading(false);
-            return;
+              setLoading(false);
+              return;
             }
           } catch (error) {
-            console.error("Token sorgusu hatası:", error);
             setError('Geçersiz test linki.');
             setLoading(false);
             return;
@@ -345,7 +332,6 @@ export function Test() {
 
         // Token ile doğrulanmışsa, professional kontrolünü atlayarak doğrudan yetkili yap
         if (tokenVerified && token) {
-          console.log("Token ile erişim doğrulandı, professional kontrolü atlanıyor");
           setAuthorized(true);
           
           // Client bilgilerini yükle
@@ -406,8 +392,6 @@ export function Test() {
 
   async function loadClient() {
     try {
-      console.log("Client yükleniyor, ID:", clientId);
-      
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('*')
@@ -415,19 +399,15 @@ export function Test() {
         .single();
 
       if (clientError) {
-        console.error("Client yükleme hatası:", clientError);
         throw clientError;
       }
       
       if (!clientData) {
-        console.error("Client bulunamadı");
         throw new Error('Danışan bulunamadı');
       }
       
-      console.log("Client başarıyla yüklendi:", clientData.full_name);
       setClient(clientData);
     } catch (error) {
-      console.error('Error loading client:', error);
       setError('Danışan bilgileri yüklenirken bir hata oluştu.');
       throw error;
     }
@@ -457,23 +437,13 @@ export function Test() {
 
   async function handleSubmitTest() {
     try {
-      console.log("handleSubmitTest başladı", {
-        selectedTest: selectedTest?.id,
-        clientId,
-        token,
-        tokenVerified,
-        professional: professional?.id
-      });
-      
       if (!selectedTest || !clientId) {
-        console.log("Test seçilmedi veya client ID yok:", { selectedTest, clientId });
         setError("Test veya danışan bilgisi eksik. Lütfen sayfayı yenileyin.");
         setLoading(false);
         return;
       }
 
       setLoading(true);
-      console.log("Test gönderiliyor... Token:", token ? "Var" : "Yok", "TokenVerified:", tokenVerified);
       
       // Timer'ı durdur
       stopTimer();
@@ -526,25 +496,20 @@ export function Test() {
       // Eğer token ile giriş yapıldıysa, client'ın bağlı olduğu professional'ı bul
       if (!professionalId && client?.professional_id) {
         professionalId = client.professional_id;
-        console.log("Token ile erişim: Professional ID client'dan alındı:", professionalId);
       }
       
       if (!professionalId) {
-        console.error("Ruh sağlığı uzmanı bilgisi bulunamadı:", { professional, client });
         setError('Ruh sağlığı uzmanı bilgisi bulunamadı. Lütfen sayfayı yenileyin veya yöneticinize bildirin.');
         setLoading(false);
         return;
       }
 
-      console.log("Test kaydediliyor, professional_id:", professionalId, "client_id:", clientId);
-      
       // Test verilerini hazırla
       const testResultData = {
         client_id: clientId,
         professional_id: professionalId,
         test_type: selectedTest.id,
         score,
-        answers: finalAnswers,  // Şifrelenmemiş cevaplar (legacy destek)
         encrypted_answers: encryptedData,
         client_public_key: encryptedKey,
         notes: testNotes || null,
@@ -566,17 +531,13 @@ export function Test() {
           .select();
 
         if (error) {
-          console.error("Test kaydetme hatası:", error);
           setError(`Test sonuçları kaydedilirken bir hata oluştu: ${error.message}`);
           setLoading(false);
           return;
         }
 
-        console.log("Test başarıyla kaydedildi:", data);
-        
         // Token ile erişimde tamamlandı ekranını göster
         if (token) {
-          console.log("Token ile erişimde test tamamlandı, testCompleted=true olarak ayarlanıyor");
           setTestCompleted(true);
           setLoading(false);
           return;
@@ -602,27 +563,24 @@ export function Test() {
     if (selectedOption) {
       // Önce seçim animasyonu göster
       selectedOption.classList.add('ring-2', 'ring-blue-500', 'scale-[1.02]');
+      
+      // Kısa bir süre sonra animasyonu kaldır
+      setTimeout(() => {
+        selectedOption.classList.remove('ring-2', 'ring-blue-500', 'scale-[1.02]');
+      }, 300);
     }
     
     // Sonra cevabı kaydet
-    setTestAnswers(prev => ({
-      ...prev,
-      [questionId]: value
-    }));
+    setTestAnswers(prev => {
+      const newAnswers = {
+        ...prev,
+        [questionId]: value
+      };
+      
+      return newAnswers;
+    });
     
-    // Otomatik ilerleme için - 500ms gecikme ile ilerle
-    // Sadece son soru değilse ilerle
-    if (currentQuestionIndex < filteredQuestions.length - 1) {
-      // Önce bir kısa bekleme süresi koy, bu sırada yanıt kaydedilsin
-      setTimeout(() => {
-        // Animasyonu kaldır
-        if (selectedOption) {
-          selectedOption.classList.remove('ring-2', 'ring-blue-500', 'scale-[1.02]');
-        }
-        // Bir sonraki soruya geç
-        setCurrentQuestionIndex(prev => prev + 1);
-      }, 300);
-    }
+    // Otomatik ilerleme kaldırıldı - artık manuel ilerleme kullanılacak
   }
 
   // Testi yeniden başlatma fonksiyonu
@@ -1057,16 +1015,16 @@ export function Test() {
                     </span>
                   </button>
                 </div>
-                <div className="flex justify-between sm:justify-end gap-2 mt-2 sm:mt-0">
+                <div className="flex justify-between space-y-2 sm:space-y-0 gap-2 border-t border-gray-200 dark:border-gray-700 pt-4">
                   <button
                     onClick={() => {
                       setShowModuleSelection(false);
                       setShowIntro(true);
                     }}
-                    className="px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-lg transition-colors shadow-sm border border-gray-200 dark:border-gray-700 flex items-center"
+                    className="px-2 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-lg sm:rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center justify-center shadow-sm border border-gray-200 dark:border-gray-700"
                   >
-                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    <svg className="w-3 h-3 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7 7-7" />
                     </svg>
                     Geri
                   </button>
@@ -1252,11 +1210,7 @@ export function Test() {
                               ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 shadow-md' 
                               : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                           } p-3 sm:p-4 rounded-lg sm:rounded-xl border`}
-                          onClick={() => {
-                            if (!isSelected) {
-                              handleAnswerChange(questionId, option.value);
-                            }
-                          }}
+                          onClick={() => handleAnswerChange(questionId, option.value)}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
@@ -1319,16 +1273,25 @@ export function Test() {
                   Önceki Soru
                 </button>
                 
-                {currentQuestionIndex === filteredQuestions.length - 1 && (
+                {currentQuestionIndex < filteredQuestions.length - 1 ? (
+                  <button
+                    onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
+                    disabled={testAnswers[filteredQuestions[currentQuestionIndex]?.id] === undefined}
+                    className="px-3 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg sm:rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center shadow-md"
+                  >
+                    <span className="flex items-center">
+                      {testAnswers[filteredQuestions[currentQuestionIndex]?.id] === undefined ? 
+                        'Lütfen bir cevap seçin' : 'Sonraki Soru'}
+                      {testAnswers[filteredQuestions[currentQuestionIndex]?.id] !== undefined && (
+                        <svg className="w-3 h-3 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      )}
+                    </span>
+                  </button>
+                ) : (
                   <button
                     onClick={() => {
-                      console.log("Testi Tamamla butonuna tıklandı", {
-                        token,
-                        tokenVerified,
-                        testAnswers: Object.keys(testAnswers).length,
-                        filteredQuestions: filteredQuestions.length,
-                        clientId
-                      });
                       handleSubmitTest();
                     }}
                     disabled={Object.keys(testAnswers).length < filteredQuestions.length}

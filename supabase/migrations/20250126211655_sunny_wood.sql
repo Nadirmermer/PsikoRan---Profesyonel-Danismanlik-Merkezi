@@ -194,7 +194,6 @@
     professional_id uuid REFERENCES professionals(id) ON DELETE CASCADE NOT NULL,
     test_type text NOT NULL,
     score integer,
-    answers jsonb,
     created_at timestamptz DEFAULT now() NOT NULL,
     started_at timestamptz,
     completed_at timestamptz,
@@ -1006,6 +1005,38 @@
     FOR DELETE TO authenticated
     USING (
       -- Kullanıcılar kendi bildirim aboneliklerini silebilir
+      user_id = auth.uid()
+    );
+
+  -- Notification Preferences tabloya row level security ekle
+  ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
+  
+  -- Notification preferences için politikalar
+  CREATE POLICY "View notification preferences policy" ON notification_preferences
+    FOR SELECT TO authenticated
+    USING (
+      -- Kullanıcılar kendi bildirim tercihlerini görebilir
+      user_id = auth.uid()
+    );
+
+  CREATE POLICY "Insert notification preferences policy" ON notification_preferences
+    FOR INSERT TO authenticated
+    WITH CHECK (
+      -- Kullanıcılar kendi bildirim tercihlerini ekleyebilir
+      user_id = auth.uid()
+    );
+
+  CREATE POLICY "Update notification preferences policy" ON notification_preferences
+    FOR UPDATE TO authenticated
+    USING (
+      -- Kullanıcılar kendi bildirim tercihlerini güncelleyebilir
+      user_id = auth.uid()
+    );
+
+  CREATE POLICY "Delete notification preferences policy" ON notification_preferences
+    FOR DELETE TO authenticated
+    USING (
+      -- Kullanıcılar kendi bildirim tercihlerini silebilir
       user_id = auth.uid()
     );
 

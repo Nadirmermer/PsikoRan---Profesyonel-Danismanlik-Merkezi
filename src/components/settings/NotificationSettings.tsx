@@ -79,6 +79,21 @@ export function NotificationSettings() {
     
     setIsLoadingPreferences(true);
     try {
+      // İlk olarak tablo var mı kontrol et
+      const { error: tableCheckError } = await supabase
+        .from('notification_preferences')
+        .select('count')
+        .limit(1);
+      
+      // Tablo yoksa veya başka bir hata varsa varsayılan ayarları kullan
+      if (tableCheckError) {
+        console.error('Bildirim tercihleri tablosu kontrolünde hata:', tableCheckError);
+        setPreferences(defaultPreferences);
+        setIsLoadingPreferences(false);
+        return;
+      }
+      
+      // Kullanıcı kaydını kontrol et
       const { data, error } = await supabase
         .from('notification_preferences')
         .select('*')
@@ -87,10 +102,26 @@ export function NotificationSettings() {
       
       if (error) {
         if (error.code === 'PGRST116') {
-          // Kayıt bulunamadı, varsayılan tercihleri kullan
+          // Kayıt bulunamadı, varsayılan tercihleri kullan ve yeni kayıt oluştur
+          const newPrefs = {
+            user_id: user.id,
+            ...defaultPreferences,
+            updated_at: new Date().toISOString()
+          };
+          
+          // Tercih kaydını oluştur
+          const { error: insertError } = await supabase
+            .from('notification_preferences')
+            .insert(newPrefs);
+          
+          if (insertError) {
+            console.error('Bildirim tercihleri eklenirken hata:', insertError);
+          }
+          
           setPreferences(defaultPreferences);
         } else {
-          throw error;
+          console.error('Bildirim tercihleri yüklenirken hata:', error);
+          setPreferences(defaultPreferences);
         }
       } else if (data) {
         // Veri filtreleme - sadece boolean değerleri al
@@ -105,7 +136,7 @@ export function NotificationSettings() {
         setPreferences(filteredData);
       }
     } catch (error) {
-      // console.error('Bildirim tercihleri yüklenirken hata:', error);
+      console.error('Bildirim tercihleri yüklenirken hata:', error);
       setPreferences(defaultPreferences);
     } finally {
       setIsLoadingPreferences(false);
@@ -170,7 +201,21 @@ export function NotificationSettings() {
     
     setSavingPreferences(true);
     try {
-      const { data, error } = await supabase
+      // İlk olarak tablo var mı kontrol et
+      const { error: tableCheckError } = await supabase
+        .from('notification_preferences')
+        .select('count')
+        .limit(1);
+      
+      // Tablo yoksa kullanıcıya bilgi ver
+      if (tableCheckError) {
+        console.error('Bildirim tercihleri tablosu kontrolünde hata:', tableCheckError);
+        setSavingPreferences(false);
+        return false;
+      }
+      
+      // Tercih kayıt/güncelleme işlemi
+      const { error } = await supabase
         .from('notification_preferences')
         .upsert({
           user_id: user.id,
@@ -180,7 +225,10 @@ export function NotificationSettings() {
           onConflict: 'user_id'
         });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Bildirim tercihleri kaydedilirken hata:', error);
+        return false;
+      }
       
       // Başarı mesajını göster
       setShowSuccessMessage(true);
@@ -188,7 +236,7 @@ export function NotificationSettings() {
       
       return true;
     } catch (error) {
-      // console.error('Bildirim tercihleri kaydedilirken hata:', error);
+      console.error('Bildirim tercihleri kaydedilirken beklenmeyen hata:', error);
       return false;
     } finally {
       setSavingPreferences(false);

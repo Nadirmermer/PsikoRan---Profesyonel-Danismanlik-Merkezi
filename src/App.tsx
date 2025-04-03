@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, createBrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, createBrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useEffect, useState, Suspense } from 'react';
 import {
   Login, Register, Dashboard, CreateAssistant, Professionals, Clients,
@@ -23,6 +23,9 @@ import { SubscriptionProvider } from './components/payment/SubscriptionContext';
 import { listenForNetworkChanges, listenForInstallPrompt, getDisplayMode } from './utils/pwa';
 import { requestNotificationPermission } from './utils/notificationUtils';
 import { supabase } from './lib/supabase';
+
+// Test Raporu sayfasını lazy-load ile import ediyoruz - yeni yol
+const TestResultPage = React.lazy(() => import('./pages/test-results/TestResult'));
 
 // Global loading state için context oluştur
 export const LoadingContext = React.createContext({
@@ -115,6 +118,18 @@ function AnimatedRoutes() {
         <Route path="/demo" element={<Demo />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
+        <Route 
+          path="/test-results" 
+          element={<Navigate to="/" replace />} 
+        />
+        <Route 
+          path="/test-results/:id" 
+          element={
+            <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner /></div>}>
+              <TestResultPage />
+            </Suspense>
+          } 
+        />
         <Route
           path="/dashboard"
           element={

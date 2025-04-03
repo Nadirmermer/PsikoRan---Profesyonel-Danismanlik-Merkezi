@@ -369,6 +369,30 @@ export async function getUserNotificationSubscriptions(userId: string) {
 // Kullanıcının bildirim tercihlerini getir
 export async function getUserNotificationPreferences(userId: string) {
   try {
+    // İlk olarak tablo var mı kontrol et
+    const { error: tableCheckError } = await supabase
+      .from('notification_preferences')
+      .select('count')
+      .limit(1);
+    
+    // Tablo yoksa veya başka bir hata varsa
+    if (tableCheckError) {
+      console.error('Bildirim tercihleri tablosu kontrolünde hata:', tableCheckError);
+      // Varsayılan tercihleri döndür
+      return {
+        appointment_reminder_30min: true,
+        appointment_reminder_1hour: true,
+        appointment_reminder_1day: true,
+        appointment_cancelled: true,
+        appointment_rescheduled: true,
+        new_message: true,
+        payment_confirmations: true,
+        newsletter: false,
+        system_updates: true
+      };
+    }
+    
+    // Tablo varsa, kullanıcı kaydını kontrol et
     const { data, error } = await supabase
       .from('notification_preferences')
       .select('*')
@@ -377,8 +401,9 @@ export async function getUserNotificationPreferences(userId: string) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // Kayıt bulunamadı, varsayılan değerleri döndür
-        return {
+        // Kayıt bulunamadı - kullanıcı için yeni bir kayıt oluştur
+        const defaultPrefs = {
+          user_id: userId,
           appointment_reminder_30min: true,
           appointment_reminder_1hour: true,
           appointment_reminder_1day: true,
@@ -387,32 +412,50 @@ export async function getUserNotificationPreferences(userId: string) {
           new_message: true,
           payment_confirmations: true,
           newsletter: false,
-          system_updates: true
+          system_updates: true,
+          updated_at: new Date().toISOString()
         };
+        
+        // Tercih kaydını oluştur
+        const { error: insertError } = await supabase
+          .from('notification_preferences')
+          .insert(defaultPrefs);
+        
+        if (insertError) {
+          console.error('Bildirim tercihleri eklenirken hata:', insertError);
+        }
+        
+        return defaultPrefs;
       }
       
-      // relation does not exist hatası için özel kontrol
-      if (error.code === '42P01') {
-        // Varsayılan değerleri döndür
-        return {
-          appointment_reminder_30min: true,
-          appointment_reminder_1hour: true,
-          appointment_reminder_1day: true,
-          appointment_cancelled: true,
-          appointment_rescheduled: true,
-          new_message: true,
-          payment_confirmations: true,
-          newsletter: false,
-          system_updates: true
-        };
-      }
-      
-      return null;
+      console.error('Bildirim tercihleri yüklenirken hata:', error);
+      return {
+        appointment_reminder_30min: true,
+        appointment_reminder_1hour: true,
+        appointment_reminder_1day: true,
+        appointment_cancelled: true,
+        appointment_rescheduled: true,
+        new_message: true,
+        payment_confirmations: true,
+        newsletter: false,
+        system_updates: true
+      };
     }
 
     return data;
   } catch (error) {
-    return null;
+    console.error('Bildirim tercihleri yüklenirken beklenmeyen hata:', error);
+    return {
+      appointment_reminder_30min: true,
+      appointment_reminder_1hour: true,
+      appointment_reminder_1day: true,
+      appointment_cancelled: true,
+      appointment_rescheduled: true,
+      new_message: true,
+      payment_confirmations: true,
+      newsletter: false,
+      system_updates: true
+    };
   }
 }
 

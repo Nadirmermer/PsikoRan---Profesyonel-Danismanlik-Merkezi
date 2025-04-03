@@ -8,7 +8,7 @@ import {
   ChevronDown as ChevronDownIcon, 
   ChevronUp as ChevronUpIcon, 
   AlertTriangle as AlertTriangleIcon,
-  Download,
+  ExternalLink,
   FileCheck,
   Clock,
   RefreshCw,
@@ -22,7 +22,6 @@ import {
 import { useAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { AVAILABLE_TESTS } from '../../data/tests';
-import { generateTestPDF } from '../../utils/generateTestPDF';
 import { Test } from '../../data/tests/types';
 import { Dialog, Transition } from '@headlessui/react';
 import { motion } from 'framer-motion';
@@ -88,7 +87,7 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
   const [formattedResults, setFormattedResults] = useState<TestResult[]>([]);
   const [clientsMap, setClientsMap] = useState<Record<string, Client>>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [currentPdfId, setCurrentPdfId] = useState<string | null>(null);
+  const [currentTestId, setCurrentTestId] = useState<string | null>(null);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -166,139 +165,13 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
     (result.professional_name && result.professional_name.toLowerCase().includes(searchResult.toLowerCase()))
   );
 
-  // Test sonucunu indir
-  const handleDownloadResult = async (result: TestResult, e?: React.MouseEvent<HTMLButtonElement>) => {
+  // Test sonuçları sayfasına yönlendirme işlevi - window.location kullanarak
+  const handleViewTestResult = (testId: string, e?: React.MouseEvent<HTMLButtonElement>) => {
     if (e) e.stopPropagation();
     
-    try {
-      setIsLoading(true);
-      setCurrentPdfId(result.id);
-      
-      // Test modülünü dinamik olarak yükle
-      let testModule;
-      let testInfo = AVAILABLE_TESTS.find(test => test.id === result.test_type);
-
-      try {
-        // TEST_MAP'i doğrudan import et ve kullan
-        const testMapModule = await import('../../data/tests') as any;
-        
-        if (testMapModule && testMapModule.TEST_MAP && result.test_type) {
-          try {
-            // Maplenen test modülünü almaya çalış
-            const testPromise = testMapModule.TEST_MAP[result.test_type];
-            if (testPromise) {
-              testModule = await testPromise;
-            }
-          } catch (error) {
-            // Promise çözümleme hatası
-          }
-        }
-        
-        // Eğer TEST_MAP'ten alamadıysak, TEST_META'dan al
-        if (!testModule && testMapModule.TEST_META && result.test_type) {
-          const meta = testMapModule.TEST_META[result.test_type];
-          if (meta) {
-            testInfo = meta;
-          }
-        }
-        
-        // Eğer hala alamadıysak, birinci fallback: Dosyayı direkt import et
-        if (!testModule) {
-          try {
-            const directImport = await import(/* @vite-ignore */ `../../data/tests/${result.test_type}.js`);
-            
-            // Test modülünü bul
-            for (const key in directImport) {
-              if (typeof directImport[key] === 'object' && directImport[key]?.questions) {
-                testModule = directImport[key];
-                break;
-              }
-            }
-          } catch (directError) {
-            // Direkt import hatası, devam et
-          }
-        }
-      } catch (importError) {
-        // Import hatası, devam et
-      }
-      
-      // Fallback: AVAILABLE_TESTS'ten al
-      if (!testModule && testInfo) {
-        testModule = testInfo;
-      }
-      
-      if (!testModule) {
-        throw new Error('Test bilgisi bulunamadı');
-      }
-      
-      // Danışan bilgisini al
-      const client = clientsMap[result.client_id];
-      if (!client) {
-        throw new Error('Danışan bilgisi bulunamadı');
-      }
-      
-      // Uzman bilgisi
-      const professionalInfo = {
-        id: professional?.id || result.professional_id,
-        full_name: professional?.full_name || result.professional_name || 'Bilinmeyen Uzman',
-        title: professional?.title || ''
-      };
-      
-      // Test nesnesini düzgün şekilde oluştur
-      const testData = {
-        ...testModule,
-        // Eğer test modülünde questions yoksa boş dizi olarak ayarla
-        questions: testModule.questions || [],
-        // Eğer fonksiyonlar yoksa varsayılan olarak ekle
-        calculateScore: testModule.calculateScore || (() => result.score || 0),
-        interpretScore: testModule.interpretScore || (() => ''),
-      };
-      
-      // Test yorumlaması için güvenlik kontrolü
-      try {
-        if (typeof testData.interpretScore !== 'function') {
-          console.warn('interpretScore bir fonksiyon değil, varsayılan fonksiyon ekleniyor');
-          testData.interpretScore = () => '';
-        }
-        
-        // Test yorumlamasını kontrol et
-        const interpretation = testData.interpretScore(result.score || 0);
-        console.log('Test yorumlaması:', interpretation);
-      } catch (interpretError) {
-        console.error('Skor yorumlama hatası:', interpretError);
-        // Hata durumunda güvenli bir fonksiyon ata
-        testData.interpretScore = () => '';
-      }
-      
-      // generateTestPDF fonksiyonunu kullanarak PDF oluştur
-      const pdf = generateTestPDF(
-        testData,
-        {
-          id: result.id,
-          test_type: result.test_type,
-          score: result.score || 0,
-          answers: result.answers || {},
-          created_at: result.created_at,
-          duration_seconds: result.duration_seconds,
-          is_public_access: result.is_public_access
-        },
-        client,
-        professionalInfo
-      );
-      
-      // PDF'i indir
-      pdf.save(`${result.test_name}_${format(new Date(result.created_at), 'yyyy-MM-dd')}.pdf`);
-      
-      // Başarı mesajı göster
-      setSuccessMessage('PDF başarıyla indirildi!');
-      setIsSuccessModalOpen(true);
-    } catch (error) {
-      console.error('PDF oluşturma hatası:', error);
-      alert('Test sonucu indirilemedi. Lütfen tekrar deneyin.');
-    } finally {
-      setIsLoading(false);
-      setCurrentPdfId(null);
-    }
+    // Test sonuçları sayfasına yönlendir
+    // URL yapısını doğru şekilde yapılandır
+    window.location.href = `/test-results/${testId}`;
   };
 
   // Test sonucunu silme onay modalı
@@ -561,22 +434,22 @@ const TestResultsTab: React.FC<TestResultsTabProps> = ({
                                 <motion.button
                                   whileHover={{ scale: 1.02 }}
                                   whileTap={{ scale: 0.98 }}
-                                  onClick={(e) => handleDownloadResult(result, e)}
-                                  className="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-sm transition-all"
-                                  disabled={isLoading && currentPdfId === result.id}
+                                  onClick={(e) => handleViewTestResult(result.id, e)}
+                                  className="inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-sm transition-all"
+                                  disabled={isLoading && currentTestId === result.id}
                                 >
-                                  {isLoading && currentPdfId === result.id ? (
+                                  {isLoading && currentTestId === result.id ? (
                                     <>
                                       <svg className="animate-spin h-4 w-4 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                       </svg>
-                                      PDF İndiriliyor...
+                                      Yükleniyor...
                                     </>
                                   ) : (
                                     <>
-                                      <Download className="h-4 w-4 mr-2" />
-                                      PDF Raporu İndir
+                                      <ExternalLink className="h-4 w-4 mr-2" />
+                                      Test Sonucunu Görüntüle
                                     </>
                                   )}
                                 </motion.button>
