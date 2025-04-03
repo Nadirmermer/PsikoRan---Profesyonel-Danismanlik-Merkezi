@@ -1,7 +1,7 @@
 {
   "name": "PsikoRan - Profesyonel Danışmanlık ve Randevu Sistemi",
   "short_name": "PsikoRan",
-  "description": "Psikoterapistlar ve danışanlar için profesyonel danışmanlık ve randevu yönetim sistemi",
+  "description": "Psikoterapistler ve danışanlar için profesyonel danışmanlık ve randevu yönetim sistemi",
   "start_url": "/?source=pwa",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
@@ -13,75 +13,33 @@
   "lang": "tr-TR",
   "icons": [
     {
-      "src": "images/icons/icon-72x72.webp",
-      "sizes": "72x72",
+      "src": "assets/logo/logo.webp",
+      "sizes": "72x72 96x96 128x128 144x144 152x152",
       "type": "image/webp",
       "purpose": "any"
     },
     {
-      "src": "images/icons/icon-96x96.webp",
-      "sizes": "96x96",
-      "type": "image/webp",
-      "purpose": "any"
-    },
-    {
-      "src": "images/icons/icon-128x128.webp",
-      "sizes": "128x128",
-      "type": "image/webp",
-      "purpose": "any"
-    },
-    {
-      "src": "images/icons/icon-144x144.webp",
-      "sizes": "144x144",
-      "type": "image/webp",
-      "purpose": "any"
-    },
-    {
-      "src": "images/icons/icon-152x152.webp",
-      "sizes": "152x152",
-      "type": "image/webp",
-      "purpose": "any"
-    },
-    {
-      "src": "images/icons/icon-192x192.webp",
+      "src": "assets/logo/logo-192x192.webp",
       "sizes": "192x192",
       "type": "image/webp",
       "purpose": "any"
     },
     {
-      "src": "images/icons/icon-384x384.webp",
-      "sizes": "384x384",
-      "type": "image/webp",
-      "purpose": "any"
-    },
-    {
-      "src": "images/icons/icon-512x512.webp",
+      "src": "assets/logo/logo-512x512.webp",
       "sizes": "512x512",
       "type": "image/webp",
       "purpose": "any"
     },
     {
-      "src": "images/icons/maskable-icon-192x192.webp",
+      "src": "assets/logo/logo-192x192.webp",
       "sizes": "192x192",
       "type": "image/webp",
       "purpose": "maskable"
     },
     {
-      "src": "images/icons/maskable-icon-512x512.webp",
+      "src": "assets/logo/logo-512x512.webp",
       "sizes": "512x512",
       "type": "image/webp",
-      "purpose": "maskable"
-    },
-    {
-      "src": "images/icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "images/icons/maskable-icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
       "purpose": "maskable"
     }
   ],
@@ -91,14 +49,14 @@
       "short_name": "Randevular",
       "description": "Yaklaşan randevularınızı görüntüleyin",
       "url": "/appointments",
-      "icons": [{ "src": "images/icons/shortcut-appointments.webp", "sizes": "192x192", "type": "image/webp" }]
+      "icons": [{ "src": "assets/logo/logo.webp", "sizes": "192x192", "type": "image/webp" }]
     },
     {
       "name": "Mesajlarım",
       "short_name": "Mesajlar",
       "description": "Mesajlarınızı görüntüleyin",
       "url": "/messages",
-      "icons": [{ "src": "images/icons/shortcut-messages.webp", "sizes": "192x192", "type": "image/webp" }]
+      "icons": [{ "src": "assets/logo/logo.webp", "sizes": "192x192", "type": "image/webp" }]
     }
   ],
   "categories": ["health", "productivity", "medical"],

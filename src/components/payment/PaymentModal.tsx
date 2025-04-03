@@ -220,7 +220,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                   <h3 className="font-medium text-blue-800 dark:text-blue-300 mb-2">Havale/EFT Bilgileri</h3>
                   <p className="text-sm text-blue-700 dark:text-blue-400">
-                    Aşağıdaki hesap bilgilerine ödemenizi gerçekleştirdikten sonra, dekontunuzu info@psikoran.com adresine gönderebilirsiniz.
+                    Aşağıdaki hesap bilgilerine ödemenizi gerçekleştirdikten sonra, dekontunuzu destek@psikoran.com adresine gönderebilirsiniz.
                   </p>
                   
                   <div className="mt-3 space-y-2">

@@ -2,14 +2,51 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <!-- Google Tag Manager -->
-    <script nonce="psikoran2025">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-PQ2BMSFH');</script>
+    <!-- Google Tag Manager - Asenkron Yükleme -->
+    <script nonce="psikoran2025">
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    // GTM'i ana içerik yüklendikten sonra yükleme
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','GTM-PQ2BMSFH');
+      }, 2000); // 2 saniye gecikme
+    });
+    </script>
     <!-- End Google Tag Manager -->
+    
+    <!-- Google Analytics - Geliştirilmiş (asenkron) -->
+    <script nonce="psikoran2025" async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script nonce="psikoran2025">
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      // Sayfa yüklenmesi ve performansını etkilememesi için yükleme geciktiriliyor
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          gtag('js', new Date());
+          gtag('config', 'G-XXXXXXXXXX', { 
+            'anonymize_ip': true,
+            'cookie_expires': 365 * 24 * 60 * 60, // 1 yıl
+            'cookie_domain': 'psikoran.com',
+            'cookie_flags': 'SameSite=None;Secure',
+            'page_title': document.title,
+            'send_page_view': true
+          });
+        }, 2500); // 2.5 saniye gecikme ile yükleme
+      });
+    </script>
+    <!-- End Google Analytics -->
+    
+    <!-- Favicon Ayarları - Logo kullanılarak güncellendi -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/webp" href="/assets/logo/logo.webp" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/assets/logo/logo.webp" />
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-psikoran2025' https://www.googletagmanager.com https://*.google-analytics.com https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.emailjs.com https://*.googleapis.com https://*.google-analytics.com https://meet.jit.si wss://meet.jit.si; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://meet.jit.si; font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https://*.supabase.co https://*.amazonaws.com https://*.googleusercontent.com https://meet.jit.si https://*.jitsi.net; frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; object-src 'none'; base-uri 'self'; form-action 'self';">
     <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -23,6 +60,10 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PsikoRan" />
+    
+    <!-- Kritik görselleri önceden yükle -->
+    <link rel="preload" as="image" href="/assets/logo/logo.webp" imagesizes="64px">
+    
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-152x152.png" sizes="152x152" />
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-180x180.png" sizes="180x180" />
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-167x167.png" sizes="167x167" />
@@ -36,52 +77,78 @@
     <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-750-1334.jpg" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
     <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-640-1136.jpg" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
     
-    <!-- SEO Meta Etiketleri -->
-    <title>PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi</title>
-    <meta name="description" content="PsikoRan, Psikoterapistlar ve danışanlar için geliştirilmiş profesyonel bir randevu ve danışan yönetim sistemidir. Online terapi seansları, test uygulamaları ve danışan takibi için ideal çözüm." />
-    <meta name="keywords" content="Psikoterapist, psikoloji, terapi, online terapi, danışmanlık, randevu sistemi, danışan yönetimi, psikolojik testler" />
+    <!-- SEO Meta Etiketleri - Geliştirildi -->
+    <title>PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi | Online Terapi Platformu</title>
+    <meta name="description" content="PsikoRan, psikoterapistler için özel olarak tasarlanmış profesyonel bir randevu ve danışan yönetim sistemidir. Online terapi seansları, psikolojik test uygulamaları, danışan takibi ve raporlama araçlarıyla danışmanlık süreçlerinizi dijitalleştirin." />
+    <meta name="keywords" content="psikoterapist, psikolog, psikoloji, terapi, online terapi, danışmanlık, randevu sistemi, danışan yönetimi, psikolojik testler, bireysel terapi, çift terapisi, aile terapisi, uzaktan terapi, psikoterapi, bilişsel davranışçı terapi" />
     <meta name="author" content="PsikoRan" />
+    
+    <!-- Güncellenme tarihi meta etiketi -->
+    <meta name="revised" content="03 Nisan 2025" />
+    <meta name="date" content="2025-04-03T08:00:00+03:00" />
     
     <!-- Canonical URL -->
     <link rel="canonical" href="https://psikoran.com/" />
     
+    <!-- Google arama sonuçları için logo ayarları -->
+    <meta itemprop="name" content="PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi">
+    <meta itemprop="image" content="https://psikoran.com/assets/logo/logo.webp">
+    
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://psikoran.com/" />
-    <meta property="og:title" content="PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi" />
-    <meta property="og:description" content="PsikoRan, Psikoterapistlar ve danışanlar için geliştirilmiş profesyonel bir randevu ve danışan yönetim sistemidir." />
-    <meta property="og:image" content="https://psikoran.com/assets/meta/og-image.jpg" />
+    <meta property="og:title" content="PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi | Online Terapi Platformu" />
+    <meta property="og:description" content="Terapistler için danışan yönetimi, online terapi seansları ve psikolojik test uygulamalarını tek platformda birleştiren profesyonel dijital çözüm." />
+    <meta property="og:image" content="https://psikoran.com/assets/logo/logo.webp" />
+    <meta property="og:site_name" content="PsikoRan" />
+    <meta property="og:locale" content="tr_TR" />
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://psikoran.com/" />
-    <meta property="twitter:title" content="PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi" />
-    <meta property="twitter:description" content="PsikoRan, Psikoterapistlar ve danışanlar için geliştirilmiş profesyonel bir randevu ve danışan yönetim sistemidir." />
-    <meta property="twitter:image" content="https://psikoran.com/assets/meta/og-image.jpg" />
+    <meta property="twitter:title" content="PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi | Online Terapi Platformu" />
+    <meta property="twitter:description" content="Terapistler için danışan yönetimi, online terapi seansları ve psikolojik test uygulamalarını tek platformda birleştiren profesyonel dijital çözüm." />
+    <meta property="twitter:image" content="https://psikoran.com/assets/logo/logo.webp" />
     
-    <!-- Yapılandırılmış Veri (Schema.org) -->
+    <!-- Yapılandırılmış Veri (Schema.org) - Genişletildi -->
     <script nonce="psikoran2025" type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "Organization",
+        "@type": "SoftwareApplication",
         "name": "PsikoRan",
         "url": "https://psikoran.com",
-        "logo": "https://psikoran.com/assets/logo/logo.png",
-        "description": "Psikoterapistlar ve danışanlar için profesyonel randevu ve danışan yönetim sistemi.",
-        "address": {
-          "@type": "PostalAddress",
-          "addressCountry": "TR"
+        "logo": "https://psikoran.com/assets/logo/logo.webp",
+        "image": "https://psikoran.com/assets/logo/logo.webp",
+        "description": "Psikoterapistler ve danışanlar için profesyonel randevu ve danışan yönetim sistemi.",
+        "applicationCategory": "HealthApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "TRY"
         },
-        "contactPoint": {
-          "@type": "ContactPoint",
-          "contactType": "customer service",
-          "email": "info@psikoran.com"
-        },
-        "sameAs": [
-          "https://facebook.com/psikoran",
-          "https://twitter.com/psikoran",
-          "https://instagram.com/psikoran"
-        ]
+        "creator": {
+          "@type": "Organization",
+          "name": "PsikoRan",
+          "url": "https://psikoran.com",
+          "logo": "https://psikoran.com/assets/logo/logo.webp",
+          "image": "https://psikoran.com/assets/logo/logo.webp",
+          "foundingDate": "2023",
+          "address": {
+            "@type": "PostalAddress",
+            "addressCountry": "TR"
+          },
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer service",
+            "email": "info@psikoran.com"
+          },
+          "sameAs": [
+            "https://facebook.com/psikoran",
+            "https://twitter.com/psikoran",
+            "https://instagram.com/psikoran"
+          ]
+        }
       }
     </script>
     
@@ -89,8 +156,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
+    <!-- Kritik CSS stylesheets preload -->
+    <link rel="preload" href="/assets/index-DINNfKhG.css" as="style">
+    
     <!-- Font yüklemeleri -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap&display=swap" rel="stylesheet" />
+    
+    <!-- Kritik font preload -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa2JL7.woff2" as="font" type="font/woff2" crossorigin="anonymous">
     
     <!-- Inline kritik CSS -->
     <style>
@@ -180,6 +254,14 @@
         <div class="loading-indicator-text">PsikoRan</div>
         <div class="loading-indicator-subtext">Yükleniyor...</div>
       </div>
+      
+      <!-- İlk içerik yer tutucu - FCP iyileştirmesi için -->
+      <header style="padding: 1rem; background-color: #f9fafb; text-align: center;">
+        <div style="max-width: 1200px; margin: 0 auto;">
+          <h1 style="font-size: 2rem; color: #4f46e5; margin-bottom: 1rem;">PsikoRan</h1>
+          <p style="font-size: 1.2rem; color: #6b7280;">Psikoterapist Randevu ve Danışan Yönetim Sistemi</p>
+        </div>
+      </header>
     </div>
     
     <!-- Offline sayfa uyarısı -->
@@ -189,6 +271,36 @@
     
     <!-- Javascript kodunu defer ile yükle -->
     <script type="module" src="/src/main.tsx" defer></script>
+    
+    <!-- Öncelikli içerik yüklendikten sonra yüklenecek kaynaklar -->
+    <script nonce="psikoran2025">
+      document.addEventListener('DOMContentLoaded', function() {
+        // Geciktirilmiş (lazy) kaynaklar için yükleme fonksiyonu
+        function loadLazyResource(url, type, callback) {
+          var element = document.createElement(type === 'script' ? 'script' : 'link');
+          
+          if (type === 'script') {
+            element.src = url;
+            element.type = 'text/javascript';
+            element.defer = true;
+          } else {
+            element.href = url;
+            element.rel = 'stylesheet';
+          }
+          
+          if (callback) {
+            element.onload = callback;
+          }
+          
+          document.head.appendChild(element);
+        }
+        
+        // Öncelikli olmayan kaynakları 3 saniye sonra yükle
+        setTimeout(function() {
+          // Burada öncelikli olmayan script ve style kaynaklarını yükleyebilirsiniz
+        }, 3000);
+      });
+    </script>
     
     <!-- Service Worker Kaydı -->
     <script nonce="psikoran2025">

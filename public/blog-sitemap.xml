@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd
+        http://www.google.com/schemas/sitemap-image/1.1
+        http://www.google.com/schemas/sitemap-image/1.1/sitemap-image.xsd">
+
+  <!-- Blog Ana Sayfası -->
+  <url>
+    <loc>https://psikoran.com/blog</loc>
+    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Kategoriler -->
+  <url>
+    <loc>https://psikoran.com/blog?category=Psikoloji</loc>
+    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://psikoran.com/blog?category=Terapiler</loc>
+    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://psikoran.com/blog?category=Kişisel%20Gelişim</loc>
+    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://psikoran.com/blog?category=Aile%20İlişkileri</loc>
+    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://psikoran.com/blog?category=İş%20Hayatı</loc>
+    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Örnek Blog Yazıları - Gerçek uygulamada dinamik olarak oluşturulur -->
+  <url>
+    <loc>https://psikoran.com/blog/psikolojik-danismanlik-hakkinda</loc>
+    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/images/blog-placeholder.jpg</image:loc>
+      <image:title>Psikolojik Danışmanlık Hakkında</image:title>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://psikoran.com/blog/uzaktan-terapi-yontemleri</loc>
+    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/images/blog-placeholder.jpg</image:loc>
+      <image:title>Uzaktan Terapi Yöntemleri</image:title>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://psikoran.com/blog/bilissel-davranisci-terapi-teknikleri</loc>
+    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/images/blog-placeholder.jpg</image:loc>
+      <image:title>Bilişsel Davranışçı Terapi Teknikleri</image:title>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://psikoran.com/blog/stres-yonetimi-ve-coping-stratejileri</loc>
+    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/images/blog-placeholder.jpg</image:loc>
+      <image:title>Stres Yönetimi ve Başa Çıkma Stratejileri</image:title>
+    </image:image>
+  </url>
+  
+  <url>
+    <loc>https://psikoran.com/blog/depresyon-belirtileri-ve-tedavi-yontemleri</loc>
+    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <image:image>
+      <image:loc>https://psikoran.com/assets/images/blog-placeholder.jpg</image:loc>
+      <image:title>Depresyon Belirtileri ve Tedavi Yöntemleri</image:title>
+    </image:image>
+  </url>
+</urlset> 

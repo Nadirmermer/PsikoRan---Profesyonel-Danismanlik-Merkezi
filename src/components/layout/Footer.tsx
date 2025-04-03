@@ -145,8 +145,8 @@ export function Footer() {
               </h3>
               <ul className="space-y-2.5">
                 <li>
-                  <a href="mailto:info@psikoran.com" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
-                    info@psikoran.com
+                  <a href="mailto:destek@psikoran.com" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
+                    destek@psikoran.com
                   </a>
                 </li>
                 <li>

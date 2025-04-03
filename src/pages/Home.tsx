@@ -8,6 +8,7 @@ import logo1 from '../assets/base-logo.webp';
 import { TurkLiraIcon } from '../components/icons/TurkLiraIcon';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { Helmet } from 'react-helmet';
 
 // Blog yazısı tipi tanımı
 interface BlogPost {
@@ -37,9 +38,37 @@ const slugifyName = (name: string): string => {
     .replace(/[^a-z0-9-]/g, '');
 };
 
+// Ana sayfa için JSON-LD yapılandırılmış veri
+const generateHomeJsonLd = () => {
+  return `{
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "PsikoRan",
+    "url": "https://psikoran.com",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://psikoran.com/search?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    },
+    "description": "PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi | Online Terapi Platformu. Danışan takibi, randevu yönetimi ve test uygulamaları için profesyonel çözüm.",
+    "publisher": {
+      "@type": "Organization",
+      "name": "PsikoRan",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://psikoran.com/assets/logo/logo.png",
+        "width": "180",
+        "height": "60"
+      }
+    }
+  }`;
+};
+
 export function Home() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const currentDate = new Date();
+  const formattedDate = format(currentDate, 'yyyy-MM-dd', { locale: tr });
     
   useEffect(() => {
     document.title = "PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi";
@@ -59,6 +88,27 @@ export function Home() {
 
   return (
     <MainLayout>
+      <Helmet>
+        <title>PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi | Online Terapi Platformu</title>
+        <meta name="description" content="PsikoRan, psikoterapistler için özel olarak tasarlanmış profesyonel bir randevu ve danışan yönetim sistemidir. Online terapi seansları, psikolojik test uygulamaları, danışan takibi ve raporlama araçlarıyla danışmanlık süreçlerinizi dijitalleştirin." />
+        <meta name="keywords" content="psikoterapist, psikolog, psikoloji, terapi, online terapi, danışmanlık, randevu sistemi, danışan yönetimi, psikolojik testler, bireysel terapi, çift terapisi, aile terapisi, uzaktan terapi, psikoterapi, bilişsel davranışçı terapi" />
+        <link rel="canonical" href="https://psikoran.com/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://psikoran.com/" />
+        <meta property="og:title" content="PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi | Online Terapi Platformu" />
+        <meta property="og:description" content="Terapistler için danışan yönetimi, online terapi seansları ve psikolojik test uygulamalarını tek platformda birleştiren profesyonel dijital çözüm." />
+        <meta property="og:image" content="https://psikoran.com/assets/meta/og-image.jpg" />
+        <meta property="og:site_name" content="PsikoRan" />
+        <meta property="og:locale" content="tr_TR" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi | Online Terapi Platformu" />
+        <meta name="twitter:description" content="Terapistler için danışan yönetimi, online terapi seansları ve psikolojik test uygulamalarını tek platformda birleştiren profesyonel dijital çözüm." />
+        <meta name="twitter:image" content="https://psikoran.com/assets/meta/og-image.jpg" />
+        <meta name="revised" content={`${format(currentDate, 'dd MMMM yyyy', { locale: tr })}`} />
+        <meta name="date" content={`${formattedDate}T08:00:00+03:00`} />
+        <script type="application/ld+json">{generateHomeJsonLd()}</script>
+      </Helmet>
+      
       {/* Hero Section - Tamamen Yenilendi */}
       <section className="relative overflow-hidden pt-16 pb-24 md:py-24 lg:py-10">
         {/* Arka Plan Efektleri */}

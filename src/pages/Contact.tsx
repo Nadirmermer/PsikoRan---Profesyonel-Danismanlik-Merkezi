@@ -118,8 +118,8 @@ export function Contact() {
                   </div>
                   <div className="ml-4">
                     <h3 className="text-sm font-medium text-slate-900 dark:text-white">E-posta</h3>
-                    <a href="mailto:info@psikoran.com" className="text-base text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors">
-                      info@psikoran.com
+                    <a href="mailto:destek@psikoran.com" className="text-base text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors">
+                      destek@psikoran.com
                     </a>
                 </div>
               </div>

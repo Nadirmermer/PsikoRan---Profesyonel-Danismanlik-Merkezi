@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, createBrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect, useState, Suspense } from 'react';
 import {
   Login, Register, Dashboard, CreateAssistant, Professionals, Clients,
@@ -23,10 +23,6 @@ import { SubscriptionProvider } from './components/payment/SubscriptionContext';
 import { listenForNetworkChanges, listenForInstallPrompt, getDisplayMode } from './utils/pwa';
 import { requestNotificationPermission } from './utils/notificationUtils';
 import { supabase } from './lib/supabase';
-
-// React Router v7 için future flag'leri
-const v7_startTransition = true;
-const v7_relativeSplatPath = true;
 
 // Global loading state için context oluştur
 export const LoadingContext = React.createContext({
@@ -338,7 +334,10 @@ export function App() {
 
   return (
     <SubscriptionProvider>
-      <Router>
+      <BrowserRouter future={{ 
+        v7_startTransition: true, 
+        v7_relativeSplatPath: true 
+      }}>
         <ThemeProvider>
           <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
             <PWAContext.Provider 
@@ -372,7 +371,7 @@ export function App() {
             </PWAContext.Provider>
           </LoadingContext.Provider>
         </ThemeProvider>
-      </Router>
+      </BrowserRouter>
     </SubscriptionProvider>
   );
 }
