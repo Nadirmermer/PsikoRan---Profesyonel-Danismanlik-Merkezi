@@ -98,7 +98,7 @@ const TestReport: React.FC<TestReportProps> = ({
   // Test sonuçları için grafik veri ve seçenekleri
   const prepareChartData = () => {
     // Test alt ölçekleri için grafik verisi oluştur
-    let chartData = {
+    const chartData = {
       labels: ['Toplam Skor'],
       datasets: [
         {

@@ -308,7 +308,7 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
       const sessionDuration = 45;
       
       // Müsait saatlerin filtrelenmesi
-      let availableSlots = allTimeSlots.filter(time => {
+      const availableSlots = allTimeSlots.filter(time => {
         // Çalışma saatlerinin dışındaysa filtrele
         if (time < openingTime || time > closingTime) {
           return false;
@@ -670,7 +670,7 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
     // Takvim hücrelerini oluştur
     const createCalendarCells = () => {
       const cells = [];
-      let day = new Date(startDate);
+      const day = new Date(startDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const minDate = today; // Bugün ve sonrası için randevu alınabilir

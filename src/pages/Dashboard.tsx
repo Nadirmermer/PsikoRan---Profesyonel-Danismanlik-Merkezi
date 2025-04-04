@@ -302,9 +302,9 @@ export function Dashboard() {
     
     const today = new Date();
     let labels: string[] = [];
-    let incomeData: number[] = []; // Psikoterapistlardan Alınacaklar (gelir)
-    let expenseData: number[] = []; // Psikoterapistlara Ödenecekler (gider)
-    let netIncomeData: number[] = []; // Kasada Olan Para (net gelir)
+    const incomeData: number[] = []; // Psikoterapistlardan Alınacaklar (gelir)
+    const expenseData: number[] = []; // Psikoterapistlara Ödenecekler (gider)
+    const netIncomeData: number[] = []; // Kasada Olan Para (net gelir)
     
     if (chartPeriod === 'weekly') {
       // Son 7 gün için veri oluştur
@@ -843,7 +843,7 @@ export function Dashboard() {
 
     const slots: string[] = [];
     let currentHour = openingHour;
-    let currentMinute = openingMinute;
+    const currentMinute = openingMinute;
 
     // Her tam saat için bir zaman dilimi oluştur
     while (currentHour < closingHour) {
