@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, createBrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useEffect, useState, Suspense } from 'react';
 import {
   Login, Register, Dashboard, CreateAssistant, Professionals, Clients,
@@ -7,6 +7,8 @@ import {
   ResetPassword, Privacy, Terms, KVKK, Contact, Help, Test, TestCompleted, Home,
   Blog, BlogAdmin, Features, Pricing, Demo
 } from './pages';
+import { AdminLogin } from './pages/admin/AdminLogin';
+import AdminPanel from './pages/admin/AdminPanel';
 import { BlogPost } from './pages/BlogPost';
 import AppointmentDetails from './components/AppointmentDetails';
 import { AuthGuard } from './components/AuthGuard';
@@ -24,7 +26,7 @@ import { listenForNetworkChanges, listenForInstallPrompt, getDisplayMode } from 
 import { requestNotificationPermission } from './utils/notificationUtils';
 import { supabase } from './lib/supabase';
 
-// Test Raporu sayfasını lazy-load ile import ediyoruz - yeni yol
+// Test Raporu sayfasını lazy-load ile import ediyoruz (default export varsayımıyla)
 const TestResultPage = React.lazy(() => import('./pages/test-results/TestResult'));
 
 // Global loading state için context oluştur
@@ -107,6 +109,15 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route
+          path="/admin/panel"
+          element={
+            <AuthGuard requireAdmin>
+              <AdminPanel />
+            </AuthGuard>
+          }
+        />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/create-assistant" element={<CreateAssistant />} />

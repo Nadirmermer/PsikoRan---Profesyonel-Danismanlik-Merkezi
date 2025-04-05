@@ -6,14 +6,16 @@ interface AuthGuardProps {
   children: React.ReactNode;
   requireProfessional?: boolean;
   requireAssistant?: boolean;
+  requireAdmin?: boolean;
 }
 
 export function AuthGuard({ 
   children, 
   requireProfessional,
-  requireAssistant 
+  requireAssistant,
+  requireAdmin
 }: AuthGuardProps) {
-  const { user, professional, assistant, loading } = useAuth();
+  const { user, professional, assistant, admin, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -21,10 +23,16 @@ export function AuthGuard({
   }
 
   if (!user) {
+    if (requireAdmin) {
+      return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Remove the redirect to /unauthorized and just check the roles
+  if (requireAdmin && !admin) {
+    return <Navigate to="/" replace />;
+  }
+
   if (requireProfessional && !professional) {
     return <Navigate to="/" replace />;
   }

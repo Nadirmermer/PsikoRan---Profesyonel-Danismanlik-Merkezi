@@ -21,6 +21,7 @@
       - clinic_breaks: Klinik molalar
       - vacations: Tatil planlaması
       - notification_preferences: Bildirim tercihleri
+      - admins: Admin bilgileri
 
     2. Security
       - RLS politikaları her tablo için tanımlanmıştır
@@ -89,6 +90,29 @@
       clinic_share_percentage <= 100
     )
   );
+
+  -- Admin table definition
+  CREATE TABLE admins (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE NOT NULL,
+    created_at timestamptz DEFAULT now()
+  );
+
+  COMMENT ON TABLE admins IS 'Stores user IDs of administrators.';
+
+  -- Enable RLS for admins table
+  ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
+
+  -- RLS Policies for admins table
+
+  -- Policy: Kimliği doğrulanmış kullanıcılar kendi admin durumlarını kontrol edebilir
+  -- Bu, frontend'in "ben admin miyim?" kontrolünü yapabilmesi için yeterlidir.
+  CREATE POLICY "Authenticated users can view their own admin status" ON admins
+    FOR SELECT TO authenticated
+    USING (auth.uid() = user_id);
+
+  -- Yeni tablo için gerekli izinleri ver (Sadece SELECT izni yeterli)
+  GRANT SELECT ON TABLE public.admins TO authenticated;
 
   CREATE TABLE rooms (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -566,6 +590,11 @@
     FOR SELECT TO authenticated
     USING (true);  -- Tüm asistanlara erişim ver (geliştirme aşamasında)
 
+  -- Policy for assistants table: Allow admins to view all assistants
+  CREATE POLICY "Admins can view all assistants" ON assistants
+    FOR SELECT TO authenticated
+    USING (EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()));
+
   -- Professional policies
   CREATE POLICY "View professionals policy" ON professionals
     FOR SELECT TO authenticated
@@ -597,6 +626,11 @@
         SELECT id FROM assistants WHERE user_id = auth.uid()
       )
     );
+
+  -- Policy for professionals table: Allow admins to view all professionals
+  CREATE POLICY "Admins can view all professionals" ON professionals
+    FOR SELECT TO authenticated
+    USING (EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()));
 
   -- Client policies
   DROP POLICY IF EXISTS "View clients policy" ON clients;
