@@ -110,3 +110,47 @@ export interface TestResult {
   completed_at?: string;
   is_public_access?: boolean;
 }
+
+// Abonelik ve Ödeme Tipleri
+
+export type PlanType = 'starter' | 'growth' | 'clinic' | 'enterprise';
+export type SubscriptionStatus = 'active' | 'inactive' | 'cancelled' | 'pending_payment' | 'trial' | 'past_due';
+export type BillingCycle = 'monthly' | 'annual';
+export type PaymentMethod = 'iyzico' | 'bank_transfer';
+export type PaymentStatus = 'successful' | 'failed' | 'pending_verification' | 'verified';
+
+export interface Subscription {
+  id: string; // UUID
+  assistant_id: string; // assistants(id) ilişkisi
+  plan_type: PlanType;
+  status: SubscriptionStatus;
+  billing_cycle: BillingCycle;
+  start_date?: string | null; // ISO 8601 formatında timestampz
+  current_period_start?: string | null; // ISO 8601 formatında timestampz
+  current_period_end?: string | null; // ISO 8601 formatında timestampz
+  trial_start?: string | null; // ISO 8601 formatında timestampz
+  trial_end?: string | null; // ISO 8601 formatında timestampz
+  cancel_at_period_end?: boolean; 
+  cancelled_at?: string | null; // ISO 8601 formatında timestampz
+  created_at: string; // ISO 8601 formatında timestampz
+  updated_at: string; // ISO 8601 formatında timestampz
+  iyzico_subscription_id?: string | null; // Iyzico abonelik ID
+  iyzico_plan_code?: string | null; // Iyzico plan kodu
+  payment_method?: PaymentMethod | null; // YENİ: Aboneliğin yönetim şekli
+}
+
+export interface SubscriptionPayment {
+  id: string; // uuid
+  subscription_id: string; // uuid
+  amount: number;
+  currency: string;
+  payment_date: string; // timestamptz
+  payment_method: PaymentMethod;
+  status: PaymentStatus;
+  iyzico_transaction_id?: string | null;
+  bank_transfer_reference?: string | null;
+  verified_by_admin_id?: string | null; // uuid
+  verified_at?: string | null; // timestamptz
+  notes?: string | null;
+  created_at?: string; // timestamptz
+}

@@ -22,6 +22,12 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     
+    /* Alias */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    
     /* Type Checking */
     "allowJs": true,
     "esModuleInterop": true,

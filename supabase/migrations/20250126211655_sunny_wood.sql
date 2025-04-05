@@ -1463,3 +1463,156 @@
   -- Blog görüntülenme tablosu için gerekli izinler
   GRANT INSERT ON blog_views TO anon;
   GRANT ALL ON blog_views TO authenticated;
+
+-- <<< YENİ EKLENEN ABONELİK TABLOLARI VE POLİTİKALARI >>> --
+
+-- Define ENUM types used in subscription tables
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'plan_type_enum') THEN
+        CREATE TYPE plan_type_enum AS ENUM ('starter', 'growth', 'clinic', 'enterprise');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'subscription_status_enum') THEN
+        CREATE TYPE subscription_status_enum AS ENUM ('active', 'inactive', 'cancelled', 'pending_payment', 'trial', 'past_due');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'billing_cycle_enum') THEN
+        CREATE TYPE billing_cycle_enum AS ENUM ('monthly', 'annual');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_method_enum') THEN
+        CREATE TYPE payment_method_enum AS ENUM ('iyzico', 'bank_transfer'); -- YENİ ENUM TİPİ
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status_enum') THEN
+        CREATE TYPE payment_status_enum AS ENUM ('successful', 'failed', 'pending_verification', 'verified');
+    END IF;
+END $$;
+
+-- 1. subscriptions Tablosu: Asistanların abonelik planlarını ve durumlarını tutar
+CREATE TABLE subscriptions (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    assistant_id uuid REFERENCES assistants(id) ON DELETE CASCADE NOT NULL UNIQUE, 
+    user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    plan_type plan_type_enum NOT NULL, 
+    status subscription_status_enum NOT NULL DEFAULT 'trial', 
+    billing_cycle billing_cycle_enum NOT NULL, 
+    start_date timestamptz NOT NULL DEFAULT now(), 
+    current_period_end timestamptz NOT NULL, 
+    trial_end timestamptz, 
+    cancel_at_period_end boolean DEFAULT false, 
+    cancelled_at timestamptz, 
+    iyzico_subscription_id text, 
+    created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now(),
+    payment_method payment_method_enum NULL 
+);
+
+COMMENT ON TABLE subscriptions IS 'Stores subscription details for assistants/clinics.';
+COMMENT ON COLUMN subscriptions.assistant_id IS 'Links to the assistant managing the subscription.';
+COMMENT ON COLUMN subscriptions.current_period_end IS 'Date when the current paid subscription period ends.';
+COMMENT ON COLUMN subscriptions.status IS 'Current status of the subscription (e.g., active, trial, cancelled).';
+COMMENT ON COLUMN subscriptions.payment_method IS 'Payment method used for the subscription (e.g., iyzico, bank_transfer). Null for trial.';
+
+-- 2. subscription_payments Tablosu: Abonelikler için yapılan ödemeleri kaydeder
+CREATE TABLE subscription_payments (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    subscription_id uuid REFERENCES subscriptions(id) ON DELETE CASCADE NOT NULL, 
+    amount numeric NOT NULL CHECK (amount >= 0), 
+    currency text NOT NULL DEFAULT 'TRY', 
+    payment_date timestamptz NOT NULL DEFAULT now(), 
+    payment_method payment_method_enum NOT NULL, -- text yerine enum kullanıldı
+    status payment_status_enum NOT NULL DEFAULT 'pending_verification', -- text yerine enum kullanıldı
+    iyzico_transaction_id text, 
+    bank_transfer_reference text, 
+    verified_by_admin_id uuid REFERENCES auth.users(id), 
+    verified_at timestamptz, 
+    notes text, 
+    created_at timestamptz DEFAULT now()
+);
+
+COMMENT ON TABLE subscription_payments IS 'Records individual payments made for subscriptions.';
+COMMENT ON COLUMN subscription_payments.status IS 'Status of the payment (e.g., successful, pending_verification).';
+COMMENT ON COLUMN subscription_payments.verified_by_admin_id IS 'User ID of the admin who verified a bank transfer.';
+
+-- 3. RLS Politikaları
+
+-- subscriptions Tablosu için RLS
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- Asistanlar kendi aboneliklerini görebilir
+CREATE POLICY "Assistants can view their own subscription" ON subscriptions
+    FOR SELECT USING (auth.uid() = user_id);
+
+-- Asistanlar kendi aboneliklerini güncelleyebilir (iptal etme, belki plan değiştirme tetikleme vb.)
+CREATE POLICY "Assistants can update their own subscription status (e.g., cancel)" ON subscriptions
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- YENİ EKLEME: Asistanlar kendi abonelik kayıtlarını oluşturabilir (örneğin, deneme sürümü başlatma)
+CREATE POLICY "Assistants can insert their own subscription" ON subscriptions
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Adminler tüm abonelikleri görebilir
+CREATE POLICY "Admins can view all subscriptions" ON subscriptions
+    FOR SELECT USING (EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()));
+
+-- Adminler tüm abonelikleri yönetebilir (oluşturma, güncelleme, silme)
+CREATE POLICY "Admins can manage all subscriptions" ON subscriptions
+    FOR ALL USING (EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()));
+
+-- subscription_payments Tablosu için RLS
+ALTER TABLE subscription_payments ENABLE ROW LEVEL SECURITY;
+
+-- Asistanlar kendi abonelik ödemelerini görebilir
+CREATE POLICY "Assistants can view their subscription payments" ON subscription_payments
+    FOR SELECT USING (subscription_id IN (SELECT id FROM subscriptions WHERE assistant_id = (SELECT id FROM assistants WHERE user_id = auth.uid())));
+
+-- Asistanlar kendi havale ödemelerini 'pending_verification' olarak ekleyebilir (Havale yaptım butonu için)
+CREATE POLICY "Assistants can insert their bank transfer notifications" ON subscription_payments
+    FOR INSERT WITH CHECK (
+        payment_method = 'bank_transfer' AND
+        status = 'pending_verification' AND
+        subscription_id IN (SELECT id FROM subscriptions WHERE assistant_id = (SELECT id FROM assistants WHERE user_id = auth.uid()))
+    );
+
+-- Adminler tüm abonelik ödemelerini görebilir
+CREATE POLICY "Admins can view all subscription payments" ON subscription_payments
+    FOR SELECT USING (EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()));
+
+-- Adminler tüm abonelik ödemelerini yönetebilir (havale onayı, durum güncelleme vb.)
+CREATE POLICY "Admins can manage all subscription payments" ON subscription_payments
+    FOR ALL USING (EXISTS (SELECT 1 FROM admins WHERE user_id = auth.uid()));
+
+
+-- 4. Gerekli İzinler
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.subscriptions TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.subscription_payments TO authenticated;
+
+-- updated_at sütununu otomatik güncelleyen trigger fonksiyonu (zaten olabilir, yoksa eklenir)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'trigger_set_timestamp') THEN
+    CREATE FUNCTION trigger_set_timestamp()
+    RETURNS TRIGGER
+    LANGUAGE plpgsql -- Dili burada belirtiyoruz
+    AS $func$ -- İsimlendirilmiş dolar alıntılama başlıyor
+    BEGIN
+      NEW.updated_at = NOW();
+      RETURN NEW;
+    END;
+    $func$; -- İsimlendirilmiş dolar alıntılama bitiyor
+  END IF;
+END
+$$;
+
+-- Trigger'ı subscriptions tablosuna ekle (eğer yoksa)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'set_subscriptions_timestamp' AND tgrelid = 'subscriptions'::regclass
+  ) THEN
+    CREATE TRIGGER set_subscriptions_timestamp
+    BEFORE UPDATE ON subscriptions
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_set_timestamp();
+  END IF;
+END
+$$;

@@ -453,7 +453,7 @@ export function Home() {
         </div>
       </section>
 
-      {/* Özellikler - Tamamen Yenilendi */}
+      {/* Özellikler - Features.tsx ile Senkronize Edildi */}
       <section className="py-24 bg-slate-50/70 dark:bg-slate-800/30 relative overflow-hidden backdrop-blur-sm">
         {/* Arka Plan Efekti */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -492,53 +492,53 @@ export function Home() {
               viewport={{ once: true }}
               className="mt-4 text-lg text-slate-600 dark:text-slate-400"
             >
-              Danışan yönetiminden randevu planlamaya, terapi notlarından ödeme takibine kadar ihtiyacınız olan her şey tek bir platformda.
+              Randevu yönetiminden güvenli video görüşmelere, online testlerden detaylı analitiklere kadar ihtiyacınız olan her şey PsikoRan'da.
             </motion.p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
             {[
               { 
                 icon: <Calendar className="h-6 w-6 text-white" />, 
-                color: "bg-gradient-to-br from-indigo-500 to-indigo-600",
-                title: 'Akıllı Randevu Yönetimi', 
-                description: 'AI destekli randevu planlama, zaman çakışmalarını önleme ve danışanlarınıza otomatik hatırlatmalar gönderme.',
-                features: ['Online/Yüz yüze senkronizasyon', 'Video görüşme entegrasyonu', 'Otomatik hatırlatmalar']
+                color: "bg-gradient-to-br from-primary-500 to-primary-600",
+                title: 'Randevu Yönetimi', 
+                description: 'Gelişmiş takvim sistemi ile randevularınızı kolayca planlayın, yönetin ve danışanlarınıza hatırlatmalar gönderin.',
+                features: ['Günlük, haftalık, aylık görünümler', 'Otomatik hatırlatmalar', 'Müsaitlik yönetimi']
               },
               { 
                 icon: <Users className="h-6 w-6 text-white" />, 
                 color: "bg-gradient-to-br from-blue-500 to-blue-600",
-                title: 'Danışan Portali', 
-                description: 'Danışanlarınıza özel erişim sağlayarak formları doldurma, randevu planlama ve iletişim kurma imkanı sunun.',
-                features: ['Kişiselleştirilmiş erişim', 'Güvenli dosya paylaşımı', 'İlerleme takibi']
+                title: 'Danışan Yönetimi ve Portalı', 
+                description: 'Danışanlarınızın bilgilerini güvenle saklayın, ilerlemelerini takip edin ve onlara özel bir portal sunun.',
+                features: ['Detaylı danışan profilleri', 'Güvenli iletişim', 'Randevu ve test takibi']
               },
               { 
-                icon: <BrainCircuit className="h-6 w-6 text-white" />, 
+                icon: <Clipboard className="h-6 w-6 text-white" />,
                 color: "bg-gradient-to-br from-cyan-500 to-cyan-600",
-                title: 'Terapi Asistanı AI', 
-                description: 'Yapay zeka destekli not alma, analiz ve öneriler ile daha verimli terapi seansları gerçekleştirin.',
-                features: ['Ses tanıma ile not tutma', 'Duygu analizi', 'Özelleştirilebilir öneri sistemleri']
+                title: 'Online Psikolojik Testler', 
+                description: 'Geniş test kütüphanesinden testler atayın, online olarak uygulayın ve sonuçları otomatik olarak raporlayın.',
+                features: ['Çeşitli test envanteri', 'Otomatik puanlama', 'Görsel raporlama']
               },
               { 
-                icon: <Clock className="h-6 w-6 text-white" />, 
+                icon: <MessageSquare className="h-6 w-6 text-white" />,
                 color: "bg-gradient-to-br from-teal-500 to-teal-600",
-                title: 'Erişilebilir Destek Sistemleri', 
-                description: 'Danışanlarınıza 7/24 destek sağlayan ölçeklenebilir kaynak ve araçlara erişim imkanı sunun.',
-                features: ['Kişiselleştirilmiş kaynaklar', 'Etkileşimli egzersizler', 'İlerleme ölçümleri']
+                title: 'Güvenli Video Görüşmeler', 
+                description: 'Entegre Jitsi Meet ile KVKK/GDPR uyumlu, uçtan uca şifreli ve kesintisiz online seanslar gerçekleştirin.',
+                features: ['Uygulama içi görüşme', 'Ekran paylaşımı', 'Güvenli bağlantı']
               },
               { 
-                icon: <MessageSquare className="h-6 w-6 text-white" />, 
+                icon: <TurkLiraIcon className="h-6 w-6 text-white" />,
                 color: "bg-gradient-to-br from-emerald-500 to-emerald-600",
-                title: 'Güvenli İletişim Platformu', 
-                description: 'KVKK ve GDPR uyumlu, uçtan uca şifreli güvenli mesajlaşma ve dosya paylaşım platformu.',
-                features: ['Uçtan uca şifreleme', 'Dosya paylaşımı', 'Grup mesajlaşma']
+                title: 'Ödeme Takibi ve Finansal İzleme', 
+                description: 'Danışan ödemelerini kolayca takip edin, raporlayın ve kliniğinizin finansal durumunu analiz edin.',
+                features: ['Ödeme kaydı', 'Fatura bilgileri', 'Gelir raporları']
               },
               { 
                 icon: <BarChart className="h-6 w-6 text-white" />, 
                 color: "bg-gradient-to-br from-green-500 to-green-600",
-                title: 'Gelişmiş Analitik Paneller', 
-                description: 'Danışanlarınızın ilerlemesini ve işletmenizin performansını görselleştiren özelleştirilebilir raporlar.',
-                features: ['İnteraktif grafikler', 'Trend analizleri', 'Özelleştirilebilir raporlar']
+                title: 'Analitik Kontrol Paneli', 
+                description: 'Klinik performansınızı, danışan istatistiklerini ve randevu verilerini görsel panellerle takip edin.',
+                features: ['Performans metrikleri', 'İstatistiksel grafikler', 'Özelleştirilebilir görünüm']
               },
             ].map((feature, index) => (
               <motion.div 
@@ -550,26 +550,21 @@ export function Home() {
                 whileHover={{ y: -5, transition: { duration: 0.2 } }}
                 className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg hover:shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden transition-all duration-300 group relative"
               >
-                {/* Üst Görsel Kısmı */}
                 <div className={`p-6 ${feature.color}`}>
                   <div className="absolute top-0 right-0 p-3">
                     <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  {feature.icon}
-                </div>
+                      {feature.icon}
+                    </div>
                   </div>
                   <div className="h-12"></div>
                 </div>
-                
-                {/* İçerik Kısmı */}
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                     {feature.title}
                   </h3>
-                  
                   <p className="text-slate-600 dark:text-slate-400 mb-4 text-sm">
                     {feature.description}
                   </p>
-                  
                   <ul className="space-y-2 mb-4">
                     {feature.features.map((item, i) => (
                       <li key={i} className="flex items-center text-sm text-slate-700 dark:text-slate-300">
@@ -582,14 +577,6 @@ export function Home() {
                       </li>
                     ))}
                   </ul>
-                  
-                  <Link
-                    to="/feature-details"
-                    className="inline-flex items-center text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 group"
-                  >
-                    <span>Daha Fazla Bilgi</span>
-                    <ChevronRight className="h-4 w-4 ml-1 group-hover:ml-2 transition-all" />
-                  </Link>
                 </div>
               </motion.div>
             ))}
@@ -613,180 +600,91 @@ export function Home() {
         </div>
       </section>
 
-      {/* CTA Section - Modern Tasarım */}
+      {/* CTA Section - Pricing.tsx ile Senkronize Edildi ve Yeniden Yapılandırıldı */}
       <section className="py-20 relative overflow-hidden">
         {/* Arka Plan Efektleri */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-br from-primary-50/50 to-indigo-50/50 dark:from-primary-950/20 dark:to-indigo-950/20"></div>
-          
           {/* Morfik Şekiller */}
           <div className="absolute inset-0 overflow-hidden">
             <motion.div 
               className="absolute -right-40 -top-40 w-96 h-96 rounded-full bg-primary-300/20 dark:bg-primary-700/10 blur-3xl"
-              animate={{ 
-                x: [0, 20, 0],
-                y: [0, -20, 0],
-                scale: [1, 1.1, 1],
-              }}
+              animate={{ x: [0, 20, 0], y: [0, -20, 0], scale: [1, 1.1, 1] }}
               transition={{ repeat: Infinity, duration: 15, ease: "easeInOut" }}
             />
             <motion.div 
               className="absolute -left-20 top-1/2 w-72 h-72 rounded-full bg-indigo-300/30 dark:bg-indigo-700/10 blur-3xl"
-              animate={{ 
-                x: [0, -20, 0],
-                y: [0, 20, 0],
-                scale: [1, 1.05, 1],
-              }}
+              animate={{ x: [0, -20, 0], y: [0, 20, 0], scale: [1, 1.05, 1] }}
               transition={{ repeat: Infinity, duration: 12, ease: "easeInOut", delay: 2 }}
             />
             <motion.div 
               className="absolute -bottom-40 left-1/3 w-80 h-80 rounded-full bg-blue-300/20 dark:bg-blue-700/10 blur-3xl"
-              animate={{ 
-                x: [0, 30, 0],
-                y: [0, -30, 0],
-                scale: [1, 1.1, 1],
-              }}
+              animate={{ x: [0, 30, 0], y: [0, -30, 0], scale: [1, 1.1, 1] }}
               transition={{ repeat: Infinity, duration: 18, ease: "easeInOut", delay: 1 }}
             />
           </div>
         </div>
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-            {/* CTA İçerik */}
+          {/* CTA İçerik Kutusu */}
           <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-            viewport={{ once: true }}
-              className="w-full lg:w-3/5 text-center lg:text-left"
-            >
-              <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 text-sm font-medium border border-primary-200 dark:border-primary-800/50 mb-6">
-                <Sparkles className="h-4 w-4 mr-2" />
-                <span>Özel Teklif</span>
-              </span>
+             initial={{ opacity: 0, y: 30 }}
+             whileInView={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.7 }}
+             viewport={{ once: true }}
+            className="bg-gradient-to-br from-primary-500 to-indigo-600 dark:from-primary-600 dark:to-indigo-700 p-8 md:p-12 lg:p-16 rounded-3xl shadow-xl text-center"
+          >
+            <div className="max-w-3xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="inline-flex items-center px-4 py-1.5 rounded-full bg-white/20 dark:bg-white/10 backdrop-blur-sm mb-6"
+              >
+                <Sparkles className="h-5 w-5 mr-2 text-white" />
+                <span className="text-sm font-medium text-white">Hemen Başlayın</span>
+              </motion.div>
               
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-white leading-tight">
-                Profesyonel <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-indigo-600 dark:from-primary-400 dark:to-indigo-400">danışmanlık süreçlerinizi</span> dönüştürmeye hazır mısınız?
-              </h2>
+              <motion.h2 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7 }}
+                className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight"
+              >
+                PsikoRan ile Verimliliğinizi Artırın
+              </motion.h2>
               
-              <p className="mt-6 text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto lg:mx-0">
-                Bugün ücretsiz hesap oluşturun, PsikoRan'ın sunduğu avantajlarla işinizi büyütün ve danışanlarınıza daha iyi hizmet verin.
-              </p>
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.2 }}
+                className="mt-6 text-lg text-primary-100 dark:text-indigo-100"
+              >
+                İhtiyaçlarınıza uygun esnek planlarımızdan birini seçin. İster tek başınıza çalışın, ister kliniğinizi yönetin, PsikoRan yanınızda. 14 gün ücretsiz deneyin!
+              </motion.p>
               
-              <div className="mt-8 space-y-4 sm:space-y-0 sm:flex sm:items-center sm:gap-4 lg:justify-start sm:justify-center">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.4 }}
+                className="mt-10 flex flex-col sm:flex-row gap-4 justify-center"
+              >
+                <Link
+                  to="/pricing"
+                  className="px-7 py-3.5 rounded-full bg-white text-primary-600 font-medium shadow-lg hover:bg-slate-100 transition-all duration-300 flex items-center justify-center group"
+                >
+                  <span>Fiyatları İncele</span>
+                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-200" />
+                </Link>
                 <Link
                   to="/register"
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 rounded-full bg-primary-600 text-white font-medium shadow-lg shadow-primary-600/30 hover:bg-primary-700 hover:shadow-xl hover:shadow-primary-600/40 transition-all duration-300 text-center"
+                  className="px-7 py-3.5 rounded-full bg-white/20 text-white font-medium border border-white/30 shadow-sm hover:bg-white/30 transition-all duration-300 flex items-center justify-center"
                 >
-                  <span>Hemen Ücretsiz Deneyin</span>
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <span>Ücretsiz Hesap Oluştur</span>
                 </Link>
-                
-                <button 
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 rounded-full bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-medium border border-slate-300 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300 text-center"
-                  onClick={() => {
-                    // Scroll to contact form or open a modal
-                    document.getElementById('footer')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  <span>Bize Ulaşın</span>
-                </button>
-              </div>
-              
-              <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700/50">
-                <div className="flex flex-col sm:flex-row items-center gap-6 justify-center lg:justify-start">
-                  <div className="flex items-center gap-1">
-                    {Array(5).fill(0).map((_, i) => (
-                      <svg key={i} className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                    ))}
-              </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">
-                    <span className="font-medium text-slate-900 dark:text-white">4.9/5</span> ortalama puan, <span className="font-medium text-slate-900 dark:text-white">1000+</span> kullanıcı değerlendirmesi
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-            
-            {/* Tanıtım Kartları */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="w-full lg:w-2/5"
-            >
-              <div className="relative">
-                {/* Ana Kart */}
-                <div className="rounded-2xl overflow-hidden shadow-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                  <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-bold text-slate-900 dark:text-white">PsikoRan Pro</h3>
-                      <span className="px-3 py-1 rounded-full text-xs font-semibold bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300">
-                        Popüler
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-baseline mb-2">
-                      <span className="text-4xl font-bold text-slate-900 dark:text-white">₺349</span>
-                      <span className="text-sm text-slate-500 dark:text-slate-400 ml-2">/ay</span>
-                    </div>
-                    
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">
-                      Profesyoneller için tam kapasiteli platform
-                    </p>
-                  </div>
-                  
-                  <div className="p-6">
-                    <ul className="space-y-3">
-                      {[
-                        "Sınırsız danışan kaydı",
-                        "Gelişmiş takvim entegrasyonu",
-                        "AI destekli not alma asistanı",
-                        "Özelleştirilmiş raporlar ve analizler",
-                        "Online ödeme entegrasyonu",
-                        "7/24 öncelikli destek"
-                      ].map((feature, i) => (
-                        <li key={i} className="flex items-center">
-                          <div className="h-5 w-5 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mr-3 flex-shrink-0">
-                            <svg className="h-3 w-3 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                          </div>
-                          <span className="text-slate-700 dark:text-slate-300 text-sm">{feature}</span>
-                    </li>
-                      ))}
-                  </ul>
-                    
-                    <div className="mt-6">
-                      <Link
-                        to="/register?plan=pro"
-                        className="w-full flex items-center justify-center px-6 py-3 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 transition-colors text-center"
-                      >
-                        Ücretsiz 30 Gün Dene
-                      </Link>
-                      
-                      <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-3">
-                        30 gün ücretsiz deneme, kredi kartı gerekmez, istediğiniz zaman iptal.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Arka Plan Dekoratif Kart */}
-                <div className="absolute -bottom-3 -right-3 w-full h-full bg-primary-200/50 dark:bg-primary-900/20 rounded-2xl -z-10 blur-[1px]"></div>
-                
-                {/* Dekoratif Rozet */}
-                <div className="absolute -top-5 -right-5 transform rotate-12">
-                  <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg transform -rotate-12">
-                    %30 İndirim
-                </div>
-              </div>
+              </motion.div> 
             </div>
-          </motion.div>
-          </div>
+          </motion.div> 
         </div>
       </section>
       

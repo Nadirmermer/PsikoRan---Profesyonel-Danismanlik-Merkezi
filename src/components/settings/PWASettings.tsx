@@ -24,7 +24,7 @@ import {
   sendNotification 
 } from '../../utils/notificationUtils';
 
-const PWASettings = () => {
+export const PWASettings = () => {
   const { user, professional, assistant } = useAuth();
   const [displayMode, setDisplayMode] = useState<string>('browser');
   const [online, setOnline] = useState<boolean>(true);
@@ -452,6 +452,4 @@ const PWASettings = () => {
       )}
     </div>
   );
-};
-
-export default PWASettings; 
+}; 

@@ -10,7 +10,6 @@ export function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { initialize } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,43 +26,17 @@ export function AdminLogin() {
          if (signInError.message.includes('Invalid login credentials')) {
              throw new Error('Geçersiz e-posta veya şifre.');
          }
+         if (signInError.message.includes('Email not confirmed')) {
+             throw new Error('Lütfen e-posta adresinizi onaylayın.');
+         }
          throw signInError;
       }
       
-      await initialize(); 
-
-      await new Promise(resolve => setTimeout(resolve, 300)); 
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-          throw new Error("Kullanıcı oturumu bulunamadı.");
-      }
-
-      const { data: adminData, error: adminCheckError } = await supabase
-        .from('admins')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      if (adminCheckError) {
-          console.error("Admin check error after login:", adminCheckError);
-          throw new Error("Admin durumu kontrol edilirken bir hata oluştu.");
-      }
-
-      if (!adminData) {
-        await supabase.auth.signOut();
-        setError('Bu hesap admin yetkisine sahip değil.');
-        setLoading(false);
-        return;
-      }
-
       navigate('/admin/panel'); 
 
     } catch (err: any) {
       console.error('Admin login error:', err);
-      await supabase.auth.signOut().catch(e => console.error("Error signing out after failed admin login:", e));
       setError(err.message || 'Giriş sırasında bir hata oluştu.');
-    } finally {
       setLoading(false);
     }
   };

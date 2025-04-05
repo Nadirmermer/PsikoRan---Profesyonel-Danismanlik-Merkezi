@@ -4,15 +4,15 @@ import { Link } from 'react-router-dom';
 import { 
   Calendar, 
   Users, 
-  BrainCircuit, 
-  Clock, 
-  MessageSquare, 
+  ClipboardCheck,
+  Video,
+  DollarSign,
   BarChart, 
-  CheckCircle, 
+  FileText,
   ShieldCheck, 
-  Lightbulb, 
-  Heart, 
-  Trophy, 
+  Palette,
+  Code,
+  Smartphone,
   Sparkles,
   ChevronRight,
   Sun,
@@ -20,7 +20,9 @@ import {
   LogIn,
   ArrowRight,
   Menu,
-  X
+  X,
+  Settings,
+  MessageSquare
 } from 'lucide-react';
 import logo1 from '../assets/base-logo.webp';
 import { MainLayout } from '../components/layout/MainLayout';
@@ -92,66 +94,66 @@ export function Features() {
       icon: <Calendar className="h-6 w-6 text-white" />, 
       color: "bg-gradient-to-br from-primary-500 to-primary-600",
       title: 'Randevu Yönetimi', 
-      description: 'Akıllı takvimleme, hatırlatmalar ve otomatik zamanlama özellikleri ile randevularınızı kolayca yönetin.',
-      features: ['Çoklu takvim entegrasyonu', 'Otomatik hatırlatmalar', 'Çakışma kontrolü']
+      description: 'Gelişmiş takvim sistemi ile randevularınızı kolayca planlayın, yönetin ve danışanlarınıza hatırlatmalar gönderin.',
+      features: ['Günlük, haftalık, aylık görünümler', 'Otomatik hatırlatmalar', 'Müsaitlik yönetimi']
     },
     { 
       icon: <Users className="h-6 w-6 text-white" />, 
       color: "bg-gradient-to-br from-blue-500 to-blue-600",
-      title: 'Danışan Portali', 
-      description: 'Danışanlarınıza özel erişim sağlayarak formları doldurma, randevu planlama ve iletişim kurma imkanı sunun.',
-      features: ['Kişiselleştirilmiş erişim', 'Güvenli dosya paylaşımı', 'İlerleme takibi']
+      title: 'Danışan Yönetimi ve Portalı', 
+      description: 'Danışanlarınızın bilgilerini güvenle saklayın, ilerlemelerini takip edin ve onlara özel bir portal sunun.',
+      features: ['Detaylı danışan profilleri', 'Güvenli iletişim', 'Randevu ve test takibi']
     },
     { 
-      icon: <BrainCircuit className="h-6 w-6 text-white" />, 
+      icon: <ClipboardCheck className="h-6 w-6 text-white" />, 
       color: "bg-gradient-to-br from-cyan-500 to-cyan-600",
-      title: 'Terapi Asistanı AI', 
-      description: 'Yapay zeka destekli not alma, analiz ve öneriler ile daha verimli terapi seansları gerçekleştirin.',
-      features: ['Ses tanıma ile not tutma', 'Duygu analizi', 'Özelleştirilebilir öneri sistemleri']
+      title: 'Online Psikolojik Testler', 
+      description: 'Geniş test kütüphanesinden testler atayın, online olarak uygulayın ve sonuçları otomatik olarak raporlayın.',
+      features: ['Çeşitli test envanteri', 'Otomatik puanlama', 'Görsel raporlama']
     },
     { 
-      icon: <Clock className="h-6 w-6 text-white" />, 
+      icon: <Video className="h-6 w-6 text-white" />, 
       color: "bg-gradient-to-br from-teal-500 to-teal-600",
-      title: 'Erişilebilir Destek Sistemleri', 
-      description: 'Danışanlarınıza 7/24 destek sağlayan ölçeklenebilir kaynak ve araçlara erişim imkanı sunun.',
-      features: ['Kişiselleştirilmiş kaynaklar', 'Etkileşimli egzersizler', 'İlerleme ölçümleri']
+      title: 'Güvenli Video Görüşmeler', 
+      description: 'Entegre Jitsi Meet ile KVKK/GDPR uyumlu, uçtan uca şifreli ve kesintisiz online seanslar gerçekleştirin.',
+      features: ['Uygulama içi görüşme (modal)', 'Ekran paylaşımı', 'Güvenli bağlantı']
     },
     { 
-      icon: <MessageSquare className="h-6 w-6 text-white" />, 
+      icon: <DollarSign className="h-6 w-6 text-white" />, 
       color: "bg-gradient-to-br from-emerald-500 to-emerald-600",
-      title: 'Güvenli İletişim Platformu', 
-      description: 'KVKK ve GDPR uyumlu, uçtan uca şifreli güvenli mesajlaşma ve dosya paylaşım platformu.',
-      features: ['Uçtan uca şifreleme', 'Dosya paylaşımı', 'Grup mesajlaşma']
+      title: 'Ödeme Takibi ve Finansal İzleme', 
+      description: 'Danışan ödemelerini kolayca takip edin, raporlayın ve kliniğinizin finansal durumunu analiz edin.',
+      features: ['Ödeme kaydı', 'Fatura bilgileri', 'Gelir raporları']
     },
     { 
       icon: <BarChart className="h-6 w-6 text-white" />, 
       color: "bg-gradient-to-br from-green-500 to-green-600",
-      title: 'Gelişmiş Analitik Paneller', 
-      description: 'Danışanlarınızın ilerlemesini ve işletmenizin performansını görselleştiren özelleştirilebilir raporlar.',
-      features: ['İnteraktif grafikler', 'Trend analizleri', 'Özelleştirilebilir raporlar']
+      title: 'Analitik Kontrol Paneli', 
+      description: 'Klinik performansınızı, danışan istatistiklerini ve randevu verilerini görsel panellerle takip edin.',
+      features: ['Performans metrikleri', 'İstatistiksel grafikler', 'Özelleştirilebilir görünüm']
     },
   ];
 
   const additionalFeatures = [
     {
       icon: <ShieldCheck className="h-5 w-5 text-primary-600 dark:text-primary-400" />,
-      title: 'KVKK ve GDPR Uyumlu',
-      description: 'En yüksek güvenlik standartlarını karşılayan, tamamen uyumlu bir platform.'
+      title: 'KVKK ve GDPR Uyumlu Güvenlik',
+      description: 'Veri güvenliği en üst düzeyde sağlanır; RLS, RBAC ve şifreleme ile bilgileriniz korunur.'
     },
     {
-      icon: <Lightbulb className="h-5 w-5 text-amber-600 dark:text-amber-400" />,
-      title: 'Sürekli Gelişen Özellikler',
-      description: 'Düzenli güncellemeler ve yeni özelliklerle sürekli gelişen bir platform.'
+      icon: <Palette className="h-5 w-5 text-purple-600 dark:text-purple-400" />,
+      title: 'Modern ve Kullanıcı Odaklı Arayüz',
+      description: 'Karanlık/Aydınlık tema, akıcı animasyonlar ve erişilebilir tasarım ile keyifli bir kullanım deneyimi.'
     },
     {
-      icon: <Heart className="h-5 w-5 text-red-600 dark:text-red-400" />,
-      title: 'Kullanıcı Odaklı Tasarım',
-      description: 'Kullanımı kolay, sezgisel ve danışman ihtiyaçlarına göre tasarlanmış arayüz.'
+      icon: <Code className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />,
+      title: 'Gelişmiş Teknoloji Altyapısı',
+      description: 'React, TypeScript, Supabase gibi modern teknolojilerle hızlı, güvenilir ve ölçeklenebilir bir platform.'
     },
     {
-      icon: <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />,
-      title: 'Sektör Lideri Çözüm',
-      description: 'Ruh sağlığı profesyonelleri tarafından en çok tercih edilen dijital platform.'
+      icon: <Smartphone className="h-5 w-5 text-sky-600 dark:text-sky-400" />,
+      title: 'Mobil Uyumlu Deneyim',
+      description: 'Tüm cihazlarda (telefon, tablet, masaüstü) sorunsuz çalışan responsive tasarım.'
     }
   ];
 
@@ -230,13 +232,6 @@ export function Features() {
                     </li>
                   ))}
                 </ul>
-                
-                <button
-                  className="inline-flex items-center text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 group"
-                >
-                  <span>Detaylı Bilgi</span>
-                  <ChevronRight className="h-4 w-4 ml-1 group-hover:ml-2 transition-all" />
-                </button>
               </div>
             </motion.div>
           ))}
@@ -312,69 +307,35 @@ export function Features() {
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="md:max-w-xl">
               <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-4">
-                Platform Entegrasyonları ve <span className="text-primary-600 dark:text-primary-400">Ekosistem</span>
+                Entegre Çözümler ile <span className="text-primary-600 dark:text-primary-400">Kesintisiz Deneyim</span>
               </h2>
               <p className="text-slate-600 dark:text-slate-400 mb-8">
-                PsikoRan, kullandığınız diğer araçlarla sorunsuz entegrasyon sağlar. Google Takvim, Microsoft 365, Zoom ve daha fazlasıyla çalışın.
+                PsikoRan, güvenli video görüşmeler için Jitsi Meet entegrasyonu sunar. Gelecekteki güncellemelerle daha fazla entegrasyon eklemeyi planlıyoruz.
               </p>
               <div className="flex flex-wrap gap-4">
                 <motion.div 
                   whileHover={{ scale: 1.05 }}
                   className="px-5 py-2.5 bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 flex items-center gap-2"
                 >
-                  <Sparkles className="h-5 w-5 text-primary-500" />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Google Takvim</span>
+                  <Video className="h-5 w-5 text-blue-500" />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Jitsi Meet Video Konferans</span>
                 </motion.div>
-                <motion.div 
+                 <motion.div 
                   whileHover={{ scale: 1.05 }}
-                  className="px-5 py-2.5 bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 flex items-center gap-2"
+                  className="px-5 py-2.5 bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 flex items-center gap-2 opacity-60"
                 >
-                  <Sparkles className="h-5 w-5 text-blue-500" />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Microsoft 365</span>
-                </motion.div>
-                <motion.div 
-                  whileHover={{ scale: 1.05 }}
-                  className="px-5 py-2.5 bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 flex items-center gap-2"
-                >
-                  <Sparkles className="h-5 w-5 text-blue-400" />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Zoom</span>
-                </motion.div>
-                <motion.div 
-                  whileHover={{ scale: 1.05 }}
-                  className="px-5 py-2.5 bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 flex items-center gap-2"
-                >
-                  <Sparkles className="h-5 w-5 text-green-500" />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">WhatsApp</span>
-                </motion.div>
-                <motion.div 
-                  whileHover={{ scale: 1.05 }}
-                  className="px-5 py-2.5 bg-white dark:bg-slate-800 rounded-lg shadow border border-slate-200 dark:border-slate-700 flex items-center gap-2"
-                >
-                  <Sparkles className="h-5 w-5 text-cyan-500" />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Daha Fazla</span>
+                  <Sparkles className="h-5 w-5 text-gray-400" />
+                  <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Yakında Daha Fazlası...</span>
                 </motion.div>
               </div>
             </div>
             
-            <div className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 w-full md:w-64">
-              <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 mb-3">
-                <h4 className="text-sm font-medium text-slate-900 dark:text-white mb-2">Entegrasyonlar</h4>
-                <div className="flex gap-2 mb-2">
-                  {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="h-8 w-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
-                      <div className={`h-4 w-4 rounded-full bg-${['primary', 'blue', 'green', 'amber'][i-1]}-400/80`}></div>
-                    </div>
-                  ))}
-                </div>
-                <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                  <div className="h-full w-3/4 bg-primary-500 rounded-full"></div>
-                </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">6 aktif bağlantı</div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Tümünü Yönet</span>
-                <button className="text-xs font-medium text-primary-600 dark:text-primary-400">Ekle +</button>
-              </div>
+            <div className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 w-full md:w-64 flex items-center justify-center">
+               <div className="text-center">
+                 <Video size={48} className="mx-auto text-primary-500 mb-2" />
+                 <h4 className="text-sm font-medium text-slate-900 dark:text-white mb-1">Entegre Video Görüşme</h4>
+                 <p className="text-xs text-slate-500 dark:text-slate-400">Jitsi Meet ile Güvenli</p>
+               </div>
             </div>
           </div>
         </div>

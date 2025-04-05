@@ -83,6 +83,30 @@ export function Register() {
 
       if (clinicError) throw clinicError;
 
+      // --- YENİ: Otomatik 14 Günlük Deneme Aboneliği Oluştur --- 
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 14); // 14 gün ekle
+
+      const { error: subscriptionError } = await supabase
+        .from('subscriptions')
+        .insert({
+            assistant_id: assistantData[0].id, // Yeni oluşturulan asistan ID
+            user_id: authData.user.id, // Tekrar eklendi (DB ve RLS güncellendi)
+            plan_type: 'growth', // Varsayılan deneme planı
+            status: 'trial',
+            billing_cycle: 'monthly', // Deneme için varsayılan döngü
+            start_date: new Date().toISOString(),
+            trial_end: trialEndDate.toISOString(),
+            current_period_end: trialEndDate.toISOString(), // Deneme sonu aynı zamanda ilk dönem sonu
+            payment_method: null // Deneme süresince ödeme yöntemi yok
+        });
+
+        if (subscriptionError) {
+            console.error('Deneme aboneliği oluşturulurken KRİTİK hata:', subscriptionError);
+            throw new Error(`Deneme aboneliği oluşturulamadı: ${subscriptionError.message}`);
+        }
+        // --- Deneme Aboneliği Oluşturma Sonu ---
+
       // Başarılı kayıt sonrası modalı göster
       setShowSuccessModal(true);
     } catch (err: any) {

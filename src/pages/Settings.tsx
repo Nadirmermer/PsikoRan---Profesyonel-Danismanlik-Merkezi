@@ -11,9 +11,10 @@ import {
   CookieSettings, 
   AccountDeletion, 
   RoomManagement,
-  PWASettings
+  PWASettings,
+  SubscriptionManagement
 } from '../components/settings';
-import { User, UserCircle2, Building2, Bell, Shield, ChevronRight, Smartphone } from 'lucide-react';
+import { User, UserCircle2, Building2, Bell, Shield, ChevronRight, Smartphone, CreditCard } from 'lucide-react';
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
@@ -22,16 +23,16 @@ function classNames(...classes: string[]) {
 const Settings = () => {
   const { user, professional, assistant } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState(assistant ? 'clinic' : 'personal');
+  const [activeTab, setActiveTab] = useState(professional ? 'personal' : 'clinic');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Sayfa yüklendiğinde ve kullanıcı türü değiştiğinde aktif sekmeyi ayarla
   useEffect(() => {
-    // Asistan girişi yapıldıysa otomatik olarak klinik sekmesini aç
-    if (assistant) {
-      setActiveTab('clinic');
-    }
-  }, [assistant]);
+    // Kullanıcı türüne göre başlangıç sekmesini belirle (opsiyonel iyileştirme)
+    // if (assistant) setActiveTab('subscription'); 
+    // else if (professional) setActiveTab('personal');
+    document.title = "Ayarlar - PsikoRan";
+  }, [assistant, professional]);
 
   // Mobil cihazlarda bir sekme seçildiğinde menüyü kapat
   const handleTabClick = (tabId: string) => {
@@ -62,24 +63,26 @@ const Settings = () => {
 
   // Tab kategorilerini hazırla
   const getCategories = () => {
-        if (professional) {
-      return [
+    let categories = [];
+    if (professional) {
+      categories = [
         { id: 'personal', label: 'Kişisel', icon: <UserCircle2 className="h-5 w-5" /> },
         { id: 'clinic', label: 'Klinik Bilgileri', icon: <Building2 className="h-5 w-5" /> },
         { id: 'security', label: 'Güvenlik', icon: <Shield className="h-5 w-5" /> },
         { id: 'notifications', label: 'Bildirimler', icon: <Bell className="h-5 w-5" /> },
         { id: 'pwa', label: 'Uygulama Ayarları', icon: <Smartphone className="h-5 w-5" /> }
       ];
-        } else if (assistant) {
-      return [
+    } else if (assistant) {
+      categories = [
         // Asistan için kişisel sekmeyi kaldırdık
         { id: 'clinic', label: 'Klinik Yönetimi', icon: <Building2 className="h-5 w-5" /> },
+        { id: 'subscription', label: 'Abonelik', icon: <CreditCard className="h-5 w-5" /> },
         { id: 'security', label: 'Güvenlik', icon: <Shield className="h-5 w-5" /> },
         { id: 'notifications', label: 'Bildirimler', icon: <Bell className="h-5 w-5" /> },
         { id: 'pwa', label: 'Uygulama Ayarları', icon: <Smartphone className="h-5 w-5" /> }
       ];
     }
-    return [];
+    return categories;
   };
 
   const categories = getCategories();
@@ -87,10 +90,10 @@ const Settings = () => {
   // Sekme içeriğini render et
   const renderTabContent = () => {
     if (isLoading) {
-      return <div className="animate-pulse">Yükleniyor...</div>;
+      return <div className="animate-pulse p-6">Ayarlar yükleniyor...</div>;
     }
 
-      if (professional) {
+    if (professional) {
       switch (activeTab) {
         case 'personal':
           return (
@@ -268,6 +271,8 @@ const Settings = () => {
               <RoomManagement />
                         </div>
           );
+        case 'subscription':
+          return <SubscriptionManagement />;
         case 'security':
           return (
             <div className="space-y-10">

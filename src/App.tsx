@@ -21,9 +21,7 @@ import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { checkUpcomingAppointments } from './utils/notificationUtils';
 import { useAuth } from './lib/auth';
 import { useTheme } from './lib/theme';
-import { SubscriptionProvider } from './components/payment/SubscriptionContext';
 import { listenForNetworkChanges, listenForInstallPrompt, getDisplayMode } from './utils/pwa';
-import { requestNotificationPermission } from './utils/notificationUtils';
 import { supabase } from './lib/supabase';
 
 // Test Raporu sayfasını lazy-load ile import ediyoruz (default export varsayımıyla)
@@ -43,11 +41,22 @@ export const PWAContext = React.createContext({
   setIsInstallPromptShown: (shown: boolean) => {}
 });
 
+// Herkese açık yolların listesi
+const PUBLIC_PATHS = [
+  '/', '/login', '/register', '/create-assistant', '/forgot-password', '/reset-password',
+  '/features', '/pricing', '/demo', '/blog', '/privacy', '/terms', '/kvkk', '/contact', '/help', '/test-completed'
+];
+
+// Blog ve test gibi dinamik public yolları kontrol etmek için regex
+const PUBLIC_PATH_PATTERNS = [ /^\/blog\/.+$/, /^\/test\/.+$/, /^\/public-test\/.+$/ ];
+
 function AnimatedRoutes() {
   const location = useLocation();
   const { isLoading, setIsLoading } = React.useContext(LoadingContext);
   const { professional, assistant, user } = useAuth();
+  const currentPath = location.pathname;
 
+  // Route değişiminde loading state\'ini yöneten useEffect
   useEffect(() => {
     let loadingTimer: NodeJS.Timeout | null = null;
     
@@ -76,13 +85,22 @@ function AnimatedRoutes() {
       }
       setIsLoading(false);
     };
-  }, [location.pathname, setIsLoading]);
+  }, [currentPath, setIsLoading]);
 
-  // Periyodik olarak yaklaşan randevuları kontrol et
+  // Periyodik olarak yaklaşan randevuları SADECE GEREKLİ SAYFALARDA kontrol et
   useEffect(() => {
-    if (!user) return;
+    // Kullanıcı yoksa veya herkese açık bir yoldaysak kontrol yapma
+    const isPublic = PUBLIC_PATHS.includes(currentPath) || PUBLIC_PATH_PATTERNS.some(pattern => pattern.test(currentPath));
+    if (!user || isPublic) {
+      // Eğer interval çalışıyorsa temizle (sayfa değişimi durumu için)
+      // Bu kısmı interval değişkenini dışarıda tanımlayarak daha iyi yönetebiliriz,
+      // ama şimdilik basit tutalım. En kötü ihtimalle gereksiz yere çalışmaz.
+      return; 
+    }
 
-    // Randevu kontrolü yapmak için yardımcı fonksiyon
+    // Sadece giriş yapmış ve özel bir sayfada olan kullanıcı için kontrol yap
+    let checkInterval: NodeJS.Timeout | null = null;
+    
     const checkAppointments = () => {
       try {
         if (professional) {
@@ -90,21 +108,23 @@ function AnimatedRoutes() {
         } else if (assistant) {
           checkUpcomingAppointments(assistant.id, 'assistant');
         }
+        // Danışanlar için de randevu kontrolü gerekiyorsa buraya eklenebilir
       } catch (error) {
         // console.error('Randevu kontrolü sırasında hata oluştu:', error);
       }
     };
 
-    // İlk kontrolü yap
-    checkAppointments();
+    checkAppointments(); // İlk kontrolü yap
+    checkInterval = setInterval(checkAppointments, 15 * 60 * 1000); // 15 dakika
 
-    // Her 15 dakikada bir kontrol et
-    const checkInterval = setInterval(checkAppointments, 15 * 60 * 1000); // 15 dakika
-
+    // Cleanup fonksiyonu
     return () => {
-      clearInterval(checkInterval);
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
     };
-  }, [user, professional, assistant]);
+    // Bağımlılıklar: user, professional, assistant VE currentPath
+  }, [user, professional, assistant, currentPath]);
   
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -249,155 +269,65 @@ export function App() {
   const { user } = useAuth();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isPWA, setIsPWA] = useState(false);
+  const [isInstallPromptShown, setIsInstallPromptShown] = useState(false);
+  const [showCookieBanner, setShowCookieBanner] = useState(false);
   
-  // PWA Durumu
-  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
-  const [isPWA, setIsPWA] = useState<boolean>(false);
-  const [isInstallPromptShown, setIsInstallPromptShown] = useState<boolean>(false);
-
-  // Kullanıcı oturum açtığında bildirim izni iste
   useEffect(() => {
-    const requestNotifications = async () => {
-      if (user) {
-        try {
-          // Kullanıcı tipini bul
-          const { data: professionalData } = await supabase
-            .from('professionals')
-            .select('id')
-            .eq('user_id', user.id)
-            .single();
-            
-          if (professionalData) {
-            // Profesyonel ise bildirim izni iste
-            await requestNotificationPermission(user.id, 'professional');
-          } else {
-            // Asistan olup olmadığını kontrol et
-            const { data: assistantData } = await supabase
-              .from('assistants')
-              .select('id')
-              .eq('user_id', user.id)
-              .single();
-              
-            if (assistantData) {
-              // Asistan ise bildirim izni iste
-              await requestNotificationPermission(user.id, 'assistant');
-            } else {
-              // Danışan (veya başka bir rol) ise bildirim izni iste
-              await requestNotificationPermission(user.id, 'client');
-            }
-          }
-        } catch (error) {
-          // console.error('Bildirim izni istenirken hata:', error);
-        }
-      }
-    };
-    
-    requestNotifications();
-  }, [user]);
-
-  // Uygulama başlatma
-  useEffect(() => {
+    // Uygulama başlangıç işlemleri
     const initApp = async () => {
-      try {
-        // Tema başlatma
-        await initializeTheme();
+      initializeTheme();
+      setIsPWA(getDisplayMode() === 'standalone');
+      
+      // Network dinleyicileri
+      const removeNetworkListener = listenForNetworkChanges(
+        () => setIsOnline(true), 
+        () => setIsOnline(false) 
+      );
+      // Install prompt dinleyicisi
+      listenForInstallPrompt(); // Sadece çağrı yapılıyor, dönüş değeri kullanılmıyor
 
-        // PWA durumunu kontrol et
-        const displayMode = getDisplayMode();
-        setIsPWA(displayMode === 'standalone' || displayMode === 'standalone-ios');
-        
-        // PWA yükleme olayını dinlemeye başla
-        listenForInstallPrompt();
-
-        // Google aramalarından gelen ziyaretçileri ana sayfaya yönlendir
-        const isFromExternalSource = document.referrer && 
-          (document.referrer.includes('google.com') || 
-           document.referrer.includes('google.com.tr') ||
-           document.referrer.includes('bing.com') ||
-           document.referrer.includes('yandex.com') ||
-           !document.referrer.includes(window.location.hostname));
-        
-        const isLoginPage = window.location.pathname === '/login';
-        
-        if (isLoginPage && isFromExternalSource) {
-          window.history.replaceState({}, '', '/');
-        }
-      } catch (error) {
-        // console.error('Tema başlatılamadı:', error);
-      } finally {
-        // Yükleme durumlarını güncelle
-        setIsInitialLoading(false);
-        // Global loading state'ini de kapat
-        setTimeout(() => setIsLoading(false), 800);
+      // Cookie banner kontrolü
+      const cookieConsent = localStorage.getItem('cookie_consent');
+      if (!cookieConsent) {
+        setShowCookieBanner(true);
       }
+      
+      setIsInitialLoading(false);
+
+      // Temizleme fonksiyonu - Sadece network listener için
+      return () => {
+        if (typeof removeNetworkListener === 'function') removeNetworkListener();
+        // removeInstallListener ile ilgili kısım kaldırıldı
+      };
     };
 
-    // Uygulamayı başlat
     initApp();
-    
-    // Çevrimiçi/Çevrimdışı dinleyicileri
-    const cleanup = listenForNetworkChanges(
-      () => {
-        setIsOnline(true);
-        // console.log('Çevrimiçi duruma geçildi');
-      },
-      () => {
-        setIsOnline(false);
-        // console.log('Çevrimdışı duruma geçildi');
-      }
-    );
+  }, [initializeTheme]);
 
-    return () => cleanup();
-  }, []);
+  const handleAcceptCookies = () => {
+    localStorage.setItem('cookie_consent', 'true');
+    setShowCookieBanner(false);
+  };
 
-  // Kullanıcı oturum açtığında temayı yeniden başlat
-  useEffect(() => {
-    if (user) {
-      // Kullanıcı giriş yaptığında tema tercihlerini yeniden uygula
-      initializeTheme();
-    }
-  }, [user, initializeTheme]);
+  if (isInitialLoading) {
+    return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="large" /></div>;
+  }
 
   return (
-    <SubscriptionProvider>
-      <BrowserRouter future={{ 
-        v7_startTransition: true, 
-        v7_relativeSplatPath: true 
-      }}>
-        <ThemeProvider>
-          <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
-            <PWAContext.Provider 
-              value={{ 
-                isOnline, 
-                isPWA, 
-                isInstallPromptShown, 
-                setIsInstallPromptShown 
-              }}
-            >
-              {isInitialLoading ? (
-                <LoadingSpinner 
-                  isAppLoading={true} 
-                  size="large" 
-                  loadingText="Uygulama başlatılıyor..." 
-                  showLoadingText={true} 
-                />
-              ) : (
-                <>
-                  <AnimatedRoutes />
-                  {!isInstallPromptShown && !isPWA && (
-                    <div className="fixed bottom-0 left-0 right-0 z-50">
-                      <PWAInstallPrompt 
-                        className="m-4" 
-                      />
-                    </div>
-                  )}
-                  <CookieBanner />
-                </>
-              )}
-            </PWAContext.Provider>
-          </LoadingContext.Provider>
-        </ThemeProvider>
-      </BrowserRouter>
-    </SubscriptionProvider>
+    <ThemeProvider>
+      <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
+        <PWAContext.Provider value={{ isOnline, isPWA, isInstallPromptShown, setIsInstallPromptShown }}>
+          <BrowserRouter>
+            <AnimatedRoutes />
+            {showCookieBanner && <CookieBanner />}
+            <PWAInstallPrompt />
+          </BrowserRouter>
+        </PWAContext.Provider>
+      </LoadingContext.Provider>
+    </ThemeProvider>
   );
 }
+
+export default App;
