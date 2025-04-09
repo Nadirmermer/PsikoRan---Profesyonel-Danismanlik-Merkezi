@@ -238,20 +238,7 @@
     <!-- End Google Tag Manager (noscript) -->
     
     <div id="root">
-      <!-- İlk yükleme göstergesi -->
-      <div id="initialLoadingIndicator" class="loading-indicator">
-        <div class="loading-indicator-logo"></div>
-        <div class="loading-indicator-text">PsikoRan</div>
-        <div class="loading-indicator-subtext">Yükleniyor...</div>
-      </div>
-      
-      <!-- İlk içerik yer tutucu - FCP iyileştirmesi için -->
-      <header style="padding: 1rem; background-color: #f9fafb; text-align: center;">
-        <div style="max-width: 1200px; margin: 0 auto;">
-          <h1 style="font-size: 2rem; color: #4f46e5; margin-bottom: 1rem;">PsikoRan</h1>
-          <p style="font-size: 1.2rem; color: #6b7280;">Psikoterapist Randevu ve Danışan Yönetim Sistemi</p>
-        </div>
-      </header>
+      <!-- İlk içerik yer tutucu kaldırıldı -->
       
       <!-- Hata sayfası - JavaScript devre dışı olduğunda gösterilir -->
       <div id="error-page" class="error-page">
@@ -274,7 +261,7 @@
     </noscript>
     
     <!-- Javascript kodunu defer ile yükle -->
-    <script type="module" src="/src/main.tsx" defer onerror="document.getElementById('error-page').style.display = 'flex'; document.getElementById('initialLoadingIndicator').style.display = 'none';"></script>
+    <script type="module" src="/src/main.tsx" defer onerror="document.getElementById('error-page').style.display = 'flex';"></script>
     
     <!-- Service Worker ve SPA Yönlendirme -->
     <script nonce="p51k0r4n2025">
@@ -287,9 +274,7 @@
       window.addEventListener('error', function(e) {
         if (!hasError && e && ((e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) || e.error)) {
           hasError = true;
-          const loadingIndicator = document.getElementById('initialLoadingIndicator');
           const errorPage = document.getElementById('error-page');
-          if (loadingIndicator) loadingIndicator.style.display = 'none';
           if (errorPage) errorPage.style.display = 'flex';
           console.error('Uygulama yükleme hatası:', e);
           
@@ -378,26 +363,16 @@
         }
       }
       
-      // React uygulaması yüklendiğinde başlangıç yükleme göstergesini kaldır
+      // React uygulaması yüklendiğinde bildir
       window.addEventListener('load', () => {
         // Hata yoksa
         if (!hasError) {
-          setTimeout(() => {
-            const loadingIndicator = document.getElementById('initialLoadingIndicator');
-            if (loadingIndicator) {
-              loadingIndicator.classList.add('hidden');
-              setTimeout(() => {
-                if (loadingIndicator.parentNode) loadingIndicator.parentNode.removeChild(loadingIndicator);
-                
-                // Sayfa tam yüklendiğinde GTM'e bildir
-                gtag('event', 'page_fully_loaded', {
-                  'event_category': 'performance',
-                  'event_label': document.title,
-                  'non_interaction': true
-                });
-              }, 500);
-            }
-          }, 1000);
+          // Sayfa tam yüklendiğinde GTM'e bildir
+          gtag('event', 'page_fully_loaded', {
+            'event_category': 'performance',
+            'event_label': document.title,
+            'non_interaction': true
+          });
         }
       });
     </script>

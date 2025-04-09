@@ -28,6 +28,21 @@ function isValidScheme(url) {
 
 // Mesaj işleme - Güncelleme ve diğer iletişim için
 self.addEventListener('message', (event) => {
+  // Güvenli kaynaklar listesi - kendi alan adlarınızı ekleyin
+  const allowedOrigins = [
+    self.location.origin, // Kendi alan adınız
+    'http://localhost:3000', // Geliştirme ortamı
+    'http://localhost:5173',  // Vite geliştirme ortamı
+    'https://psikoran.com', // Üretim ortamı
+    'https://www.psikoran.com' // www ile üretim ortamı
+  ];
+
+  // Mesaj kaynağını doğrula
+  if (!allowedOrigins.includes(event.origin)) {
+    console.warn('Güvensiz kaynaktan gelen mesaj reddedildi:', event.origin);
+    return; // Güvensiz kaynaktan gelen mesajları işleme
+  }
+  
   if (event.data === 'SKIP_WAITING') {
     self.skipWaiting();
   }

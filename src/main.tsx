@@ -9,18 +9,13 @@ import { HelmetProvider } from 'react-helmet-async';
 // Ana uygulamayı lazy loading ile yükle
 const App = lazy(() => import('./App').then(module => ({ default: module.App })));
 
-// Router yapılandırması - future flags ile
+// Router yapılandırması
 const router = createBrowserRouter([
   {
     path: '*',
     element: <App />
   }
-], {
-  future: {
-    v7_startTransition: true, // React Router v7 için transition desteği
-    v7_relativeSplatPath: true // React Router v7 için splat path desteği
-  }
-});
+]);
 
 // Hata mesajı için fallback komponent
 const ErrorFallback = () => (
@@ -58,7 +53,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary fallback={<ErrorFallback />}>
       <HelmetProvider>
-        <Suspense fallback={<LoadingSpinner size="medium" loadingText="Yükleniyor..." />}>
+        <Suspense fallback={<LoadingSpinner size="medium" loadingText="Uygulama yükleniyor..." isAppLoading={true} />}>
           <RouterProvider router={router} />
         </Suspense>
       </HelmetProvider>

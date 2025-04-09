@@ -31,5 +31,3 @@
 # Güvenli olmayan HTTP bağlantılarını HTTPS'e yönlendir
 http://:hostName/* https://:hostName/:splat 301!
 
-# API yönlendirmeleri
-/api/* /.netlify/functions/:splat 200

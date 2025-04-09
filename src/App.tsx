@@ -57,35 +57,11 @@ function AnimatedRoutes() {
   const { professional, assistant, user } = useAuth();
   const currentPath = location.pathname;
 
-  // Route değişiminde loading state\'ini yöneten useEffect
+  // Route değişiminde loading state'ini kapalı tut
   useEffect(() => {
-    let loadingTimer: NodeJS.Timeout | null = null;
-    
-    const handleRouteChange = () => {
-      // Hemen loading state'ini false yap
-      setIsLoading(false);
-      
-      // Eğer varsa timer'ı temizle
-      if (loadingTimer) {
-        clearTimeout(loadingTimer);
-        loadingTimer = null;
-      }
-    };
-
-    // Sadece uzun süren route değişimlerinde loading göster
-    loadingTimer = setTimeout(() => {
-      setIsLoading(true);
-    }, 500);
-
-    // Route değişiminde hemen loading'i kapat
-    handleRouteChange();
-
-    return () => {
-      if (loadingTimer) {
-        clearTimeout(loadingTimer);
-      }
-      setIsLoading(false);
-    };
+    // Route değişimlerinde loading göstermeye gerek yok
+    // Sayfaların kendi içinde loading state'leri var
+    setIsLoading(false);
   }, [currentPath, setIsLoading]);
 
   // Periyodik olarak yaklaşan randevuları SADECE GEREKLİ SAYFALARDA kontrol et
@@ -313,7 +289,7 @@ export function App() {
   };
 
   if (isInitialLoading) {
-    return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="large" /></div>;
+    return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="large" isAppLoading={true} /></div>;
   }
 
   return (
