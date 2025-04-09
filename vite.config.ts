@@ -20,16 +20,44 @@ const copyAssetsPlugin = () => {
     closeBundle: () => {
       // public klasöründen build klasörüne dosyaları kopyala
       try {
+        // SPA redirects dosyasını kopyala
+        if (fs.existsSync('public/_redirects')) {
+          fs.copyFileSync('public/_redirects', 'build/_redirects');
+          console.log('_redirects dosyası build klasörüne kopyalandı');
+        } else {
+          console.warn('public/_redirects dosyası bulunamadı');
+          // Eğer dosya yoksa, oluştur
+          const redirectContent = '/* /index.html 200';
+          fs.writeFileSync('build/_redirects', redirectContent);
+          console.log('_redirects dosyası oluşturuldu ve build klasörüne yazıldı');
+        }
+
+        // robots.txt ve diğer SEO dosyalarını kopyala
+        if (fs.existsSync('public/robots.txt')) {
+          fs.copyFileSync('public/robots.txt', 'build/robots.txt');
+          console.log('robots.txt dosyası build klasörüne kopyalandı');
+        }
+        
+        if (fs.existsSync('public/sitemap.xml')) {
+          fs.copyFileSync('public/sitemap.xml', 'build/sitemap.xml');
+          console.log('sitemap.xml dosyası build klasörüne kopyalandı');
+        }
+        
+        if (fs.existsSync('public/sitemap.xsl')) {
+          fs.copyFileSync('public/sitemap.xsl', 'build/sitemap.xsl');
+          console.log('sitemap.xsl dosyası build klasörüne kopyalandı');
+        }
+
         // assets klasörünü kopyala (varsa)
         if (fs.existsSync('public/assets')) {
           copyRecursiveSync('public/assets', 'build/assets');
           console.log('assets klasörü build klasörüne kopyalandı');
         }
 
-        // SEO dosyalarını kopyala
-        if (fs.existsSync('public/assets/meta/seo/robots.txt')) {
-          fs.copyFileSync('public/assets/meta/seo/robots.txt', 'build/robots.txt');
-          console.log('robots.txt dosyası ana dizine kopyalandı');
+        // assets/pages klasörünü oluştur (varsa)
+        if (!fs.existsSync('build/assets/pages')) {
+          fs.mkdirSync('build/assets/pages', { recursive: true });
+          console.log('build/assets/pages klasörü oluşturuldu');
         }
       } catch (error) {
         console.error('Dosya kopyalama hatası:', error);
