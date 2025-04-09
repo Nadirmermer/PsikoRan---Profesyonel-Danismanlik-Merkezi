@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useEffect, useState, Suspense } from 'react';
 import {
   Login, Register, Dashboard, CreateAssistant, Professionals, Clients,
@@ -50,6 +50,7 @@ const PUBLIC_PATHS = [
 // Blog ve test gibi dinamik public yolları kontrol etmek için regex
 const PUBLIC_PATH_PATTERNS = [ /^\/blog\/.+$/, /^\/test\/.+$/, /^\/public-test\/.+$/ ];
 
+// BrowserRouter artık kullanılmıyor, doğrudan içerik döndürülüyor
 function AnimatedRoutes() {
   const location = useLocation();
   const { isLoading, setIsLoading } = React.useContext(LoadingContext);
@@ -319,11 +320,9 @@ export function App() {
     <ThemeProvider>
       <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
         <PWAContext.Provider value={{ isOnline, isPWA, isInstallPromptShown, setIsInstallPromptShown }}>
-          <BrowserRouter>
-            <AnimatedRoutes />
-            {showCookieBanner && <CookieBanner />}
-            <PWAInstallPrompt />
-          </BrowserRouter>
+          <AnimatedRoutes />
+          {showCookieBanner && <CookieBanner />}
+          <PWAInstallPrompt />
         </PWAContext.Provider>
       </LoadingContext.Provider>
     </ThemeProvider>

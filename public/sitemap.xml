@@ -11,43 +11,35 @@
   <!-- Ana Sayfa -->
   <url>
     <loc>https://psikoran.com/</loc>
-    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <lastmod>2025-04-25T12:00:00+03:00</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://psikoran.com/assets/meta/og-image.jpg</image:loc>
+      <image:loc>https://psikoran.com/assets/favicon/logo.png</image:loc>
       <image:title>PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi</image:title>
     </image:image>
   </url>
 
-  <!-- Özellikler Sayfası -->
+  <!-- Hakkimizda Sayfası -->
   <url>
-    <loc>https://psikoran.com/features</loc>
-    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Fiyatlandırma Sayfası -->
-  <url>
-    <loc>https://psikoran.com/pricing</loc>
-    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Demo Sayfası -->
-  <url>
-    <loc>https://psikoran.com/demo</loc>
-    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <loc>https://psikoran.com/hakkimizda</loc>
+    <lastmod>2025-04-20T12:00:00+03:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
-  <!-- İletişim Sayfası -->
+  <!-- Özellikler Sayfası -->
   <url>
-    <loc>https://psikoran.com/contact</loc>
-    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <loc>https://psikoran.com/ozellikler</loc>
+    <lastmod>2025-04-20T12:00:00+03:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Fiyatlandırma Sayfası -->
+  <url>
+    <loc>https://psikoran.com/fiyatlandirma</loc>
+    <lastmod>2025-04-20T12:00:00+03:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -55,45 +47,57 @@
   <!-- Blog Ana Sayfası -->
   <url>
     <loc>https://psikoran.com/blog</loc>
-    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
+    <lastmod>2025-04-22T12:00:00+03:00</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
 
-  <!-- Örnek Blog Yazıları - Gerçek uygulamada dinamik olarak oluşturulur -->
+  <!-- İletişim Sayfası -->
   <url>
-    <loc>https://psikoran.com/blog/psikolojik-danismanlik-hakkinda</loc>
-    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <loc>https://psikoran.com/iletisim</loc>
+    <lastmod>2025-04-20T12:00:00+03:00</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-    <image:image>
-      <image:loc>https://psikoran.com/assets/images/blog-placeholder.jpg</image:loc>
-      <image:title>Psikolojik Danışmanlık Hakkında</image:title>
-    </image:image>
+    <priority>0.6</priority>
   </url>
 
-  <!-- Yardım Sayfası -->
+  <!-- Login Sayfası -->
   <url>
-    <loc>https://psikoran.com/help</loc>
-    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <loc>https://psikoran.com/login</loc>
+    <lastmod>2025-04-20T12:00:00+03:00</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Signup Sayfası -->
+  <url>
+    <loc>https://psikoran.com/signup</loc>
+    <lastmod>2025-04-20T12:00:00+03:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- SSS Sayfası -->
+  <url>
+    <loc>https://psikoran.com/sss</loc>
+    <lastmod>2025-04-20T12:00:00+03:00</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
   </url>
 
   <!-- Gizlilik Politikası -->
   <url>
-    <loc>https://psikoran.com/privacy</loc>
-    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <loc>https://psikoran.com/gizlilik-politikasi</loc>
+    <lastmod>2025-04-20T12:00:00+03:00</lastmod>
     <changefreq>yearly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.3</priority>
   </url>
 
   <!-- Kullanım Koşulları -->
   <url>
-    <loc>https://psikoran.com/terms</loc>
-    <lastmod>2025-04-03T08:00:00+03:00</lastmod>
+    <loc>https://psikoran.com/kullanim-kosullari</loc>
+    <lastmod>2025-04-20T12:00:00+03:00</lastmod>
     <changefreq>yearly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.3</priority>
   </url>
 
   <!-- KVKK Sayfası -->

@@ -1,5 +1,7 @@
+# Security Contacts and Policy Information
 Contact: mailto:security@psikoran.com
-Expires: 2025-07-01T00:00:00.000Z
+Expires: 2025-12-31T23:59:59+03:00
 Preferred-Languages: tr, en
+Canonical: https://psikoran.com/.well-known/security.txt
 Policy: https://psikoran.com/guvenlik-politikasi
-Hiring: https://psikoran.com/kariyer 
+Hiring: https://psikoran.com/is-basvurusu 

@@ -1,5 +1,0 @@
-Contact: mailto:security@psikoran.com
-Expires: 2025-07-01T00:00:00.000Z
-Preferred-Languages: tr, en
-Policy: https://psikoran.com/guvenlik-politikasi
-Hiring: https://psikoran.com/kariyer 

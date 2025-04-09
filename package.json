@@ -1,11 +1,11 @@
 {
   "name": "mental-health-management",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node -e \"require('fs').copyFileSync('public/_redirects', 'dist/_redirects'); require('fs').copyFileSync('public/robots.txt', 'dist/robots.txt'); require('fs').copyFileSync('public/sitemap-index.xml', 'dist/sitemap-index.xml'); require('fs').copyFileSync('public/sitemap.xml', 'dist/sitemap.xml'); require('fs').copyFileSync('public/blog-sitemap.xml', 'dist/blog-sitemap.xml'); require('fs').copyFileSync('public/sitemap.xsl', 'dist/sitemap.xsl'); require('fs').copyFileSync('public/sitemap-index.xsl', 'dist/sitemap-index.xsl'); require('fs').mkdirSync('dist/assets/pages', { recursive: true });\"",
+    "build": "vite build && node -e \"require('fs').copyFileSync('public/_redirects', 'dist/_redirects'); require('fs').copyFileSync('public/robots.txt', 'dist/robots.txt'); require('fs').copyFileSync('public/sitemap.xml', 'dist/sitemap.xml'); require('fs').copyFileSync('public/sitemap.xsl', 'dist/sitemap.xsl'); require('fs').mkdirSync('dist/assets/pages', { recursive: true });\"",
     "lint": "eslint .",
     "preview": "vite preview"
   },

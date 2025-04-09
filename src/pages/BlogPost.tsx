@@ -4,7 +4,7 @@ import { ArrowLeft, Calendar, Clock, User, Tag, Share2, Copy, Twitter, Facebook,
 import { motion } from 'framer-motion';
 import { fetchBlogPostBySlug, formatBlogDate, processProfessionalNames, generateBlogJsonLd } from '../lib/blog';
 import { MainLayout } from '../components/layout/MainLayout';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 // Blog yazısı tipi

@@ -1,0 +1,11 @@
+/* TAKIM */
+Kurucu & Geliştirici: PsikoRan Ekibi
+İletişim: destek@psikoran.com
+Konum: Türkiye
+Instagram: @psikoran
+
+/* SİTE */
+Son güncelleme: 2025/04/09
+Dil: Türkçe
+Teknoloji: React, TypeScript, Supabase, TailwindCSS, Vite
+IDE: Visual Studio Code, WebStorm 

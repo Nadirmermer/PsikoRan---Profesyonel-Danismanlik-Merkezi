@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, ChevronRight, Filter, Search, X, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { fetchBlogPosts, formatBlogDate, generateBlogListJsonLd } from '../lib/blog';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 import { MainLayout } from '../components/layout/MainLayout';
 
 // Blog post tipi tanımlayalım

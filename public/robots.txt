@@ -21,6 +21,12 @@ Disallow: /settings
 Disallow: /blog-admin
 Disallow: /admin/
 Disallow: /api/
+Disallow: /internal/
+Disallow: /dashboard/private/
+Disallow: /video-gorusme-ozel/
+Disallow: /test-sonuclari/
+Disallow: /danisan-raporlari/
+Disallow: /auth/
 
 # Özel dosya ve dizinler
 Disallow: /*.json$
@@ -31,8 +37,8 @@ Disallow: /*.css.map$
 Disallow: /test/
 Disallow: /public-test/
 
-# Site haritası URL - Ana sitemap indeksi (tüm sitemapları içerir)
-Sitemap: https://psikoran.com/sitemap-index.xml
+# Site haritası URL
+Sitemap: https://psikoran.com/sitemap.xml
 
 # Özel Arama Motorları için yapılandırmalar
 User-agent: Googlebot
@@ -55,4 +61,11 @@ User-agent: AhrefsBot
 Disallow: /
 
 User-agent: SemrushBot
-Crawl-delay: 5 
+Crawl-delay: 5
+
+# Sosyal medya önizlemeleri için
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: / 

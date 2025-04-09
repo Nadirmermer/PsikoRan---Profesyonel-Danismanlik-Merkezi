@@ -18,17 +18,17 @@ const copyAssetsPlugin = () => {
   return {
     name: 'copy-assets-plugin',
     closeBundle: () => {
-      // public klasöründen dist klasörüne dosyaları kopyala
+      // public klasöründen build klasörüne dosyaları kopyala
       try {
         // assets klasörünü kopyala (varsa)
         if (fs.existsSync('public/assets')) {
-          copyRecursiveSync('public/assets', 'dist/assets');
-          console.log('assets klasörü dist klasörüne kopyalandı');
+          copyRecursiveSync('public/assets', 'build/assets');
+          console.log('assets klasörü build klasörüne kopyalandı');
         }
 
         // SEO dosyalarını kopyala
         if (fs.existsSync('public/assets/meta/seo/robots.txt')) {
-          fs.copyFileSync('public/assets/meta/seo/robots.txt', 'dist/robots.txt');
+          fs.copyFileSync('public/assets/meta/seo/robots.txt', 'build/robots.txt');
           console.log('robots.txt dosyası ana dizine kopyalandı');
         }
       } catch (error) {
@@ -71,7 +71,7 @@ export default defineConfig({
     open: true,
   },
   build: {
-    outDir: 'dist',
+    outDir: 'build',
     assetsDir: 'assets',
     sourcemap: false,
     minify: 'terser',

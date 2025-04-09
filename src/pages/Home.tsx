@@ -8,7 +8,7 @@ import logo1 from '../assets/base-logo.webp';
 import { TurkLiraIcon } from '../components/icons/TurkLiraIcon';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 
 // Blog yazısı tipi tanımı
 interface BlogPost {

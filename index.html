@@ -2,64 +2,34 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <!-- Google Tag Manager - Asenkron Yükleme -->
-    <script nonce="psikoran2025">
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    // GTM'i ana içerik yüklendikten sonra yükleme
-    document.addEventListener('DOMContentLoaded', function() {
-      setTimeout(function() {
-        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-        })(window,document,'script','dataLayer','GTM-PQ2BMSFH');
-      }, 2000); // 2 saniye gecikme
-    });
+    
+    <!-- Google Tag Manager -->
+    <script nonce="p51k0r4n2025">
+    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-PQ2BMSFH');
     </script>
     <!-- End Google Tag Manager -->
     
-    <!-- Google Analytics - Geliştirilmiş (asenkron) -->
-    <script nonce="psikoran2025" async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-    <script nonce="psikoran2025">
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      // Sayfa yüklenmesi ve performansını etkilememesi için yükleme geciktiriliyor
-      document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-          gtag('js', new Date());
-          gtag('config', 'G-XXXXXXXXXX', { 
-            'anonymize_ip': true,
-            'cookie_expires': 365 * 24 * 60 * 60, // 1 yıl
-            'cookie_domain': 'psikoran.com',
-            'cookie_flags': 'SameSite=None;Secure',
-            'page_title': document.title,
-            'send_page_view': true
-          });
-        }, 2500); // 2.5 saniye gecikme ile yükleme
-      });
-    </script>
-    <!-- End Google Analytics -->
-    
-    <!-- Favicon Ayarları - Logo kullanılarak güncellendi -->
+    <!-- Favicon Ayarları -->
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="icon" type="image/png" href="/assets/favicons/favicon-32x32.png?v=2" sizes="32x32" />
-    <link rel="icon" type="image/png" href="/assets/favicons/favicon-16x16.png?v=2" sizes="16x16" />
-    <link rel="icon" type="image/webp" href="/assets/favicons/favicon-32x32.webp?v=2" sizes="32x32" />
-    <link rel="icon" type="image/webp" href="/assets/favicons/favicon-16x16.webp?v=2" sizes="16x16" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
-    <link rel="apple-touch-icon" href="/assets/favicons/apple-touch-icon.png?v=2" />
-    <link rel="mask-icon" href="/favicon.svg?v=2" color="#4f46e5" />
-    <link rel="shortcut icon" href="/favicon.ico?v=2" />
+    <link rel="icon" type="image/png" href="/assets/favicon/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="/assets/favicon/favicon-16x16.png" sizes="16x16" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png" />
     
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-psikoran2025' https://www.googletagmanager.com https://*.google-analytics.com https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.emailjs.com https://*.googleapis.com https://*.google-analytics.com https://meet.jit.si wss://meet.jit.si; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://meet.jit.si; font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https://*.supabase.co https://*.amazonaws.com https://*.googleusercontent.com https://meet.jit.si https://*.jitsi.net; frame-src 'self' https://meet.jit.si https://*.jitsi.net https://*.jitsi.org; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-p51k0r4n2025' https://www.googletagmanager.com https://*.google-analytics.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.emailjs.com https://meet.jit.si wss://meet.jit.si https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://*.supabase.co https://*.amazonaws.com https://meet.jit.si https://*.google-analytics.com https://*.googletagmanager.com https://www.google.com https://www.google.tr; frame-src 'self' https://meet.jit.si https://*.googletagmanager.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests; block-all-mixed-content">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Permissions-Policy" content="camera=self, microphone=self, geolocation=(), interest-cohort=(), payment=(), autoplay=(), gyroscope=()">
+    <meta http-equiv="Cache-Control" content="max-age=3600, must-revalidate">
     
     <!-- PWA Meta Etiketleri -->
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
     <meta name="theme-color" content="#4f46e5" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -67,44 +37,33 @@
     <meta name="apple-mobile-web-app-title" content="PsikoRan" />
     
     <!-- Kritik görselleri önceden yükle -->
-    <link rel="preload" as="image" href="/assets/logo/logo.webp" imagesizes="64px">
+    <link rel="preload" as="image" href="/assets/favicon/logo.png" imagesizes="64px" fetchpriority="high">
     
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-152x152.png" sizes="152x152" />
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-180x180.png" sizes="180x180" />
-    <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-167x167.png" sizes="167x167" />
     
-    <!-- Apple Splash Screen -->
-    <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-2048-2732.jpg" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
-    <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-1668-2388.jpg" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
-    <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-1536-2048.jpg" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
-    <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-1125-2436.jpg" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+    <!-- Ana cihazlar için splash screen -->
     <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-1242-2688.jpg" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
-    <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-750-1334.jpg" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
-    <link rel="apple-touch-startup-image" href="/assets/splash/apple-splash-640-1136.jpg" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
     
-    <!-- SEO Meta Etiketleri - Geliştirildi -->
+    <!-- SEO Meta Etiketleri -->
     <title>PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi | Online Terapi Platformu</title>
     <meta name="description" content="PsikoRan, psikoterapistler için özel olarak tasarlanmış profesyonel bir randevu ve danışan yönetim sistemidir. Online terapi seansları, psikolojik test uygulamaları, danışan takibi ve raporlama araçlarıyla danışmanlık süreçlerinizi dijitalleştirin." />
-    <meta name="keywords" content="psikoterapist, psikolog, psikoloji, terapi, online terapi, danışmanlık, randevu sistemi, danışan yönetimi, psikolojik testler, bireysel terapi, çift terapisi, aile terapisi, uzaktan terapi, psikoterapi, bilişsel davranışçı terapi" />
+    <meta name="keywords" content="psikoterapist, psikolog, psikoloji, terapi, online terapi, danışmanlık, randevu sistemi, danışan yönetimi, psikolojik testler" />
     <meta name="author" content="PsikoRan" />
     
     <!-- Güncellenme tarihi meta etiketi -->
-    <meta name="revised" content="03 Nisan 2025" />
-    <meta name="date" content="2025-04-03T08:00:00+03:00" />
+    <meta name="revised" content="25 Nisan 2025" />
+    <meta name="date" content="2025-04-25T08:00:00+03:00" />
     
     <!-- Canonical URL -->
     <link rel="canonical" href="https://psikoran.com/" />
-    
-    <!-- Google arama sonuçları için logo ayarları -->
-    <meta itemprop="name" content="PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi">
-    <meta itemprop="image" content="https://psikoran.com/assets/logo/logo.webp">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://psikoran.com/" />
     <meta property="og:title" content="PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi | Online Terapi Platformu" />
     <meta property="og:description" content="Terapistler için danışan yönetimi, online terapi seansları ve psikolojik test uygulamalarını tek platformda birleştiren profesyonel dijital çözüm." />
-    <meta property="og:image" content="https://psikoran.com/assets/logo/logo.webp" />
+    <meta property="og:image" content="https://psikoran.com/assets/favicon/logo.png" />
     <meta property="og:site_name" content="PsikoRan" />
     <meta property="og:locale" content="tr_TR" />
     
@@ -113,17 +72,17 @@
     <meta property="twitter:url" content="https://psikoran.com/" />
     <meta property="twitter:title" content="PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi | Online Terapi Platformu" />
     <meta property="twitter:description" content="Terapistler için danışan yönetimi, online terapi seansları ve psikolojik test uygulamalarını tek platformda birleştiren profesyonel dijital çözüm." />
-    <meta property="twitter:image" content="https://psikoran.com/assets/logo/logo.webp" />
+    <meta property="twitter:image" content="https://psikoran.com/assets/favicon/logo.png" />
     
-    <!-- Yapılandırılmış Veri (Schema.org) - Genişletildi -->
-    <script nonce="psikoran2025" type="application/ld+json">
+    <!-- Yapılandırılmış Veri (Schema.org) -->
+    <script nonce="p51k0r4n2025" type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "PsikoRan",
         "url": "https://psikoran.com",
-        "logo": "https://psikoran.com/assets/logo/logo.webp",
-        "image": "https://psikoran.com/assets/logo/logo.webp",
+        "logo": "https://psikoran.com/assets/favicon/logo.png",
+        "image": "https://psikoran.com/assets/favicon/logo.png",
         "description": "Psikoterapistler ve danışanlar için profesyonel randevu ve danışan yönetim sistemi.",
         "applicationCategory": "HealthApplication",
         "operatingSystem": "Web, iOS, Android",
@@ -136,23 +95,13 @@
           "@type": "Organization",
           "name": "PsikoRan",
           "url": "https://psikoran.com",
-          "logo": "https://psikoran.com/assets/logo/logo.webp",
-          "image": "https://psikoran.com/assets/logo/logo.webp",
+          "logo": "https://psikoran.com/assets/favicon/logo.png",
           "foundingDate": "2023",
-          "address": {
-            "@type": "PostalAddress",
-            "addressCountry": "TR"
-          },
           "contactPoint": {
             "@type": "ContactPoint",
             "contactType": "customer service",
             "email": "info@psikoran.com"
-          },
-          "sameAs": [
-            "https://facebook.com/psikoran",
-            "https://twitter.com/psikoran",
-            "https://instagram.com/psikoran"
-          ]
+          }
         }
       }
     </script>
@@ -160,16 +109,14 @@
     <!-- Preconnect kritik domainler -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+    <link rel="preconnect" href="https://www.google-analytics.com" crossorigin />
     
-    <!-- Kritik CSS stylesheets preload -->
-    <link rel="preload" href="/assets/index-DINNfKhG.css" as="style">
+    <!-- Kritik CSS stylesheets -->
+    <link rel="stylesheet" href="/assets/style.css">
     
     <!-- Font yüklemeleri -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap&display=swap" rel="stylesheet" />
-    
-    <!-- Kritik font preload -->
-    <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-    <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa2JL7.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     
     <!-- Inline kritik CSS -->
     <style>
@@ -204,7 +151,7 @@
         opacity: 0;
         pointer-events: none;
       }
-      /* Logo placedholder alanı */
+      /* Logo placeholder alanı */
       .loading-indicator-logo {
         width: 56px;
         height: 56px;
@@ -215,7 +162,6 @@
       }
       /* Uygulama adı */
       .loading-indicator-text {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-weight: bold;
         font-size: 1.25rem;
         color: #4f46e5;
@@ -223,9 +169,42 @@
       }
       /* Yükleniyor metni */
       .loading-indicator-subtext {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-size: 0.875rem;
         color: #6b7280;
+      }
+      /* Hata sayfası */
+      .error-page {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+      }
+      /* Çevrimdışı uyarısı */
+      .offline-message {
+        display: none;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #4f46e5;
+        color: white;
+        padding: 16px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 1000;
+        max-width: 300px;
+      }
+      /* Noscript Uyarısı */
+      .noscript-message {
+        padding: 2rem;
+        text-align: center;
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #fff4e5;
+        border: 1px solid #ffb74d;
+        border-radius: 8px;
+        margin-top: 2rem;
       }
       @keyframes spin {
         0% { transform: rotate(0deg); }
@@ -244,6 +223,11 @@
         .loading-indicator-subtext {
           color: #9ca3af;
         }
+        .noscript-message {
+          background-color: #4b5563;
+          border-color: #6b7280;
+          color: #f9fafb;
+        }
       }
     </style>
   </head>
@@ -252,6 +236,7 @@
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PQ2BMSFH"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
+    
     <div id="root">
       <!-- İlk yükleme göstergesi -->
       <div id="initialLoadingIndicator" class="loading-indicator">
@@ -267,82 +252,153 @@
           <p style="font-size: 1.2rem; color: #6b7280;">Psikoterapist Randevu ve Danışan Yönetim Sistemi</p>
         </div>
       </header>
+      
+      <!-- Hata sayfası - JavaScript devre dışı olduğunda gösterilir -->
+      <div id="error-page" class="error-page">
+        <h2>Bir şeyler yanlış gitti</h2>
+        <p>Uygulamanın yüklenmesi sırasında bir hata oluştu. Lütfen sayfayı yenileyin veya daha sonra tekrar deneyin.</p>
+        <button onclick="window.location.reload()" style="padding: 0.5rem 1rem; background-color: #4f46e5; color: white; border: none; border-radius: 0.25rem; margin-top: 1rem; cursor: pointer;">Sayfayı Yenile</button>
+      </div>
     </div>
     
     <!-- Offline sayfa uyarısı -->
-    <div id="offline-message" style="display: none; position: fixed; bottom: 20px; right: 20px; background: #4f46e5; color: white; padding: 16px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000;">
+    <div id="offline-message" class="offline-message">
       Çevrimdışı modasınız. Bazı özellikler sınırlı olabilir.
     </div>
     
+    <noscript>
+      <div class="noscript-message">
+        <h2>JavaScript Gerekli</h2>
+        <p>Bu uygulamayı kullanabilmek için lütfen tarayıcınızda JavaScript'i etkinleştirin.</p>
+      </div>
+    </noscript>
+    
     <!-- Javascript kodunu defer ile yükle -->
-    <script type="module" src="/src/main.tsx" defer></script>
+    <script type="module" src="/src/main.tsx" defer onerror="document.getElementById('error-page').style.display = 'flex'; document.getElementById('initialLoadingIndicator').style.display = 'none';"></script>
     
-    <!-- Öncelikli içerik yüklendikten sonra yüklenecek kaynaklar -->
-    <script nonce="psikoran2025">
-      document.addEventListener('DOMContentLoaded', function() {
-        // Geciktirilmiş (lazy) kaynaklar için yükleme fonksiyonu
-        function loadLazyResource(url, type, callback) {
-          var element = document.createElement(type === 'script' ? 'script' : 'link');
+    <!-- Service Worker ve SPA Yönlendirme -->
+    <script nonce="p51k0r4n2025">
+      // DataLayer nesnesi oluştur (GTM için)
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      
+      // Yükleme ve çalışma zamanı hata yakalama
+      let hasError = false;
+      window.addEventListener('error', function(e) {
+        if (!hasError && e && ((e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) || e.error)) {
+          hasError = true;
+          const loadingIndicator = document.getElementById('initialLoadingIndicator');
+          const errorPage = document.getElementById('error-page');
+          if (loadingIndicator) loadingIndicator.style.display = 'none';
+          if (errorPage) errorPage.style.display = 'flex';
+          console.error('Uygulama yükleme hatası:', e);
           
-          if (type === 'script') {
-            element.src = url;
-            element.type = 'text/javascript';
-            element.defer = true;
-          } else {
-            element.href = url;
-            element.rel = 'stylesheet';
-          }
-          
-          if (callback) {
-            element.onload = callback;
-          }
-          
-          document.head.appendChild(element);
+          // Hata oluştuğunda GTM'e bildir
+          gtag('event', 'error', {
+            'event_category': 'error',
+            'event_label': e.message || 'Uygulama yükleme hatası',
+            'non_interaction': true
+          });
         }
+      }, true);
+      
+      // SPA yönlendirme desteği
+      (function() {
+        // Eğer doğrudan bir alt sayfaya erişildiyse, ana uygulamaya yönlendir ve rotayı hatırla
+        const isDirectSPARoute = window.location.pathname !== '/' && 
+                               !window.location.pathname.includes('.') && 
+                               !window.location.pathname.match(/^\/api\//);
         
-        // Öncelikli olmayan kaynakları 3 saniye sonra yükle
-        setTimeout(function() {
-          // Burada öncelikli olmayan script ve style kaynaklarını yükleyebilirsiniz
-        }, 3000);
-      });
-    </script>
-    
-    <!-- Service Worker Kaydı -->
-    <script nonce="psikoran2025">
+        if (isDirectSPARoute) {
+          // Yol bilgisini sakla
+          const cleanPath = window.location.pathname.replace(/^\/|\/$/g, '');
+          sessionStorage.setItem('spa_redirect_path', cleanPath);
+          
+          // Parametreleri sakla
+          if (window.location.search) {
+            sessionStorage.setItem('spa_redirect_params', window.location.search);
+          }
+          
+          // Hash değerlerini sakla
+          if (window.location.hash) {
+            sessionStorage.setItem('spa_redirect_hash', window.location.hash);
+          }
+          
+          // Sayfa görüntüleme olayını GTM'e bildir
+          gtag('event', 'page_view', {
+            'page_path': window.location.pathname,
+            'page_title': document.title
+          });
+        }
+      })();
+      
+      // Service Worker Kaydı
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
+          navigator.serviceWorker.register('/service-worker.js')
             .then(registration => {
-              // console.log('Service Worker kaydı başarılı:', registration.scope);
+              // Kayıt başarılı
+              gtag('event', 'service_worker_registered', {
+                'event_category': 'service_worker',
+                'non_interaction': true
+              });
             })
             .catch(error => {
-              // console.log('Service Worker kaydı başarısız:', error);
+              console.error('SW kayıt hatası:', error);
+              gtag('event', 'service_worker_error', {
+                'event_category': 'error',
+                'event_label': error.message || 'Service Worker kayıt hatası',
+                'non_interaction': true
+              });
             });
         });
         
         // Çevrimdışı durumu kontrolü
+        const offlineMessage = document.getElementById('offline-message');
+        
         window.addEventListener('online', () => {
-          document.getElementById('offline-message').style.display = 'none';
+          if (offlineMessage) offlineMessage.style.display = 'none';
+          gtag('event', 'online', {
+            'event_category': 'connectivity',
+            'non_interaction': true
+          });
         });
         
         window.addEventListener('offline', () => {
-          document.getElementById('offline-message').style.display = 'block';
+          if (offlineMessage) offlineMessage.style.display = 'block';
+          gtag('event', 'offline', {
+            'event_category': 'connectivity',
+            'non_interaction': true
+          });
         });
+        
+        // Başlangıç durumunu kontrol et
+        if (!navigator.onLine && offlineMessage) {
+          offlineMessage.style.display = 'block';
+        }
       }
       
       // React uygulaması yüklendiğinde başlangıç yükleme göstergesini kaldır
       window.addEventListener('load', () => {
-        // React uygulaması yüklendikten sonra göstergeyi kaldırmak için timeout ekleyelim
-        setTimeout(() => {
-          const loadingIndicator = document.getElementById('initialLoadingIndicator');
-          if (loadingIndicator) {
-            loadingIndicator.classList.add('hidden');
-            // Animasyon bittikten sonra tamamen kaldır
-            setTimeout(() => {
-              loadingIndicator.remove();
-            }, 500);
-          }
-        }, 1000); // 1 saniye beklet, React'ın yüklenmesi için yeterli olacaktır
+        // Hata yoksa
+        if (!hasError) {
+          setTimeout(() => {
+            const loadingIndicator = document.getElementById('initialLoadingIndicator');
+            if (loadingIndicator) {
+              loadingIndicator.classList.add('hidden');
+              setTimeout(() => {
+                if (loadingIndicator.parentNode) loadingIndicator.parentNode.removeChild(loadingIndicator);
+                
+                // Sayfa tam yüklendiğinde GTM'e bildir
+                gtag('event', 'page_fully_loaded', {
+                  'event_category': 'performance',
+                  'event_label': document.title,
+                  'non_interaction': true
+                });
+              }, 500);
+            }
+          }, 1000);
+        }
       });
     </script>
   </body>

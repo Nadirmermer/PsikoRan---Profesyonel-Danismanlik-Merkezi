@@ -1,44 +1,46 @@
 // PsikoRan Service Worker
+const CACHE_VERSION = 'v1.2';
+const CACHE_NAME = `psikoran-${CACHE_VERSION}`;
 
 // Önbelleğe alınacak temel dosyaların listesi
-const CACHE_NAME = 'psikoran-app-v1';
-const STATIC_ASSETS = [
+const FILES_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/favicon.ico',
-  '/images/icons/icon-192x192.webp',
-  '/images/icons/icon-512x512.webp',
-  '/images/icons/badge-72x72.webp',
-  '/assets/styles.css', // Eğer varsa
-  '/assets/app.js',     // Eğer varsa
-  '/offline.html'       // Çevrimdışı sayfası
+  '/offline.html',
+  '/assets/favicon/logo.png',
+  '/assets/icons/android-chrome-192x192.png',
+  '/assets/icons/android-chrome-512x512.png'
 ];
+
+// Desteklenen URL şemaları
+const SUPPORTED_SCHEMES = ['http', 'https'];
+
+// URL şemasını kontrol et
+function isValidScheme(url) {
+  try {
+    const urlObj = new URL(url);
+    return SUPPORTED_SCHEMES.includes(urlObj.protocol.replace(':', ''));
+  } catch (e) {
+    return false;
+  }
+}
 
 // Mesaj işleme - Güncelleme ve diğer iletişim için
 self.addEventListener('message', (event) => {
-  // console.log('[Service Worker] Mesaj alındı:', event.data);
-  
   if (event.data === 'SKIP_WAITING') {
-    // console.log('[Service Worker] Skip Waiting...');
     self.skipWaiting();
   }
 });
 
 // Service Worker kurulumunda önbelleğe alma
 self.addEventListener('install', (event) => {
-  // console.log('[Service Worker] Kurulum');
-  
-  // Yüklenme işlemini beklet
   event.waitUntil(
-    caches
-      .open(CACHE_NAME)
+    caches.open(CACHE_NAME)
       .then((cache) => {
-        // console.log('[Service Worker] Önbelleğe Alınıyor');
-        return cache.addAll(STATIC_ASSETS);
+        return cache.addAll(FILES_TO_CACHE);
       })
       .then(() => {
-        // console.log('[Service Worker] Kurulum Tamamlandı');
         return self.skipWaiting();
       })
   );
@@ -46,76 +48,129 @@ self.addEventListener('install', (event) => {
 
 // Service Worker etkinleştirildiğinde eski önbellekleri temizle
 self.addEventListener('activate', (event) => {
-  // console.log('[Service Worker] Etkinleştiriliyor');
-  
-  // Etkinleştirme işlemini beklet
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.filter((cacheName) => {
-          return cacheName !== CACHE_NAME;
-        }).map((cacheName) => {
-          // console.log('[Service Worker] Eski Önbellek Siliniyor:', cacheName);
-          return caches.delete(cacheName);
-        })
-      );
-    }).then(() => {
-      // console.log('[Service Worker] Etkinleştirildi');
+    caches.keys().then((keyList) => {
+      return Promise.all(keyList.map((key) => {
+        if (key !== CACHE_NAME) {
+          return caches.delete(key);
+        }
+      }));
+    })
+    .then(() => {
       return self.clients.claim();
     })
   );
 });
 
-// Ağ isteklerini yakalayarak servis et
+// Fetch olayı - önbellek stratejisi
 self.addEventListener('fetch', (event) => {
-  // API isteklerini yönlendir
+  // URL şeması desteklenmiyorsa işlemi pas geç
+  if (!isValidScheme(event.request.url)) {
+    return;
+  }
+
+  // API isteklerini atlayalım
   if (event.request.url.includes('/api/')) {
     return;
   }
-  
-  // HTML isteklerini ağdan getir, olmuyorsa önbellekten, olmuyorsa offline.html'i göster
-  if (event.request.headers.get('Accept').includes('text/html')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          // Başarılı ağ yanıtını önbelleğe kaydet
-          const clonedResponse = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, clonedResponse);
-          });
-          return response;
-        })
-        .catch(() => {
-          // Ağ hatası durumunda önbellekten kontrol et
-          return caches.match(event.request)
-            .then((cachedResponse) => {
-              return cachedResponse || caches.match('/offline.html');
-            });
-        })
-    );
+
+  // Supabase isteklerini atlayalım
+  if (event.request.url.includes('supabase.co')) {
     return;
   }
-  
-  // Resim, CSS, JS gibi statik dosyalar için öncelikle önbellekten getir, olmuyorsa ağdan getir
-  if (event.request.url.match(/\.(css|js|png|jpg|jpeg|gif|svg|ico|webp|woff|woff2|ttf|eot)$/)) {
+
+  // Navigation preload'ı beklemek için waitUntil kullanımı
+  if (event.request.mode === 'navigate' && event.preloadResponse) {
+    event.waitUntil(
+      event.preloadResponse.then((preloadResponse) => {
+        if (preloadResponse) {
+          return preloadResponse;
+        }
+      }).catch(() => {
+        // Preload hatası
+      })
+    );
+  }
+
+  // Görseller için Cache First stratejisi
+  if (
+    event.request.destination === 'image' ||
+    event.request.url.match(/\.(png|jpg|jpeg|svg|webp|ico|gif)$/)
+  ) {
     event.respondWith(
       caches.match(event.request)
-        .then((cachedResponse) => {
-          return cachedResponse || fetch(event.request)
-            .then((response) => {
-              // Başarılı ağ yanıtını önbelleğe kaydet
-              const clonedResponse = response.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, clonedResponse);
-              });
-              return response;
+        .then((response) => {
+          return response || fetch(event.request)
+            .then((fetchResponse) => {
+              // Sadece geçerli şemalar için cache.put işlemi yap
+              if (isValidScheme(event.request.url)) {
+                return caches.open(CACHE_NAME)
+                  .then((cache) => {
+                    cache.put(event.request, fetchResponse.clone());
+                    return fetchResponse;
+                  });
+              }
+              return fetchResponse;
+            })
+            .catch(() => {
+              return caches.match('/offline.html');
             });
         })
     );
     return;
   }
-  
-  // Diğer tüm istekler için ağı dene, olmuyorsa önbellekten getir
+
+  // CSS, JS gibi statik içerik için de Cache First stratejisi
+  if (event.request.url.match(/\.(css|js|woff|woff2|ttf|eot)$/)) {
+    event.respondWith(
+      caches.match(event.request)
+        .then((response) => {
+          return response || fetch(event.request)
+            .then((fetchResponse) => {
+              if (isValidScheme(event.request.url)) {
+                return caches.open(CACHE_NAME)
+                  .then((cache) => {
+                    cache.put(event.request, fetchResponse.clone());
+                    return fetchResponse;
+                  });
+              }
+              return fetchResponse;
+            });
+        })
+    );
+    return;
+  }
+
+  // HTML için Network First stratejisi
+  if (event.request.mode === 'navigate' || event.request.headers.get('Accept').includes('text/html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((fetchResponse) => {
+          // Başarılı yanıtı önbelleğe alalım
+          if (isValidScheme(event.request.url)) {
+            const responseToCache = fetchResponse.clone();
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+          }
+          return fetchResponse;
+        })
+        .catch(() => {
+          // Çevrimdışı ise önbellekten servise edelim
+          return caches.match(event.request)
+            .then((cachedResponse) => {
+              if (cachedResponse) {
+                return cachedResponse;
+              }
+              return caches.match('/offline.html');
+            });
+        })
+    );
+    return;
+  }
+
+  // Diğer tüm istekler için Network First
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -129,17 +184,14 @@ self.addEventListener('fetch', (event) => {
 
 // Push bildirimlerini yakala
 self.addEventListener('push', (event) => {
-  // console.log('[Service Worker] Push Bildirimi Alındı');
   let pushData = {};
   
   try {
     // Push verisini al
     if (event.data) {
       pushData = event.data.json();
-      // console.log('[Service Worker] Push mesajı alındı:', pushData);
     }
   } catch (e) {
-    // console.error('[Service Worker] Push mesajı JSON olarak ayrıştırılamadı', e);
     // JSON olarak ayrıştırılamayan veri için metin almayı dene
     if (event.data) {
       pushData = {
@@ -154,15 +206,14 @@ self.addEventListener('push', (event) => {
   const defaultTitle = 'PsikoRan';
   const defaultOptions = {
     body: 'Yeni bir bildiriminiz var.',
-    icon: '/images/icons/icon-192x192.webp',
-    badge: '/images/icons/badge-72x72.webp',
+    icon: '/assets/icons/android-chrome-192x192.png',
+    badge: '/assets/favicon/logo.png',
     vibrate: [100, 50, 100], // Titreşim
     silent: false, // Sessiz mod kapalı - ses çalacak
     timestamp: Date.now(), // Zaman damgası eklendi
     actions: [{ // Bildirime eylemler ekle
       action: 'view',
-      title: 'Görüntüle',
-      icon: '/images/icons/view-icon.webp'
+      title: 'Görüntüle'
     }],
     data: {
       url: '/'
@@ -176,23 +227,13 @@ self.addEventListener('push', (event) => {
     ...pushData
   };
   
-  // console.log('[Service Worker] Bildirim gösterilecek:', { title, options });
-  
   event.waitUntil(
     self.registration.showNotification(title, options)
-      .then(() => {
-        // console.log('[Service Worker] Bildirim başarıyla gösterildi');
-      })
-      .catch(error => {
-        // console.error('[Service Worker] Bildirim gösterilirken hata:', error);
-      })
   );
 });
 
 // Bildirime tıklama
 self.addEventListener('notificationclick', (event) => {
-  // console.log('[Service Worker] Bildirime Tıklandı');
-  
   const notification = event.notification;
   const action = event.action;
   const data = notification.data || {};
@@ -200,43 +241,148 @@ self.addEventListener('notificationclick', (event) => {
   // Bildirimi kapat
   notification.close();
   
-  // Ek eylem varsa işle
-  if (action) {
-    // İleriki kullanım için ek eylemler eklenebilir
-    // console.log(`[Service Worker] Bildirim Eylemi: ${action}`);
-  }
-  
-  // Tıklama işlemini beklet
-  event.waitUntil(
-    // Açık sekmelerden ilgili URL'e sahip olanı bul
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        // Yönlendirilecek URL
-        const targetUrl = data.url || '/';
-        
-        // Açık sekmeleri kontrol et
-        for (const client of clientList) {
-          // Açık sekme varsa ve URL başlangıcı aynıysa fokusla
-          if (client.url.startsWith(self.location.origin) && 'focus' in client) {
-            client.focus();
-            // Doğru URL'de değilse yönlendir
-            if (client.url !== self.location.origin + targetUrl) {
-              client.navigate(targetUrl);
-            }
-            return;
+  // Bildirim eylemine göre işlem yap
+  if (action === 'view' || !action) {
+    const urlToOpen = data.url || '/';
+    
+    // Mevcut sekmeyi kontrol et
+    event.waitUntil(
+      clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true
+      })
+      .then((windowClients) => {
+        // Açık olan bir sekme varsa, onu kullan
+        for (let i = 0; i < windowClients.length; i++) {
+          const client = windowClients[i];
+          if (client.url.includes(self.registration.scope) && 'focus' in client) {
+            client.navigate(urlToOpen);
+            return client.focus();
           }
         }
         
-        // Hiç açık sekme yoksa yeni sekme aç
+        // Açık sekme yoksa, yeni bir sekme aç
         if (clients.openWindow) {
-          return clients.openWindow(targetUrl);
+          return clients.openWindow(urlToOpen);
         }
       })
-  );
+    );
+  }
 });
 
-// Bilinmiyor, ancak eğer bildirimler gelmiyorsa 
-// bazı mobil cihazlar bu olayda özel işlem gerektirebilir
-self.addEventListener('notificationclose', (event) => {
-  // console.log('[Service Worker] Bildirim Kapatıldı', event);
-}); 
+// IndexedDB ve LocalStorage ile Offline Senkronizasyon
+// Basit IndexedDB veritabanı kurulumu
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('psikoran-offline-db', 1);
+    
+    request.onupgradeneeded = function(event) {
+      const db = event.target.result;
+      
+      // Randevular için store
+      if (!db.objectStoreNames.contains('pending-appointments')) {
+        db.createObjectStore('pending-appointments', { keyPath: 'id', autoIncrement: true });
+      }
+      
+      // Notlar için store
+      if (!db.objectStoreNames.contains('pending-notes')) {
+        db.createObjectStore('pending-notes', { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    
+    request.onsuccess = function(event) {
+      resolve(event.target.result);
+    };
+    
+    request.onerror = function(event) {
+      reject('IndexedDB açılırken hata: ' + event.target.errorCode);
+    };
+  });
+}
+
+// Senkronizasyon etkinleştiğinde tetiklenecek
+self.addEventListener('sync', function(event) {
+  if (event.tag === 'sync-appointments') {
+    event.waitUntil(syncAppointments());
+  } else if (event.tag === 'sync-notes') {
+    event.waitUntil(syncNotes());
+  }
+});
+
+// Randevuları senkronize et
+async function syncAppointments() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction('pending-appointments', 'readwrite');
+    const store = tx.objectStore('pending-appointments');
+    
+    const pendingAppointments = await new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    for (const appointment of pendingAppointments) {
+      try {
+        const response = await fetch('/api/appointments', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(appointment)
+        });
+        
+        if (response.ok) {
+          await new Promise((resolve, reject) => {
+            const request = store.delete(appointment.id);
+            request.onsuccess = resolve;
+            request.onerror = reject;
+          });
+        }
+      } catch (error) {
+        // Daha sonra yeniden deneyecek
+      }
+    }
+  } catch (error) {
+    // Senkronizasyon hatası
+  }
+}
+
+// Notları senkronize et
+async function syncNotes() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction('pending-notes', 'readwrite');
+    const store = tx.objectStore('pending-notes');
+    
+    const pendingNotes = await new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    for (const note of pendingNotes) {
+      try {
+        const response = await fetch('/api/notes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(note)
+        });
+        
+        if (response.ok) {
+          await new Promise((resolve, reject) => {
+            const request = store.delete(note.id);
+            request.onsuccess = resolve;
+            request.onerror = reject;
+          });
+        }
+      } catch (error) {
+        // Daha sonra yeniden deneyecek
+      }
+    }
+  } catch (error) {
+    // Senkronizasyon hatası
+  }
+} 
