@@ -165,7 +165,6 @@ export function BlogPost() {
 
   // Blog için yapılandırılmış veri
   const jsonLdScript = generateBlogJsonLd(post);
-  const structuredData = { __html: jsonLdScript };
 
   return (
     <MainLayout>
@@ -184,7 +183,7 @@ export function BlogPost() {
         <meta name="twitter:title" content={`${post.title} - PsikoRan Blog`} />
         <meta name="twitter:description" content={post.excerpt} />
         <meta name="twitter:image" content={post.cover_image || '/assets/images/blog-placeholder.jpg'} />
-        <div dangerouslySetInnerHTML={structuredData} />
+        <script type="application/ld+json">{jsonLdScript}</script>
       </Helmet>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-12 pb-20">

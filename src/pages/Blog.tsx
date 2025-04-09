@@ -141,7 +141,6 @@ export function Blog() {
 
   // Blog listesi için yapılandırılmış veri oluştur
   const jsonLdScript = generateBlogListJsonLd(filteredPosts);
-  const structuredData = { __html: jsonLdScript };
 
   return (
     <MainLayout>
@@ -161,7 +160,7 @@ export function Blog() {
         <meta name="robots" content="index, follow" />
         <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
         <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-        <div dangerouslySetInnerHTML={structuredData} />
+        <script type="application/ld+json">{jsonLdScript}</script>
       </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

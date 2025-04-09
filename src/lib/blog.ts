@@ -121,13 +121,12 @@ export async function fetchBlogPostBySlug(slug: string): Promise<BlogPost | null
     const { data, error } = await supabase
       .from('blog_posts')
       .select('*')
-      .eq('slug', slug)
-      .single();
+      .eq('slug', slug);
     
     if (error) throw error;
     
-    if (data) {
-      return data as BlogPost;
+    if (data && data.length > 0) {
+      return data[0] as BlogPost;
     } else {
       // Veri yoksa slug'a uygun örnek veriyi döndür
       const samplePost = sampleBlogPosts.find(post => post.slug === slug);
@@ -178,7 +177,7 @@ export const processProfessionalNames = (content: string): string => {
  * Blog yazısı için JSON-LD yapılandırılmış veri oluşturur (SEO için)
  * @param post Blog yazısı
  * @param baseUrl Temel URL
- * @returns JSON-LD script etiketi içeriği
+ * @returns JSON-LD içeriği
  */
 export function generateBlogJsonLd(post: BlogPost, baseUrl: string = 'https://psikoran.com'): string {
   const jsonLd = {
@@ -211,14 +210,14 @@ export function generateBlogJsonLd(post: BlogPost, baseUrl: string = 'https://ps
     "wordCount": post.content.split(/\s+/).length
   };
 
-  return `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`;
+  return JSON.stringify(jsonLd);
 }
 
 /**
  * Blog listesi için JSON-LD yapılandırılmış veri oluşturur (SEO için)
  * @param posts Blog yazıları
  * @param baseUrl Temel URL
- * @returns JSON-LD script etiketi içeriği
+ * @returns JSON-LD içeriği
  */
 export function generateBlogListJsonLd(posts: BlogPost[], baseUrl: string = 'https://psikoran.com'): string {
   const listItems = posts.map((post, index) => ({
@@ -238,5 +237,5 @@ export function generateBlogListJsonLd(posts: BlogPost[], baseUrl: string = 'htt
     "url": `${baseUrl}/blog`
   };
 
-  return `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`;
+  return JSON.stringify(jsonLd);
 } 
