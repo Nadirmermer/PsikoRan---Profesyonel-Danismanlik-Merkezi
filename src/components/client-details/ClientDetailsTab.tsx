@@ -116,7 +116,8 @@ export const ClientDetailsTab: React.FC<ClientDetailsTabProps> = ({ client, load
       if (error) throw error;
 
       setIsDeleteModalOpen(false);
-      navigate('/clients');
+      alert('Danışan başarıyla silindi');
+      navigate('/danisanlar');
     } catch (error) {
       console.error('Error deleting client:', error);
       alert('Danışan silinirken bir hata oluştu.');

@@ -90,7 +90,7 @@
           <div class="intro">
             <h1>PsikoRan XML Site Haritası</h1>
             <p>Bu XML site haritası Google, Bing, Yandex ve diğer arama motorları için oluşturulmuştur.</p>
-            <p>Son güncelleme: 03.04.2025</p>
+            <p>Son güncelleme: 10.04.2025</p>
           </div>
           <div id="content">
             <table cellpadding="5">

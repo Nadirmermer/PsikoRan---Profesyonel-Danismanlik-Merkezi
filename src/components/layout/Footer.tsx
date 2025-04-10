@@ -82,27 +82,27 @@ export function Footer() {
               </h3>
               <ul className="space-y-2.5">
                 <li>
-                  <Link to="/features" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
+                  <Link to="/ozellikler" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
                     Özellikler
                   </Link>
                 </li>
                 <li>
-                  <Link to="/pricing" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
+                  <Link to="/fiyatlandirma" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
                     Fiyatlandırma
                   </Link>
                 </li>
                 <li>
-                  <Link to="/login" className="text-primary-600 dark:text-primary-400 font-medium transition-colors duration-200 text-sm">
+                  <Link to="/giris" className="text-primary-600 dark:text-primary-400 font-medium transition-colors duration-200 text-sm">
                     Giriş Yap
                   </Link>
                 </li>
                 <li>
-                  <Link to="/register" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
+                  <Link to="/kayit" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
                     Kayıt Ol
                   </Link>
                 </li>
                 <li>
-                  <Link to="/help" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
+                  <Link to="/yardim" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
                     Yardım
                   </Link>
                 </li>
@@ -116,12 +116,12 @@ export function Footer() {
               </h3>
               <ul className="space-y-2.5">
                 <li>
-                  <Link to="/privacy" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
+                  <Link to="/gizlilik" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
                     Gizlilik Politikası
                   </Link>
                 </li>
                 <li>
-                  <Link to="/terms" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
+                  <Link to="/kosullar" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
                     Kullanım Koşulları
                   </Link>
                 </li>
@@ -131,7 +131,7 @@ export function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/cookie-policy" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
+                  <Link to="/cerez-politikasi" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
                     Çerez Politikası
                   </Link>
                 </li>
@@ -155,7 +155,7 @@ export function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/contact" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
+                  <Link to="/iletisim" className="text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200 text-sm">
                     Bize Ulaşın
                   </Link>
                 </li>
@@ -171,7 +171,7 @@ export function Footer() {
               &copy; {new Date().getFullYear()} PsikoRan. Tüm hakları saklıdır.
             </p>
             <div className="mt-4 md:mt-0 flex space-x-6">
-              <Link to="/help" className="text-xs text-slate-500 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200">
+              <Link to="/yardim" className="text-xs text-slate-500 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200">
                 Yardım
               </Link>
               <Link to="/blog" className="text-xs text-slate-500 dark:text-slate-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-200">
@@ -184,7 +184,7 @@ export function Footer() {
         {/* GDPR/KVKK Bildirimi */}
         <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
           <p className="text-xs text-slate-500 dark:text-slate-500 text-center">
-            Bu web sitesini kullanarak, <Link to="/privacy" className="text-primary-600 dark:text-primary-400 hover:underline">Gizlilik Politikamızı</Link> ve <Link to="/terms" className="text-primary-600 dark:text-primary-400 hover:underline">Kullanım Koşullarımızı</Link> kabul etmiş olursunuz.
+            Bu web sitesini kullanarak, <Link to="/gizlilik" className="text-primary-600 dark:text-primary-400 hover:underline">Gizlilik Politikamızı</Link> ve <Link to="/kosullar" className="text-primary-600 dark:text-primary-400 hover:underline">Kullanım Koşullarımızı</Link> kabul etmiş olursunuz.
           </p>
         </div>
       </div>

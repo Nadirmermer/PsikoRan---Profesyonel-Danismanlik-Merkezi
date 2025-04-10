@@ -24,9 +24,9 @@ export function AuthGuard({
 
   if (!user) {
     if (requireAdmin) {
-      return <Navigate to="/admin/login" state={{ from: location }} replace />;
+      return <Navigate to="/admin/giris" state={{ from: location }} replace />;
     }
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/giris" state={{ from: location }} replace />;
   }
 
   if (requireAdmin && !admin) {

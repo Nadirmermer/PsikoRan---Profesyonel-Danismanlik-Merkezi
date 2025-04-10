@@ -55,6 +55,7 @@ import { LoadingSpinner } from './ui/LoadingSpinner';
 // Types
 interface AppointmentDetailsProps {
   id?: string;  // Eğer prop olarak id geçilirse kullanılır, yoksa URL'den alınır
+  isEditing?: boolean; // Düzenleme modunda mı?
 }
 
 interface AppointmentNote {
@@ -66,7 +67,7 @@ interface AppointmentNote {
 }
 
 // Main component
-export default function AppointmentDetails({ id: propId }: AppointmentDetailsProps) {
+export default function AppointmentDetails({ id: propId, isEditing }: AppointmentDetailsProps) {
   const { id: urlId } = useParams<{ id: string }>();
   const appointmentId = propId || urlId;
   const navigate = useNavigate();
@@ -92,6 +93,15 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
       loadAppointmentDetails(appointmentId);
     }
   }, [appointmentId]);
+
+  // Eğer düzenleme modundaysa, sayfayı düzenleme modunda yükle
+  useEffect(() => {
+    if (isEditing && appointmentId) {
+      // Düzenleme modunda başlatma işlemleri
+      console.log("Düzenleme modu aktif:", appointmentId);
+      // Burada düzenleme moduna özgü işlemler yapılabilir
+    }
+  }, [isEditing, appointmentId]);
 
   // Load appointment details
   async function loadAppointmentDetails(id: string) {
@@ -236,7 +246,7 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
 
   // Edit appointment
   const handleEditAppointment = () => {
-    navigate(`/appointments/edit/${appointmentId}`);
+    navigate(`/randevular/duzenle/${appointmentId}`);
   };
 
   // Delete appointment
@@ -253,7 +263,7 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
       
       // Show success message and navigate back
       alert('Randevu başarıyla silindi.');
-      navigate('/appointments');
+      navigate('/randevular');
     } catch (error) {
       console.error('Randevu silinirken hata oluştu:', error);
       alert('Randevu silinirken bir hata oluştu.');
@@ -354,9 +364,10 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
           <h2 className="text-xl font-bold text-red-600 dark:text-red-400 mb-2">Hata</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-4">{error}</p>
           <button
-            onClick={() => navigate('/appointments')}
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
+            onClick={() => navigate('/randevular')}
+            className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 font-medium flex items-center group transition-all"
           >
+            <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
             Randevulara Dön
           </button>
         </div>
@@ -372,9 +383,10 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
           <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Randevu Bulunamadı</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-4">İstediğiniz randevu bilgisi mevcut değil.</p>
           <button
-            onClick={() => navigate('/appointments')}
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
+            onClick={() => navigate('/randevular')}
+            className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 font-medium flex items-center group transition-all"
           >
+            <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
             Randevulara Dön
           </button>
         </div>
@@ -391,11 +403,11 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center">
               <button
-                onClick={() => navigate('/appointments')}
-                className="flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                onClick={() => navigate('/randevular')}
+                className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 font-medium flex items-center group transition-all"
               >
-                <ArrowLeft className="mr-2 h-5 w-5" />
-                <span className="text-sm font-medium">Randevulara Dön</span>
+                <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                Randevulara Dön
               </button>
             </div>
             
@@ -719,18 +731,16 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
                 <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Hızlı İşlemler</h2>
                 
                 <div className="space-y-3">
-                  {appointment.client?.id && (
-                    <button
-                      onClick={() => setShowClientPanel(true)}
-                      className="w-full flex items-center justify-between px-4 py-2 rounded-lg text-left bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
-                    >
-                      <div className="flex items-center">
-                        <Users className="h-5 w-5 mr-3 text-gray-500 dark:text-gray-400" />
-                        <span>Danışan Detayları</span>
-                      </div>
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setShowClientPanel(true)}
+                    className="w-full flex items-center justify-between px-4 py-2 rounded-lg text-left bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 transition-colors text-gray-800 dark:text-gray-200"
+                  >
+                    <div className="flex items-center">
+                      <Users className="h-5 w-5 mr-3 text-gray-500 dark:text-gray-400" />
+                      <span>Danışan Detayları</span>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  </button>
                   
                   <button
                     onClick={() => window.print()}
@@ -788,11 +798,11 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
                     type="text"
                     readOnly
                     className="flex-1 min-w-0 block w-full px-3 py-2 rounded-l-md sm:text-sm border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
-                    value={`${window.location.origin}/appointments/${appointmentId}`}
+                    value={`${window.location.origin}/randevular/${appointmentId}`}
                   />
         <button
                     onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/appointments/${appointmentId}`)
+                      navigator.clipboard.writeText(`${window.location.origin}/randevular/${appointmentId}`)
                         .then(() => alert('Link kopyalandı'))
                         .catch(err => console.error('Kopyalama hatası:', err));
                     }}
@@ -1052,7 +1062,7 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
                                 key={app.id} 
                                 className="text-sm"
                                 onClick={() => {
-                                  navigate(`/appointments/${app.id}`);
+                                  navigate(`/randevular/${app.id}`);
                                   setShowClientPanel(false);
                                 }}
                               >
@@ -1079,7 +1089,7 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
                                 key={app.id} 
                                 className="text-sm"
                                 onClick={() => {
-                                  navigate(`/appointments/${app.id}`);
+                                  navigate(`/randevular/${app.id}`);
                                   setShowClientPanel(false);
                                 }}
                               >
@@ -1107,7 +1117,7 @@ export default function AppointmentDetails({ id: propId }: AppointmentDetailsPro
               <div className="mt-6 flex justify-end">
                 <button
                   onClick={() => {
-                    navigate(`/clients/${appointment.client.id}`);
+                    navigate(`/danisanlar/${appointment.client.id}`);
                     setShowClientPanel(false);
                   }}
                   className="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"

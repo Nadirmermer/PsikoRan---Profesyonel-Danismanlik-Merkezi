@@ -2,26 +2,26 @@
 /* /index.html 200
 
 # SPA yenileme için ve tüm rotaları yönlendirmek için
-/login /index.html 200
-/register /index.html 200
-/dashboard/* /index.html 200
-/appointments/* /index.html 200
-/clients/* /index.html 200
-/professionals/* /index.html 200
-/settings/* /index.html 200
-/help/* /index.html 200
+/giris /index.html 200
+/kayit /index.html 200
+/panel/* /index.html 200
+/randevular/* /index.html 200
+/danisanlar/* /index.html 200
+/uzmanlar/* /index.html 200
+/ayarlar/* /index.html 200
+/yardim/* /index.html 200
 /blog/* /index.html 200
 /test/* /index.html 200
-/test-results/* /index.html 200
-/reset-password /index.html 200
-/forgot-password /index.html 200
-/create-assistant /index.html 200
-/features /index.html 200
-/pricing /index.html 200
-/privacy /index.html 200
-/terms /index.html 200
+/test-sonuclari/* /index.html 200
+/sifre-sifirlama /index.html 200
+/sifremi-unuttum /index.html 200
+/asistan-olustur /index.html 200
+/ozellikler /index.html 200
+/fiyatlandirma /index.html 200
+/gizlilik /index.html 200
+/kosullar /index.html 200
 /kvkk /index.html 200
-/contact /index.html 200
+/iletisim /index.html 200
 /demo /index.html 200
 /admin/* /index.html 200
 
@@ -30,4 +30,22 @@
 
 # Güvenli olmayan HTTP bağlantılarını HTTPS'e yönlendir
 http://:hostName/* https://:hostName/:splat 301!
+
+# Eski İngilizce yollardan Türkçe yollara yönlendirme
+/login /giris 301
+/register /kayit 301
+/dashboard/* /panel/:splat 301
+/appointments/* /randevular/:splat 301
+/clients/* /danisanlar/:splat 301
+/professionals/* /uzmanlar/:splat 301
+/settings/* /ayarlar/:splat 301
+/help/* /yardim/:splat 301
+/reset-password /sifre-sifirlama 301
+/forgot-password /sifremi-unuttum 301
+/create-assistant /asistan-olustur 301
+/features /ozellikler 301
+/pricing /fiyatlandirma 301
+/privacy /gizlilik 301
+/terms /kosullar 301
+/contact /iletisim 301
 

@@ -484,7 +484,7 @@ export const SubscriptionManagement: React.FC = () => {
             {/* Eylemler */} 
             <div className="mt-5 pt-4 border-t dark:border-slate-700 flex items-center justify-end space-x-4">
                  <Link 
-                     to="/pricing" 
+                     to="/fiyatlandirma" 
                      className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 inline-flex items-center font-medium"
                  >
                      Planları İncele <ExternalLink className="w-3.5 h-3.5 ml-1.5" />

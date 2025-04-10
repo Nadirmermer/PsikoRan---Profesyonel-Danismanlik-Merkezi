@@ -518,7 +518,7 @@ export function Clients() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.05 }}
-                        onClick={() => navigate(`/clients/${client.id}`)}
+                        onClick={() => navigate(`/danisanlar/${client.id}`)}
                         className="hover:bg-gray-50/80 dark:hover:bg-gray-700/40 transition-colors duration-150 cursor-pointer"
                       >
                         <td className="px-6 py-4">

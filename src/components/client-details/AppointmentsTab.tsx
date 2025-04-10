@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, MapPin, User, Plus, CheckCircle, XCircle, CalendarClock } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Plus, CheckCircle, XCircle, CalendarClock, ExternalLink, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -89,7 +89,7 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
                 transition={{ duration: 0.3, delay: index * 0.05 }}
                 whileHover={{ scale: 1.01, boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
                 className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
-                onClick={() => navigate(`/appointment/${appointment.id}`)}
+                onClick={() => navigate(`/randevular/${appointment.id}`)}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center">
                   {/* Sol Taraf - Tarih */}
@@ -150,6 +150,15 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
                     </div>
                   </div>
                 </div>
+                <div className="min-w-[10rem] text-right">
+                  <button
+                    className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-sm inline-flex items-center"
+                    onClick={() => navigate(`/randevular/${appointment.id}`)}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1.5" />
+                    Detay
+                  </button>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -199,7 +208,7 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
                 transition={{ duration: 0.3, delay: index * 0.05 }}
                 whileHover={{ scale: 1.01, boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
                 className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
-                onClick={() => navigate(`/appointment/${appointment.id}`)}
+                onClick={() => navigate(`/randevular/${appointment.id}`)}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center">
                   {/* Sol Taraf - Tarih */}
@@ -275,6 +284,15 @@ export const AppointmentsTab: React.FC<AppointmentsTabProps> = ({
                       )}
                     </div>
                   </div>
+                </div>
+                <div className="p-3 space-y-2">
+                  <button 
+                    className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 w-full text-sm font-medium rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 flex items-center justify-center"
+                    onClick={() => navigate(`/randevular/${appointment.id}`)}
+                  >
+                    <ArrowRight className="h-4 w-4 mr-1.5" />
+                    Randevu Detayı
+                  </button>
                 </div>
               </motion.div>
             ))}

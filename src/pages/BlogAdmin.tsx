@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Highlight from '@tiptap/extension-highlight';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
+import Image from '@tiptap/extension-image';
 import {
   Plus,
   Edit2,
@@ -45,7 +46,8 @@ import {
   Edit,
   Trash,
   ArrowLeft,
-  User
+  User,
+  Image as ImageIcon
 } from 'lucide-react';
 import slugify from 'slugify';
 import { BlogPost as BlogPostType, formatBlogDate } from '../lib/blog';
@@ -73,12 +75,14 @@ interface BlogPost extends Omit<BlogPostType, 'tags'> {
 // MenuBar bileşeni
 interface MenuBarProps {
   editor: any;
+  onImageUpload: (file: File) => Promise<string>;
 }
 
-const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
+const MenuBar: React.FC<MenuBarProps> = ({ editor, onImageUpload }) => {
   const [linkUrl, setLinkUrl] = useState('');
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   if (!editor) {
     return null;
@@ -104,12 +108,61 @@ const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
     setActiveTooltip(null);
   };
 
+  // Görsel yükleme işlevi
+  const handleImageUpload = async (e: React.MouseEvent) => {
+    // Tıklama olayını durdur
+    e.preventDefault();
+    
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      
+      input.onchange = async (event) => {
+        const target = event.target as HTMLInputElement;
+        const file = target.files?.[0];
+        
+        if (!file) return;
+        
+        // 5MB dosya boyutu kontrolü
+        if (file.size > 5 * 1024 * 1024) {
+          alert('Dosya boyutu 5MB\'dan küçük olmalıdır.');
+          return;
+        }
+        
+        // İzin verilen dosya tipleri
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+          alert('Sadece JPG, PNG, GIF ve WEBP formatları desteklenir.');
+          return;
+        }
+        
+        setIsUploading(true);
+        
+        try {
+          const imageUrl = await onImageUpload(file);
+          editor.chain().focus().setImage({ src: imageUrl }).run();
+        } catch (error: any) {
+          console.error('Görsel yükleme hatası:', error);
+          alert(`Görsel yüklenirken bir hata oluştu: ${error.message}`);
+        } finally {
+          setIsUploading(false);
+        }
+      };
+      
+      input.click();
+    } catch (error) {
+      console.error('Görsel seçme hatası:', error);
+    }
+  };
+
   return (
     <div className="flex flex-wrap gap-1 p-1.5 sm:p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-t-xl">
       {/* Metin Formatları */}
       <div className="flex flex-wrap gap-1 mr-2 border-r border-gray-200 dark:border-gray-700 pr-2">
         <div className="relative">
           <button
+            type="button"
             onClick={() => editor.chain().focus().toggleBold().run()}
             disabled={!editor.can().chain().focus().toggleBold().run()}
             className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
@@ -132,6 +185,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
 
         <div className="relative">
           <button
+            type="button"
             onClick={() => editor.chain().focus().toggleItalic().run()}
             disabled={!editor.can().chain().focus().toggleItalic().run()}
             className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
@@ -154,6 +208,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
 
         <div className="relative">
           <button
+            type="button"
             onClick={() => editor.chain().focus().toggleUnderline().run()}
             className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
               editor.isActive('underline') ? 'bg-gray-200 dark:bg-gray-700' : ''
@@ -178,6 +233,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
       <div className="flex flex-wrap gap-1 mr-2 border-r border-gray-200 dark:border-gray-700 pr-2">
         <div className="relative">
           <button
+            type="button"
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
             className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
               editor.isActive('heading', { level: 1 }) ? 'bg-gray-200 dark:bg-gray-700' : ''
@@ -199,6 +255,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
 
         <div className="relative">
           <button
+            type="button"
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
               editor.isActive('heading', { level: 2 }) ? 'bg-gray-200 dark:bg-gray-700' : ''
@@ -220,6 +277,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
 
         <div className="relative">
           <button
+            type="button"
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
               editor.isActive('heading', { level: 3 }) ? 'bg-gray-200 dark:bg-gray-700' : ''
@@ -355,6 +413,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
       <div className="flex flex-wrap gap-1">
         <div className="relative">
           <button
+            type="button"
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
             className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
               editor.isActive('blockquote') ? 'bg-gray-200 dark:bg-gray-700' : ''
@@ -376,6 +435,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
 
         <div className="relative">
           <button
+            type="button"
             onClick={() => editor.chain().focus().toggleCode().run()}
             className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
               editor.isActive('code') ? 'bg-gray-200 dark:bg-gray-700' : ''
@@ -397,72 +457,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
 
         <div className="relative">
           <button
-            onClick={() => {
-              if (showLinkInput) {
-                setShowLinkInput(false);
-              } else {
-                setShowLinkInput(true);
-              }
-            }}
-            className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
-              editor.isActive('link') || showLinkInput ? 'bg-gray-200 dark:bg-gray-700' : ''
-            }`}
-            title="Bağlantı"
-            onMouseEnter={() => showTooltip('link')}
-            onMouseLeave={hideTooltip}
-          >
-            <LinkIcon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${
-              editor.isActive('link') || showLinkInput ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-white'
-            }`} />
-          </button>
-          {activeTooltip === 'link' && (
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap">
-              Bağlantı
-            </div>
-          )}
-          {showLinkInput && (
-            <div className="absolute top-full left-0 mt-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-50 border border-gray-200 dark:border-gray-700 flex items-center min-w-[250px]">
-              <input
-                type="text"
-                placeholder="Bağlantı URL'si"
-                value={linkUrl}
-                onChange={(e) => setLinkUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    setLink();
-                    e.preventDefault();
-                  }
-                }}
-                className="flex-1 p-1 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded"
-              />
-              <div className="flex space-x-1 ml-2">
-                <button
-                  onClick={setLink}
-                  className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  title="Uygula"
-                >
-                  <Check className="w-3 h-3" />
-                </button>
-                <button
-                  onClick={() => {
-                    if (editor.isActive('link')) {
-                      removeLink();
-                    }
-                    setShowLinkInput(false);
-                    setLinkUrl('');
-                  }}
-                  className="p-1 bg-red-600 text-white rounded hover:bg-red-700"
-                  title="Kaldır/İptal"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="relative">
-          <button
+            type="button"
             onClick={() => editor.chain().focus().toggleHighlight().run()}
             className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
               editor.isActive('highlight') ? 'bg-gray-200 dark:bg-gray-700' : ''
@@ -478,6 +473,34 @@ const MenuBar: React.FC<MenuBarProps> = ({ editor }) => {
           {activeTooltip === 'highlight' && (
             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap">
               Vurgu
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Görsel ekle butonu - alttaki butonun ardına ekle */}
+      <div className="flex flex-wrap gap-1 mr-2 border-r border-gray-200 dark:border-gray-700 pr-2">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={handleImageUpload}
+            disabled={isUploading}
+            className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors ${
+              isUploading ? 'opacity-50' : ''
+            }`}
+            title="Görsel Ekle"
+            onMouseEnter={() => showTooltip('image')}
+            onMouseLeave={hideTooltip}
+          >
+            {isUploading ? (
+              <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-700 dark:text-white animate-spin" />
+            ) : (
+              <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-700 dark:text-white" />
+            )}
+          </button>
+          {activeTooltip === 'image' && (
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap">
+              Görsel Ekle
             </div>
           )}
         </div>
@@ -521,6 +544,20 @@ const ReadTime: React.FC<ReadTimeProps> = ({
   );
 };
 
+// Editör için blog görseli stilleri
+const blogImageStyles = `
+  .ProseMirror img.blog-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+  }
+  
+  .ProseMirror .selectedImage {
+    outline: 2px solid #3b82f6;
+  }
+`;
+
 export function BlogAdmin() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -537,16 +574,18 @@ export function BlogAdmin() {
     category: '',
     tags: '',
     is_published: true,
-    reading_time: 0
+    reading_time: 0,
+    cover_image: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
   
   // Kullanıcı tipi ve bağlı uzmanlar
-  const [userType, setUserType] = useState<'professional' | 'assistant' | 'regular'>('regular');
+  const [userType, setUserType] = useState<'professional' | 'assistant' | 'admin' | 'regular'>('regular');
   const [linkedProfessionals, setLinkedProfessionals] = useState<any[]>([]);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string>('');
   const [showPreview, setShowPreview] = useState(false);
@@ -568,6 +607,13 @@ export function BlogAdmin() {
       Highlight,
       TextStyle,
       Color,
+      Image.configure({
+        inline: false,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'blog-image',
+        },
+      }),
     ],
     content: formData.content || '',
     onUpdate: ({ editor }) => {
@@ -591,6 +637,28 @@ export function BlogAdmin() {
     // Kullanıcı bilgilerini alarak yazar adını otomatik doldur
     if (user) {
       const getUserMetadata = async () => {
+        // Önce kullanıcının admin olup olmadığını kontrol et
+        const { data: adminData, error: adminError } = await supabase
+          .from('admins')
+          .select('id, full_name, title')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (adminData) {
+          // Kullanıcı bir admin
+          setUserType('admin');
+          
+          const authorName = adminData.title 
+            ? `${adminData.title} ${adminData.full_name}` 
+            : adminData.full_name;
+          
+          setFormData(prev => ({
+            ...prev,
+            author: authorName
+          }));
+          return;
+        }
+        
         // Önce kullanıcının uzman olup olmadığını kontrol et
         const { data: profileData, error: profileError } = await supabase
           .from('professionals')
@@ -662,7 +730,17 @@ export function BlogAdmin() {
         .select('*')
         .order('created_at', { ascending: false });
         
-      if (userType === 'professional') {
+      if (userType === 'admin') {
+        // Admin kullanıcıları tüm blog yazılarını görebilir veya
+        // sadece kendilerinin yazdıklarını görmek isterlerse:
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          // Eğer adminin sadece kendi yazılarını görmesini istiyorsanız:
+          // query = query.eq('author_id', userData.user.id);
+          
+          // Eğer adminin tüm yazıları görmesini istiyorsanız, query'de değişiklik yapılmaz
+        }
+      } else if (userType === 'professional') {
         // Ruh sağlığı uzmanları sadece kendi blog yazılarını görebilir
         const { data: userData } = await supabase.auth.getUser();
         if (userData?.user) {
@@ -735,7 +813,8 @@ export function BlogAdmin() {
       category: '',
       tags: '',
       is_published: true,
-      reading_time: 0
+      reading_time: 0,
+      cover_image: ''
     });
     
     // Eğer asistan ise ve bağlı uzmanlar varsa, varsayılan olarak ilk uzmanı seç
@@ -763,41 +842,81 @@ export function BlogAdmin() {
     }
   };
 
-  // Dosya adını temizleme fonksiyonu
-  const sanitizeFileName = (filename: string): string => {
-    // Türkçe karakterleri değiştir
-    const turkishMap: {[key: string]: string} = {
-      'ğ': 'g', 'Ğ': 'G', 'ü': 'u', 'Ü': 'U', 'ş': 's', 'Ş': 'S',
-      'ı': 'i', 'İ': 'I', 'ö': 'o', 'Ö': 'O', 'ç': 'c', 'Ç': 'C'
-    };
+  // Dosya adını temizleme (güvenli hale getirme) fonksiyonu
+  const sanitizeFileName = (fileName: string): string => {
+    // Uzantıyı koruyarak temizle
+    const lastDot = fileName.lastIndexOf('.');
+    const ext = lastDot !== -1 ? fileName.substring(lastDot) : '';
+    const nameWithoutExt = lastDot !== -1 ? fileName.substring(0, lastDot) : fileName;
     
-    // Önce Türkçe karakterleri değiştir
-    let sanitized = filename;
-    Object.keys(turkishMap).forEach(char => {
-      sanitized = sanitized.replace(new RegExp(char, 'g'), turkishMap[char]);
-    });
+    // Türkçe karakterleri ve boşlukları değiştir
+    let sanitized = nameWithoutExt
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[üÜ]/g, 'u')
+      .replace(/[çÇ]/g, 'c')
+      .replace(/[şŞ]/g, 's')
+      .replace(/[ıİ]/g, 'i')
+      .replace(/[ğĞ]/g, 'g')
+      .replace(/[öÖ]/g, 'o');
     
-    // Boşlukları ve özel karakterleri temizle, sadece alfanumerik, nokta, alt çizgi ve tire karakterlerini koru
-    return sanitized.replace(/[^a-zA-Z0-9._-]/g, '_');
+    // Sadece alfanumerik, nokta, alt çizgi ve tire karakterlerini koru
+    sanitized = sanitized.replace(/[^a-z0-9._-]/g, '');
+    
+    // Uzantıyı ekle ve döndür
+    return sanitized + ext;
   };
-
-  // Görsel yükleme fonksiyonunu basitleştir
-  const handleImageUpload = async (imageFile: File, fileName: string): Promise<string> => {
+  
+  // Görsel yükleme fonksiyonu
+  const uploadImage = async (file: File): Promise<string> => {
     try {
-      // Basit bir şekilde görseli yükle
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('blog')
-        .upload(fileName, imageFile, {
-          cacheControl: '0',
-          upsert: true
-        });
-
-      if (uploadError) {
-        console.error('Görsel yükleme hatası:', uploadError);
-        throw uploadError;
+      // Dosya tipini kontrol et
+      console.log('Yüklenen dosya tipi:', file.type);
+      console.log('Dosya boyutu:', file.size, 'bytes');
+      
+      // İzin verilen dosya tiplerini kontrol et
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error(`Desteklenmeyen dosya tipi: ${file.type}. Sadece JPG, PNG, GIF ve WEBP formatları desteklenir.`);
       }
 
-      // Public URL'i al
+      // Benzersiz bir dosya adı oluştur
+      const timestamp = new Date().getTime();
+      const sanitizedName = sanitizeFileName(file.name);
+      const fileName = `blog-images/${timestamp}-${sanitizedName}`;
+      
+      // Supabase token ve URL bilgilerini al
+      const { data: authData } = await supabase.auth.getSession();
+      const token = authData?.session?.access_token;
+      
+      if (!token) {
+        throw new Error('Oturum bulunamadı, lütfen tekrar giriş yapın');
+      }
+      
+      // FormData oluştur
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Supabase storage URL'ini oluştur
+      const supabaseUrl = 'https://hjfmevurucynhmdbxacd.supabase.co';
+      const storageUrl = `${supabaseUrl}/storage/v1/object/blog/${fileName}`;
+      
+      // Dosyayı fetch API ile yükle
+      const uploadResponse = await fetch(storageUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData
+      });
+      
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        console.error('Yükleme yanıtı:', errorData);
+        throw new Error(`Görsel yüklenemedi: ${errorData.error || errorData.message || 'Bilinmeyen hata'}`);
+      }
+      
+      // Public URL'i oluştur
       const { data: publicUrlData } = await supabase.storage
         .from('blog')
         .getPublicUrl(fileName);
@@ -894,6 +1013,9 @@ export function BlogAdmin() {
         if (selectedProfData.data?.user_id) {
           author_id = selectedProfData.data.user_id;
         }
+      } else if (userType === 'admin') {
+        // Admin kullanıcıları için author_id olarak kendi user_id'leri kullanılır
+        author_id = data.user.id;
       }
 
       // Slug kontrolü
@@ -905,7 +1027,7 @@ export function BlogAdmin() {
         slug: slugValue,
         excerpt: formData.excerpt,
         content: editorContent,
-        cover_image: null, // Her zaman null olarak ayarla
+        cover_image: formData.cover_image || null, // Kapak fotoğrafı varsa kullan, yoksa null
         author: formData.author,
         author_id,
         category: formData.category,
@@ -989,7 +1111,8 @@ export function BlogAdmin() {
       category: post.category,
       tags: Array.isArray(post.tags) ? post.tags.join(', ') : typeof post.tags === 'string' ? post.tags : '',
       is_published: post.is_published,
-      reading_time: post.reading_time || 0
+      reading_time: post.reading_time || 0,
+      cover_image: post.cover_image || ''  // Kapak fotoğrafını da yükle
     });
     
     // Eğer asistan kullanıcısıysa, düzenlenen yazının yazarına göre professional seçimini yap
@@ -1033,6 +1156,63 @@ export function BlogAdmin() {
       published_at: formData.is_published ? new Date().toISOString() : null,
       updated_at: new Date().toISOString()
     };
+  };
+
+  useEffect(() => {
+    // Blog görselleri için stil ekle
+    const styleEl = document.createElement('style');
+    styleEl.innerHTML = blogImageStyles;
+    document.head.appendChild(styleEl);
+    
+    return () => {
+      // Component unmount olduğunda stil elementini temizle
+      document.head.removeChild(styleEl);
+    };
+  }, []);
+
+  // Kapak fotoğrafı yükleme işlevi
+  const handleCoverImageUpload = async () => {
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      
+      input.onchange = async (event) => {
+        const target = event.target as HTMLInputElement;
+        const file = target.files?.[0];
+        
+        if (!file) return;
+        
+        // 5MB dosya boyutu kontrolü
+        if (file.size > 5 * 1024 * 1024) {
+          alert('Dosya boyutu 5MB\'dan küçük olmalıdır.');
+          return;
+        }
+        
+        // İzin verilen dosya tipleri
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+          alert('Sadece JPG, PNG, GIF ve WEBP formatları desteklenir.');
+          return;
+        }
+        
+        setIsUploadingCover(true);
+        
+        try {
+          const imageUrl = await uploadImage(file);
+          setFormData(prev => ({ ...prev, cover_image: imageUrl }));
+        } catch (error: any) {
+          console.error('Kapak görseli yükleme hatası:', error);
+          alert(`Kapak görseli yüklenirken bir hata oluştu: ${error.message}`);
+        } finally {
+          setIsUploadingCover(false);
+        }
+      };
+      
+      input.click();
+    } catch (error) {
+      console.error('Görsel seçme hatası:', error);
+    }
   };
 
   return (
@@ -1103,7 +1283,9 @@ export function BlogAdmin() {
                     ? 'Bu yazı sizin adınıza yayınlanacak.' 
                     : userType === 'assistant' && linkedProfessionals.length > 0
                       ? 'Yazının yayınlanacağı ruh sağlığı uzmanını seçin.' 
-                      : ''}
+                      : userType === 'admin'
+                        ? 'Admin olarak blog içeriği ekleyebilir ve düzenleyebilirsiniz.'
+                        : ''}
                 </p>
               </div>
               <div className="flex items-center space-x-2">
@@ -1157,6 +1339,73 @@ export function BlogAdmin() {
                     placeholder="Yazının başlığını girin"
             />
           </div>
+
+                {/* Kapak Fotoğrafı */}
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Kapak Fotoğrafı
+                  </label>
+                  
+                  <div className="mt-2 flex items-center gap-4">
+                    <div className="w-40 h-32 relative bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                      {formData.cover_image ? (
+                        <>
+                          <img 
+                            src={formData.cover_image}
+                            alt="Kapak fotoğrafı"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = '/assets/images/blog-placeholder.jpg';
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, cover_image: '' }))}
+                            className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full"
+                            title="Görseli kaldır"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-500">
+                          <svg className="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span className="text-xs">Kapak yok</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCoverImageUpload}
+                        disabled={isUploadingCover}
+                        className={`px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 
+                                text-slate-800 dark:text-slate-200 rounded-lg flex items-center text-sm transition-colors
+                                ${isUploadingCover ? 'opacity-50 cursor-not-allowed' : ''}
+                              `}
+                      >
+                        {isUploadingCover ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Yükleniyor...
+                          </>
+                        ) : (
+                          <>
+                            <ImageIcon className="h-4 w-4 mr-2" />
+                            Kapak Fotoğrafı Yükle
+                          </>
+                        )}
+                      </button>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Önerilen: 1200x630 piksel, maksimum boyut: 5MB
+                      </p>
+                    </div>
+                  </div>
+                </div>
           
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
@@ -1370,7 +1619,7 @@ export function BlogAdmin() {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   İçerik <span className="text-red-500">*</span>
                 </label>
-                {editor && <MenuBar editor={editor} />}
+                {editor && <MenuBar editor={editor} onImageUpload={uploadImage} />}
                 <div 
                   className="p-4 border border-slate-300 dark:border-slate-600 rounded-lg 
                             min-h-[500px] bg-white dark:bg-slate-700 prose prose-sm max-w-none
@@ -1438,7 +1687,9 @@ export function BlogAdmin() {
                         ? 'Sadece sizin yazdığınız blog yazılarını görüntülüyorsunuz.' 
                         : userType === 'assistant' 
                           ? 'Sadece bağlı olduğunuz ruh sağlığı uzmanlarının blog yazılarını görüntülüyorsunuz.' 
-                          : ''}
+                          : userType === 'admin'
+                            ? 'Admin olarak tüm blog yazılarını görüntüleyebilir ve yönetebilirsiniz.'
+                            : ''}
                     </p>
                   </div>
               <div className="flex items-center space-x-2">
@@ -1649,6 +1900,21 @@ export function BlogAdmin() {
                   <div className="text-lg italic text-slate-700 dark:text-slate-300 font-medium border-l-4 border-primary-500 pl-4">
                     {formData.excerpt}
                   </div>
+                </div>
+              )}
+
+              {/* Kapak görseli */}
+              {formData.cover_image && (
+                <div className="mb-8 rounded-xl overflow-hidden shadow-lg">
+                  <img 
+                    src={formData.cover_image}
+                    alt={formData.title || 'Blog kapak görseli'}
+                    className="w-full h-auto object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/assets/images/blog-placeholder.jpg';
+                    }}
+                  />
                 </div>
               )}
               

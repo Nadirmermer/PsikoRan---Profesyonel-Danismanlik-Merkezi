@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LogIn, Sun, Moon, Menu, X, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme } from '../../lib/theme';
 import logo1 from '../../assets/base-logo.webp';
 
 interface HeaderProps {
@@ -45,13 +45,13 @@ export function Header({ toggleDarkMode, isDarkMode }: HeaderProps) {
           <div className="hidden md:flex items-center space-x-4">
             <nav className="flex items-center space-x-1">
               <Link 
-                to="/features" 
+                to="/ozellikler" 
                 className="px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-medium transition-colors hover:bg-slate-100/70 dark:hover:bg-slate-800/70 text-sm"
               >
                 Özellikler
               </Link>
               <Link 
-                to="/pricing" 
+                to="/fiyatlandirma" 
                 className="px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-medium transition-colors hover:bg-slate-100/70 dark:hover:bg-slate-800/70 text-sm"
               >
                 Fiyatlandırma
@@ -63,7 +63,7 @@ export function Header({ toggleDarkMode, isDarkMode }: HeaderProps) {
                 Blog
               </Link>
               <Link 
-                to="/contact" 
+                to="/iletisim" 
                 className="px-3 py-2 rounded-lg text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-medium transition-colors hover:bg-slate-100/70 dark:hover:bg-slate-800/70 text-sm"
               >
                 İletişim
@@ -85,7 +85,7 @@ export function Header({ toggleDarkMode, isDarkMode }: HeaderProps) {
               </button>
 
               <Link
-                to="/login"
+                to="/giris"
                 className="px-3 py-2 rounded-lg text-primary-600 dark:text-primary-400 font-medium transition-colors bg-slate-100/70 dark:bg-slate-800/70 flex items-center space-x-1.5 text-sm mx-1"
               >
                 <LogIn className="h-4 w-4" />
@@ -93,7 +93,7 @@ export function Header({ toggleDarkMode, isDarkMode }: HeaderProps) {
               </Link>
                 
               <Link
-                to="/register"
+                to="/kayit"
                 className="px-3 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-white font-medium transition-all duration-200 flex items-center space-x-1.5 text-sm mx-1"
               >
                 <span>Kayıt Ol</span>
@@ -141,14 +141,14 @@ export function Header({ toggleDarkMode, isDarkMode }: HeaderProps) {
           >
             <nav className="flex flex-col space-y-1 py-3">
               <Link 
-                to="/features" 
+                to="/ozellikler" 
                 className="px-4 py-2 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors duration-200 font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Özellikler
               </Link>
               <Link 
-                to="/pricing" 
+                to="/fiyatlandirma" 
                 className="px-4 py-2 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors duration-200 font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -162,7 +162,7 @@ export function Header({ toggleDarkMode, isDarkMode }: HeaderProps) {
                 Blog
               </Link>
               <Link 
-                to="/contact" 
+                to="/iletisim" 
                 className="px-4 py-2 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors duration-200 font-medium"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -172,7 +172,7 @@ export function Header({ toggleDarkMode, isDarkMode }: HeaderProps) {
             
             <div className="flex flex-col space-y-2 pt-2 border-t border-slate-200 dark:border-slate-700">
               <Link
-                to="/login"
+                to="/giris"
                 className="px-4 py-2 text-primary-600 dark:text-primary-400 bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors duration-200 font-medium flex items-center"
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -180,7 +180,7 @@ export function Header({ toggleDarkMode, isDarkMode }: HeaderProps) {
                 <span>Giriş Yap</span>
               </Link>
               <Link
-                to="/register"
+                to="/kayit"
                 className="mx-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 text-white rounded-lg transition-colors duration-200 font-medium flex items-center justify-center"
                 onClick={() => setMobileMenuOpen(false)}
               >

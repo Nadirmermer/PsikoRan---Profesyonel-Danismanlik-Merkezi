@@ -24,6 +24,7 @@ import {
   MoreHorizontal,
   User,
   Clock,
+  Edit
 } from 'lucide-react';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addMonths, isSameDay, isToday } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -122,7 +123,7 @@ export function Appointments() {
       setShowCreateModal(true);
       
       // URL'yi temizle
-      navigate('/appointments', { replace: true });
+      navigate('/randevular', { replace: true });
     }
   }, [navigate]);
 
@@ -822,6 +823,14 @@ export function Appointments() {
     );
   }, [appointments, searchTerm]);
 
+  const handleEditAppointment = (appointment: Appointment) => {
+    navigate(`/randevular/duzenle/${appointment.id}`);
+  };
+
+  const handleViewAppointment = (appointmentId: string) => {
+    navigate(`/randevular/${appointmentId}`);
+  };
+
   if (loading) {
     return (
       <LoadingSpinner fullPage size="medium" showLoadingText={false} />
@@ -1265,7 +1274,7 @@ export function Appointments() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: index * 0.05 }}
                         className="hover:bg-gray-50/80 dark:hover:bg-gray-700/40 transition-colors duration-150 cursor-pointer"
-                  onClick={() => navigate(`/appointment/${appointment.id}`)}
+                  onClick={() => handleViewAppointment(appointment.id)}
                 >
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -1406,12 +1415,12 @@ export function Appointments() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/appointment/${appointment.id}`);
+                          handleEditAppointment(appointment);
                         }}
                               className="p-1.5 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-400/10 rounded-lg transition-colors duration-150"
-                        title="Detayları Görüntüle"
+                        title="Düzenle"
                       >
-                              <ExternalLink className="h-4 w-4" />
+                              <Edit className="h-4 w-4" />
                       </button>
                     </div>
                   </td>

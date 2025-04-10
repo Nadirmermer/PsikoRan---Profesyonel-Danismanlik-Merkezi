@@ -167,7 +167,7 @@ export function Privacy() {
                   </ul>
                   <p>
                     Bu haklarınızı kullanmak için{' '}
-                    <a href="/contact" className="text-primary-600 hover:text-primary-500 dark:text-primary-400">
+                    <a href="/iletisim" className="text-primary-600 hover:text-primary-500 dark:text-primary-400">
                       bizimle iletişime geçebilirsiniz
                     </a>
                     .
@@ -189,6 +189,22 @@ export function Privacy() {
                   <p>
                     Bu gizlilik politikası periyodik olarak güncellenebilir. Önemli değişiklikler olması durumunda 
                     size bildirim göndereceğiz. Politikanın son güncellenme tarihi: {new Date().toLocaleDateString('tr-TR')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-6">
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 mt-1">
+                <Lock className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Güncellemeler</h2>
+                <div className="prose prose-slate dark:prose-invert">
+                  <p className="my-4">
+                    Bu politikada yapılan herhangi bir değişiklik bu sayfada yayınlanacaktır. Değişiklikler hakkında sorularınız varsa, lütfen <a href="/iletisim" className="text-primary-600 hover:text-primary-500 dark:text-primary-400">bize ulaşın</a>.
                   </p>
                 </div>
               </div>

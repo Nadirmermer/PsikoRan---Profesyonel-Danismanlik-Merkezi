@@ -32,7 +32,12 @@ export function AdminLogin() {
          throw signInError;
       }
       
-      navigate('/admin/panel'); 
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        // Admin hesabı ile eşleşiyorsa admin paneline yönlendir
+        navigate('/admin/panel');
+      }
 
     } catch (err: any) {
       console.error('Admin login error:', err);

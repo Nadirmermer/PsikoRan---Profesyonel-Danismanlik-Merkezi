@@ -472,7 +472,7 @@ export function createProfessionalReminderNotificationContent(appointment: any) 
     icon: '/images/icons/icon-192x192.webp',
     badge: '/images/icons/badge-72x72.webp',
     data: {
-      url: '/appointments',
+      url: '/randevular',
       appointmentId: appointment.id
     }
   };
@@ -491,7 +491,7 @@ export function createClientReminderNotificationContent(appointment: any) {
     icon: '/images/icons/icon-192x192.webp',
     badge: '/images/icons/badge-72x72.webp',
     data: {
-      url: '/appointments',
+      url: '/randevular',
       appointmentId: appointment.id
     }
   };
@@ -721,7 +721,7 @@ export async function checkUpcomingAppointments(userId?: string, userType?: 'pro
             currentUserId,
             notificationData.title,
             notificationData.body,
-            { url: `/appointments/${appointment.id}`, appointmentId: appointment.id },
+            { url: `/randevular/${appointment.id}`, appointmentId: appointment.id },
             currentUserType
           );
         }
@@ -742,7 +742,7 @@ export async function checkUpcomingAppointments(userId?: string, userType?: 'pro
             currentUserId,
             notificationData.title,
             notificationData.body,
-            { url: `/appointments/${appointment.id}`, appointmentId: appointment.id },
+            { url: `/randevular/${appointment.id}`, appointmentId: appointment.id },
             currentUserType
           );
         }
@@ -763,7 +763,7 @@ export async function checkUpcomingAppointments(userId?: string, userType?: 'pro
             currentUserId,
             notificationData.title,
             notificationData.body,
-            { url: `/appointments/${appointment.id}`, appointmentId: appointment.id },
+            { url: `/randevular/${appointment.id}`, appointmentId: appointment.id },
             currentUserType
           );
         }

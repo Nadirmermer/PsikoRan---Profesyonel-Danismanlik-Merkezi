@@ -120,7 +120,7 @@ export function Register() {
   // Başarı modalının kapatılması
   const handleCloseModal = () => {
     setShowSuccessModal(false);
-    navigate('/login');
+    navigate('/giris');
   };
 
   return (
@@ -134,7 +134,7 @@ export function Register() {
 
         {/* Geri Dönme Butonu */}
         <Link
-          to="/login"
+          to="/giris"
           className="group mb-6 flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors duration-200"
         >
           <ArrowLeft className="h-5 w-5 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
@@ -297,7 +297,7 @@ export function Register() {
             <p className="text-slate-600 dark:text-slate-400">
               Zaten hesabınız var mı?{' '}
               <Link
-                to="/login"
+                to="/giris"
                 className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
               >
                 Giriş yapın
@@ -311,11 +311,11 @@ export function Register() {
             <Link to="/" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
               Ana Sayfa
             </Link>
-            <Link to="/privacy" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
-              Gizlilik
-            </Link>
-            <Link to="/terms" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
-              Kullanım Şartları
+            <Link to="/gizlilik" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+              Gizlilik Politikası
+            </Link>{' '}&{' '}
+            <Link to="/kosullar" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+              Kullanım Koşulları
             </Link>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400">

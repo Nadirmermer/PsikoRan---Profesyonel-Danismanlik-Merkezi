@@ -126,7 +126,7 @@ export function Pricing() {
         { title: 'Telefon ve Öncelikli Destek', included: true },
       ],
       cta: 'İletişime Geç',
-      ctaLink: '/contact',
+      ctaLink: '/iletisim',
       popular: false,
       color: 'bg-gradient-to-br from-indigo-500 to-indigo-600 dark:from-indigo-600 dark:to-indigo-700',
       ctaStyle: 'bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700',
@@ -381,9 +381,8 @@ export function Pricing() {
                 </div>
                <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white sm:text-4xl mb-6">Daha Fazla İhtiyacınız mı Var?</h2>
                <p className="text-xl text-slate-600 dark:text-slate-400 mb-10">10'dan fazla profesyonel hesabı, özel entegrasyonlar veya API erişimi gibi ihtiyaçlarınız için Kurumsal çözümlerimiz hakkında bilgi alın.</p>
-               <Link to="/contact" className="px-8 py-4 rounded-full bg-indigo-600 text-white font-semibold text-center shadow-lg shadow-indigo-600/30 hover:shadow-xl hover:shadow-indigo-600/40 hover:bg-indigo-700 transition-all duration-300 text-lg flex items-center justify-center group w-fit mx-auto">
-                 <span>Kurumsal Teklif Alın</span>
-                 <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+               <Link to="/iletisim" className="px-8 py-4 rounded-full bg-indigo-600 text-white font-semibold text-center shadow-lg shadow-indigo-600/30 hover:shadow-xl hover:shadow-indigo-600/40 hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 w-full lg:w-auto">
+                 <span>Özel Teklif İçin İletişime Geç</span>
                </Link>
              </motion.div>
            </div>

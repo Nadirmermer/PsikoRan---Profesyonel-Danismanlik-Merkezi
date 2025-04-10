@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, User, Tag, Share2, Copy, Twitter, Facebook, Linkedin, Heart, ExternalLink, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, User, Tag, Share2, Copy, Twitter, Facebook, Linkedin, Heart, ExternalLink, ArrowRight, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { fetchBlogPostBySlug, formatBlogDate, processProfessionalNames, generateBlogJsonLd } from '../lib/blog';
 import { MainLayout } from '../components/layout/MainLayout';
@@ -354,11 +354,11 @@ export function BlogPost() {
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link
-                  to="/register"
+                  to="/kayit"
                   className="inline-flex items-center px-4 py-2 bg-white text-primary-600 font-medium rounded-lg hover:bg-slate-100 transition-colors duration-200 text-sm"
                 >
-                  Ücretsiz Başlayın
-                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Şimdi Kaydolun
                 </Link>
                 <Link
                   to="/blog"

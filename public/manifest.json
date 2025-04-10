@@ -48,14 +48,14 @@
       "name": "Randevularım",
       "short_name": "Randevular",
       "description": "Yaklaşan randevularınızı görüntüleyin",
-      "url": "/appointments",
+      "url": "/randevular",
       "icons": [{ "src": "assets/favicon/logo.png", "sizes": "363x363", "type": "image/png" }]
     },
     {
       "name": "Mesajlarım",
       "short_name": "Mesajlar",
       "description": "Mesajlarınızı görüntüleyin",
-      "url": "/messages",
+      "url": "/mesajlar",
       "icons": [{ "src": "assets/favicon/logo.png", "sizes": "363x363", "type": "image/png" }]
     }
   ],

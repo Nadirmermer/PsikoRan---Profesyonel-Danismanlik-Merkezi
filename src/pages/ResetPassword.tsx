@@ -18,7 +18,7 @@ export function ResetPassword() {
     const hash = window.location.hash;
     if (!hash || !hash.includes('type=recovery')) {
       setError('Geçersiz veya süresi dolmuş şifre sıfırlama bağlantısı.');
-      setTimeout(() => navigate('/login'), 3000);
+      setTimeout(() => navigate('/giris'), 3000);
     }
   }, [navigate]);
 
@@ -47,7 +47,7 @@ export function ResetPassword() {
 
       // Başarılı mesajı göster ve login sayfasına yönlendir
       alert('Şifreniz başarıyla güncellendi. Lütfen yeni şifrenizle giriş yapın.');
-      navigate('/login');
+      navigate('/giris');
     } catch (err: any) {
       console.error('Password reset error:', err);
       setError('Şifre güncelleme işlemi başarısız oldu. Lütfen tekrar deneyin.');

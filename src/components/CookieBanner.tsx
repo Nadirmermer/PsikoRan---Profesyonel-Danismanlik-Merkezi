@@ -356,10 +356,14 @@ export function CookieBanner() {
                     </p>
                     <p>
                       Çerezler ve bunları nasıl kullandığımız hakkında daha fazla bilgi için, lütfen{' '}
-                      <Link to="/kvkk" className="text-primary-600 hover:text-primary-500 dark:text-primary-400 hover:underline">
-                        KVKK sayfamızı
+                      <Link to="/gizlilik" className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300">
+                        Gizlilik Politikamızı
                       </Link>{' '}
-                      ziyaret edin.
+                      ve{' '}
+                      <Link to="/cerez-politikasi" className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300">
+                        Çerez Politikamızı
+                      </Link>{' '}
+                      inceleyebilirsiniz.
                     </p>
                   </div>
                 )}

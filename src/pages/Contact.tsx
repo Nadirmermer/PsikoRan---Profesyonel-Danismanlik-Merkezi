@@ -299,10 +299,11 @@ export function Contact() {
                       <label htmlFor="acceptTerms" className="font-medium text-slate-700 dark:text-slate-300">
                         Kişisel verilerimin işlenmesine izin veriyorum
                   </label>
-                      <p className="text-slate-500 dark:text-slate-400">
-                        <Link to="/privacy" className="text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">
-                          Gizlilik Politikasını
-                        </Link> okudum ve kabul ediyorum.
+                      <p className="text-xs text-slate-600 dark:text-slate-500 mt-6">
+                        Form bilgileriniz sadece sizinle iletişim kurma amacıyla kullanılacaktır. 
+                        <Link to="/gizlilik" className="text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">
+                          Gizlilik Politikamızı
+                        </Link> inceleyebilirsiniz.
                       </p>
                     </div>
                 </div>

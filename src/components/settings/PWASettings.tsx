@@ -121,7 +121,7 @@ export const PWASettings = () => {
             user.id, 
             "Bildirim Testi", 
             "Bildirimler başarıyla etkinleştirildi! Artık önemli bildirimleri alabilirsiniz.", 
-            { url: "/settings" },
+            { url: "/ayarlar" },
             userType
           );
         }, 1500);

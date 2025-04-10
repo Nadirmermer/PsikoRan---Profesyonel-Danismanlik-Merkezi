@@ -1616,3 +1616,39 @@ BEGIN
   END IF;
 END
 $$;
+
+-- SUPABASE STORAGE BUCKETS --
+-- Blog yazıları için görsel depolama bucket'ı
+-- storage.policies tablosu olmadığı için RLS politikalarını storage.create_policy ile oluşturacağız
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'blog',
+  'blog',
+  TRUE,
+  5242880, -- 5MB boyut limiti
+  ARRAY['image/jpeg', 'image/png', 'image/gif', 'image/webp']::text[]
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Blog bucket'ı için RLS politikaları
+-- Okuma politikası (herkes için)
+CREATE POLICY "Public Blog Images Access"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'blog');
+
+-- Blog içerik görsellerini yükleme politikası (sadece authenticated kullanıcılar)
+CREATE POLICY "Authenticated Blog Images Upload"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'blog' AND auth.role() = 'authenticated');
+
+-- Blog içerik görsellerini silme politikası (sadece authenticated kullanıcılar)
+CREATE POLICY "Authenticated Blog Images Delete"
+ON storage.objects FOR DELETE
+USING (bucket_id = 'blog' AND auth.role() = 'authenticated');
+
+-- Blog içerik görsellerini güncelleme politikası (sadece authenticated kullanıcılar)
+CREATE POLICY "Authenticated Blog Images Update"
+ON storage.objects FOR UPDATE
+USING (bucket_id = 'blog' AND auth.role() = 'authenticated')
+WITH CHECK (bucket_id = 'blog' AND auth.role() = 'authenticated');

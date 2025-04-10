@@ -188,7 +188,7 @@ export function ClientDetails() {
       // Supabase sorgusu yapmadan önce auth token kontrolü
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        navigate('/login');
+        navigate('/giris');
         return false;
       }
       
@@ -430,10 +430,10 @@ export function ClientDetails() {
               Yenile
             </button>
             <button
-              onClick={() => navigate('/clients')}
+              onClick={() => navigate('/danisanlar')}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Danışanlara Dön
+              Tüm Danışanlar
             </button>
           </div>
         </div>
@@ -458,10 +458,11 @@ export function ClientDetails() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <div className="flex items-center">
               <button 
-                onClick={() => navigate('/clients')}
-                className="mr-4 p-2 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700/50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
+                onClick={() => navigate('/danisanlar')}
+                className="text-sm bg-white dark:bg-slate-700 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 flex items-center"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Tüm Danışanlar
               </button>
               <motion.h1 
                 initial={{ opacity: 0, y: -10 }}

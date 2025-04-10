@@ -31,15 +31,8 @@ export function ForgotPassword() {
         .eq('email', email)
         .maybeSingle();
 
-      // Supabase Auth sisteminde kontrol
-      const { data: authUser } = await supabase.auth.admin.listUsers({
-        filters: {
-          email: email
-        }
-      });
-
       // Eğer e-posta adresi sistemde yoksa hata gösterelim
-      if (!userExists && !professionalExists && (!authUser || authUser.users.length === 0)) {
+      if (!userExists && !professionalExists) {
         setError('Bu e-posta adresi sistemde kayıtlı değil. Lütfen kayıtlı olduğunuz e-posta adresini girin.');
         setLoading(false);
         return;
@@ -47,7 +40,7 @@ export function ForgotPassword() {
 
       // E-posta adresi sistemde kayıtlıysa şifre sıfırlama işlemine devam edelim
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${window.location.origin}/sifre-sifirlama`,
       });
 
       if (error) throw error;
@@ -65,7 +58,7 @@ export function ForgotPassword() {
     <MainLayout>
       <div className="w-full max-w-md mx-auto p-6 flex flex-col justify-center py-16">
         <Link
-          to="/login"
+          to="/giris"
           className="group mb-8 flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors duration-200"
         >
           <ArrowLeft className="h-5 w-5 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
@@ -142,7 +135,7 @@ export function ForgotPassword() {
                 Lütfen e-posta kutunuzu kontrol edin. Şifrenizi sıfırlamak için gönderdiğimiz bağlantıya tıklayın.
               </p>
               <Link
-                to="/login"
+                to="/giris"
                 className="text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300 font-medium"
               >
                 Giriş sayfasına dön

@@ -60,17 +60,17 @@
     <priority>0.6</priority>
   </url>
 
-  <!-- Login Sayfası -->
+  <!-- Giriş Sayfası -->
   <url>
-    <loc>https://psikoran.com/login</loc>
+    <loc>https://psikoran.com/giris</loc>
     <lastmod>2025-04-20T12:00:00+03:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
 
-  <!-- Signup Sayfası -->
+  <!-- Kayıt Sayfası -->
   <url>
-    <loc>https://psikoran.com/signup</loc>
+    <loc>https://psikoran.com/kayit</loc>
     <lastmod>2025-04-20T12:00:00+03:00</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
@@ -86,7 +86,7 @@
 
   <!-- Gizlilik Politikası -->
   <url>
-    <loc>https://psikoran.com/gizlilik-politikasi</loc>
+    <loc>https://psikoran.com/gizlilik</loc>
     <lastmod>2025-04-20T12:00:00+03:00</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
@@ -94,7 +94,7 @@
 
   <!-- Kullanım Koşulları -->
   <url>
-    <loc>https://psikoran.com/kullanim-kosullari</loc>
+    <loc>https://psikoran.com/kosullar</loc>
     <lastmod>2025-04-20T12:00:00+03:00</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>

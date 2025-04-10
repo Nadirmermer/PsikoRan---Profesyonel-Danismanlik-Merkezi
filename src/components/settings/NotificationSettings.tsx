@@ -306,7 +306,7 @@ export function NotificationSettings() {
         user.id,
         'Test Bildirimi',
         'Bu bir test bildirimidir. Bildirimler başarıyla çalışıyor!',
-        { url: '/settings?tab=notifications' },
+        { url: '/ayarlar?tab=notifications' },
         userType
       );
       

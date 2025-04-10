@@ -10,7 +10,13 @@ const FILES_TO_CACHE = [
   '/offline.html',
   '/assets/favicon/logo.png',
   '/assets/icons/android-chrome-192x192.png',
-  '/assets/icons/android-chrome-512x512.png'
+  '/assets/icons/android-chrome-512x512.png',
+  '/giris',
+  '/kayit',
+  '/panel',
+  '/randevular',
+  '/danisanlar',
+  '/ayarlar'
 ];
 
 // Desteklenen URL şemaları
@@ -339,7 +345,7 @@ async function syncAppointments() {
     
     for (const appointment of pendingAppointments) {
       try {
-        const response = await fetch('/api/appointments', {
+        const response = await fetch('/api/randevular', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -378,7 +384,7 @@ async function syncNotes() {
     
     for (const note of pendingNotes) {
       try {
-        const response = await fetch('/api/notes', {
+        const response = await fetch('/api/notlar', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

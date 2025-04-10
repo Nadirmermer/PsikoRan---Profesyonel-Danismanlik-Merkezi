@@ -61,12 +61,19 @@ const MeetingTimer: React.FC<MeetingTimerProps> = ({
     
     const title = 'Seans Süresi Uyarısı';
     const body = `Seans süresinin bitmesine ${remainingMinutes} dakika kaldı.`;
-    const data = appointmentId 
-      ? { url: `/appointments/${appointmentId}`, appointmentId } 
-      : { url: '/appointments' };
+    const notification = {
+      title: 'Seans Sona Erdi',
+      message: 'Görüşme süresi doldu. Randevu detaylarına gitmek ister misiniz?',
+      // Eğer randevu id biliniyorsa randevu detayına, bilinmiyorsa randevular listesine yönlendir
+      data: appointmentId 
+        ? { url: `/randevu/${appointmentId}`, appointmentId }
+        : { url: '/randevular' },
+      sound: 'default',
+      vibrate: true
+    };
     
     // console.log(`Seans süresi bildirimi gönderiliyor: ${remainingMinutes} dakika kaldı`);
-    await sendNotification(user.id, title, body, data, userType);
+    await sendNotification(user.id, title, body, notification, userType);
   };
 
   // Saniyeyi saat:dakika:saniye formatına dönüştür

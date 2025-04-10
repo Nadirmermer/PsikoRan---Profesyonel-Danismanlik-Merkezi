@@ -43,12 +43,12 @@ export const PWAContext = React.createContext({
 
 // Herkese açık yolların listesi
 const PUBLIC_PATHS = [
-  '/', '/login', '/register', '/create-assistant', '/forgot-password', '/reset-password',
-  '/features', '/pricing', '/demo', '/blog', '/privacy', '/terms', '/kvkk', '/contact', '/help', '/test-completed'
+  '/', '/giris', '/kayit', '/asistan-olustur', '/sifremi-unuttum', '/sifre-sifirlama',
+  '/ozellikler', '/fiyatlandirma', '/demo', '/blog', '/gizlilik', '/kosullar', '/kvkk', '/iletisim', '/yardim', '/test-tamamlandi'
 ];
 
 // Blog ve test gibi dinamik public yolları kontrol etmek için regex
-const PUBLIC_PATH_PATTERNS = [ /^\/blog\/.+$/, /^\/test\/.+$/, /^\/public-test\/.+$/ ];
+const PUBLIC_PATH_PATTERNS = [ /^\/blog\/.+$/, /^\/test\/.+$/, /^\/genel-test\/.+$/ ];
 
 // BrowserRouter artık kullanılmıyor, doğrudan içerik döndürülüyor
 function AnimatedRoutes() {
@@ -106,7 +106,7 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
-        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/giris" element={<AdminLogin />} />
         <Route
           path="/admin/panel"
           element={
@@ -115,23 +115,23 @@ function AnimatedRoutes() {
             </AuthGuard>
           }
         />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/create-assistant" element={<CreateAssistant />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/giris" element={<Login />} />
+        <Route path="/kayit" element={<Register />} />
+        <Route path="/asistan-olustur" element={<CreateAssistant />} />
+        <Route path="/sifremi-unuttum" element={<ForgotPassword />} />
+        <Route path="/sifre-sifirlama" element={<ResetPassword />} />
         <Route path="/" element={<Home />} />
-        <Route path="/features" element={<Features />} />
-        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/ozellikler" element={<Features />} />
+        <Route path="/fiyatlandirma" element={<Pricing />} />
         <Route path="/demo" element={<Demo />} />
         <Route path="/blog" element={<Blog />} />
         <Route path="/blog/:slug" element={<BlogPost />} />
         <Route 
-          path="/test-results" 
+          path="/test-sonuclari" 
           element={<Navigate to="/" replace />} 
         />
         <Route 
-          path="/test-results/:id" 
+          path="/test-sonuclari/:id" 
           element={
             <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner /></div>}>
               <TestResultPage />
@@ -139,7 +139,7 @@ function AnimatedRoutes() {
           } 
         />
         <Route
-          path="/dashboard"
+          path="/panel"
           element={
             <AuthGuard>
               <Layout>
@@ -149,7 +149,7 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/professionals"
+          path="/uzmanlar"
           element={
             <AuthGuard requireAssistant>
               <Layout>
@@ -159,7 +159,7 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/clients"
+          path="/danisanlar"
           element={
             <AuthGuard>
               <Layout>
@@ -169,7 +169,7 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/clients/:clientId"
+          path="/danisanlar/:clientId"
           element={
             <AuthGuard>
               <Layout>
@@ -179,7 +179,7 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/appointments"
+          path="/randevular"
           element={
             <AuthGuard>
               <Layout>
@@ -189,7 +189,7 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/appointment/:id"
+          path="/randevular/:id"
           element={
             <AuthGuard>
               <Layout>
@@ -199,7 +199,17 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/payments"
+          path="/randevular/duzenle/:id"
+          element={
+            <AuthGuard>
+              <Layout>
+                <AppointmentDetails isEditing={true} />
+              </Layout>
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/odemeler"
           element={
             <AuthGuard>
               <Layout>
@@ -209,7 +219,7 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/settings"
+          path="/ayarlar"
           element={
             <AuthGuard>
               <Layout>
@@ -219,7 +229,7 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/blog-admin"
+          path="/blog-yonetim"
           element={
             <AuthGuard>
               <Layout>
@@ -229,13 +239,13 @@ function AnimatedRoutes() {
           }
         />
         <Route path="/test/:testId/:clientId" element={<Test />} />
-        <Route path="/public-test/:token" element={<Test />} />
-        <Route path="/test-completed" element={<TestCompleted />} />
-        <Route path="/privacy" element={<Privacy />} />
-        <Route path="/terms" element={<Terms />} />
+        <Route path="/genel-test/:token" element={<Test />} />
+        <Route path="/test-tamamlandi" element={<TestCompleted />} />
+        <Route path="/gizlilik" element={<Privacy />} />
+        <Route path="/kosullar" element={<Terms />} />
         <Route path="/kvkk" element={<KVKK />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/help" element={<Help />} />
+        <Route path="/iletisim" element={<Contact />} />
+        <Route path="/yardim" element={<Help />} />
       </Routes>
     </AnimatePresence>
   );

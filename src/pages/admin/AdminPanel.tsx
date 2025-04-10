@@ -200,8 +200,8 @@ export function AdminPanel() {
   }, [fetchData]);
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/admin/login'); // Çıkış sonrası admin girişine yönlendir
+    await supabase.auth.signOut();
+    navigate('/admin/giris'); // Çıkış sonrası admin girişine yönlendir
   };
 
   // Profesyonelleri asistan ID'sine göre grupla

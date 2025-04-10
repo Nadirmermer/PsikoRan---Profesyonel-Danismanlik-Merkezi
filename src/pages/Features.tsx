@@ -357,24 +357,19 @@ export function Features() {
           <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">
             Ücretsiz başlayın, ihtiyaçlarınız arttıkça ölçeklendirin. Aylık veya yıllık esnek fiyatlandırma planları.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4">
             <Link
-              to="/pricing"
-              className="px-7 py-3.5 rounded-full bg-primary-600 text-white font-medium text-center shadow-lg shadow-primary-600/20 hover:shadow-xl hover:shadow-primary-600/30 hover:bg-primary-700 transition-all duration-300 flex items-center justify-center group"
+              to="/fiyatlandirma"
+              className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-center font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
             >
-              <span>Fiyatlandırmayı Görüntüle</span>
-              <motion.div
-                animate={{ x: [0, 5, 0] }}
-                transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut", delay: 1 }}
-              >
-                <ChevronRight className="h-5 w-5 ml-2" />
-              </motion.div>
+              <span>Paketleri İncele</span>
+              <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
             <Link
               to="/demo"
-              className="px-7 py-3.5 rounded-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white font-medium text-center shadow-lg shadow-slate-300/10 dark:shadow-slate-900/20 hover:shadow-xl hover:shadow-slate-300/20 dark:hover:shadow-slate-900/30 transition-all duration-300 flex items-center justify-center"
+              className="px-6 py-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg text-center font-medium shadow-md hover:shadow-lg transition-all duration-200"
             >
-              <span>Demo İsteyin</span>
+              Canlı Demo'yu Deneyin
             </Link>
           </div>
         </motion.div>

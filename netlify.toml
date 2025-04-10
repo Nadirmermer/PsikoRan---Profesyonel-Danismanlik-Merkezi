@@ -9,37 +9,37 @@
   status = 200
 
 [[redirects]]
-  from = "/login"
+  from = "/giris"
   to = "/index.html"
   status = 200
 
 [[redirects]]
-  from = "/register"
+  from = "/kayit"
   to = "/index.html"
   status = 200
 
 [[redirects]]
-  from = "/dashboard/*"
+  from = "/panel/*"
   to = "/index.html"
   status = 200
 
 [[redirects]]
-  from = "/appointments/*"
+  from = "/randevular/*"
   to = "/index.html"
   status = 200
 
 [[redirects]]
-  from = "/clients/*"
+  from = "/danisanlar/*"
   to = "/index.html"
   status = 200
 
 [[redirects]]
-  from = "/settings/*"
+  from = "/ayarlar/*"
   to = "/index.html"
   status = 200
 
 [[redirects]]
-  from = "/help/*"
+  from = "/yardim/*"
   to = "/index.html"
   status = 200
 
@@ -62,6 +62,71 @@
   from = "/404"
   to = "/404.html"
   status = 404
+
+[[redirects]]
+  from = "/login"
+  to = "/giris"
+  status = 301
+
+[[redirects]]
+  from = "/register"
+  to = "/kayit"
+  status = 301
+
+[[redirects]]
+  from = "/dashboard/*"
+  to = "/panel/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/appointments/*"
+  to = "/randevular/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/clients/*"
+  to = "/danisanlar/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/professionals/*"
+  to = "/uzmanlar/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/settings/*"
+  to = "/ayarlar/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/help/*"
+  to = "/yardim/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/features"
+  to = "/ozellikler"
+  status = 301
+
+[[redirects]]
+  from = "/pricing"
+  to = "/fiyatlandirma"
+  status = 301
+
+[[redirects]]
+  from = "/privacy"
+  to = "/gizlilik"
+  status = 301
+
+[[redirects]]
+  from = "/terms"
+  to = "/kosullar"
+  status = 301
+
+[[redirects]]
+  from = "/contact"
+  to = "/iletisim"
+  status = 301
 
 [[headers]]
   for = "/*"

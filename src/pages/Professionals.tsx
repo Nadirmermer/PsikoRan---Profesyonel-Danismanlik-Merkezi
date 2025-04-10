@@ -125,7 +125,7 @@ export function Professionals() {
             role: 'professional',
             full_name: formData.fullName,
           },
-          emailRedirectTo: `${window.location.origin}/login`
+          emailRedirectTo: `${window.location.origin}/giris`
         },
       });
 

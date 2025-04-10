@@ -44,9 +44,11 @@ export function Terms() {
                 Bu kullanım şartları, PsikoRan platformunu kullanırken uymanız gereken kuralları ve karşılıklı hak ve yükümlülükleri belirler. 
                 Platformu kullanarak bu şartları kabul etmiş sayılırsınız.
               </p>
-              <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
-                Son güncelleme: {new Date().toLocaleDateString('tr-TR')}
-              </p>
+              <div className="mt-8 text-sm text-slate-600 dark:text-slate-400 border-t border-slate-300 dark:border-slate-700 pt-4">
+                <p>
+                  Son güncelleme: 10 Nisan 2025
+                </p>
+              </div>
             </div>
           </motion.section>
 
@@ -214,7 +216,7 @@ export function Terms() {
                     güncel şartları kabul ettiğiniz anlamına gelir.
                   </p>
                   <p className="font-medium">
-                    Kullanım şartlarının eski versiyonlarına erişmek için lütfen <a href="/terms/archive" className="text-primary-600 hover:text-primary-500 dark:text-primary-400">arşiv sayfasını</a> ziyaret edin.
+                    Kullanım şartlarının eski versiyonlarına erişmek için lütfen <a href="/kosullar/arsiv" className="text-primary-600 hover:text-primary-500 dark:text-primary-400">arşiv sayfasını</a> ziyaret edin.
                   </p>
                   <p className="mt-4 text-sm font-semibold">
                     Son güncelleme tarihi: {new Date().toLocaleDateString('tr-TR')}

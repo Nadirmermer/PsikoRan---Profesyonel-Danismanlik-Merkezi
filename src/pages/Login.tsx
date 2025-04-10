@@ -17,7 +17,7 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = location.state?.from?.pathname || '/panel';
 
   useEffect(() => {
     document.title = "Giriş Yap - PsikoRan";
@@ -136,7 +136,7 @@ export function Login() {
                 </div>
 
                 <Link
-                  to="/forgot-password"
+                  to="/sifremi-unuttum"
                   className="text-sm font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
                 >
                   Şifremi unuttum
@@ -180,7 +180,7 @@ export function Login() {
               </p>
               <div className="flex flex-col space-y-3">
                 <Link
-                  to="/create-assistant"
+                  to="/asistan-olustur"
                   className="w-full py-2.5 px-4 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors flex items-center justify-center"
                 >
                   <span>Asistan Hesabı Oluştur</span>
@@ -194,10 +194,10 @@ export function Login() {
               <Link to="/" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
                 Ana Sayfa
               </Link>
-              <Link to="/privacy" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+              <Link to="/gizlilik" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
                 Gizlilik
               </Link>
-              <Link to="/terms" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
+              <Link to="/kosullar" className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white">
                 Kullanım Şartları
               </Link>
             </div>

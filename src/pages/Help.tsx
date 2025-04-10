@@ -1,5 +1,5 @@
 import { MainLayout } from '../components/layout/MainLayout';
-import { Search, HelpCircle, BookOpen, Zap, MessageCircle, Shield, Settings, Calendar, CreditCard, Users } from 'lucide-react';
+import { Search, HelpCircle, BookOpen, Zap, MessageCircle, Shield, Settings, Calendar, CreditCard, Users, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 
 interface FAQItem {
@@ -222,10 +222,11 @@ export function Help() {
             Destek ekibimiz size yardımcı olmaktan mutluluk duyacaktır.
           </p>
           <a
-            href="/contact"
-            className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 transition-all duration-200"
+            href="/iletisim"
+            className="inline-flex items-center px-4 py-2 rounded-md bg-primary-600 text-white hover:bg-primary-700 transition-colors font-medium"
           >
-            Bizimle İletişime Geçin
+            <MessageSquare className="w-4 h-4 mr-2" />
+            İletişime Geçin
           </a>
         </div>
       </div>

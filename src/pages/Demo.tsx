@@ -288,19 +288,19 @@ export function Demo() {
                 <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">
                   30 gün boyunca tüm premium özelliklere erişin, kredi kartı gerektirmez, istediğiniz zaman iptal edebilirsiniz.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 mt-7">
                   <Link
-                    to="/create-assistant"
-                    className="px-6 py-3 rounded-lg bg-primary-600 text-white font-medium text-center shadow-lg shadow-primary-600/20 hover:shadow-xl hover:shadow-primary-600/30 hover:bg-primary-700 transition-all duration-300 flex items-center justify-center"
+                    to="/asistan-olustur"
+                    className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-center font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center w-full sm:w-auto"
                   >
-                    <span>Şimdi Başlayın</span>
+                    <span>Hemen Hesap Oluştur</span>
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                   <Link
-                    to="/pricing"
-                    className="px-6 py-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white font-medium text-center hover:shadow-md transition-all duration-300"
+                    to="/fiyatlandirma"
+                    className="px-6 py-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg text-center font-medium shadow-md hover:shadow-lg transition-all duration-200 w-full sm:w-auto"
                   >
-                    <span>Fiyatlandırmayı Görüntüle</span>
+                    Paketleri İncele
                   </Link>
                 </div>
               </div>

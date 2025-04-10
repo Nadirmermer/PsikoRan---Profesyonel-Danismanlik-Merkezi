@@ -189,7 +189,7 @@ export function Home() {
                 className="mt-8 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
               >
                 <Link
-                  to="/create-assistant"
+                  to="/asistan-olustur"
                   className="px-7 py-3.5 rounded-full bg-primary-600 text-white font-medium text-center shadow-lg shadow-primary-600/20 hover:shadow-xl hover:shadow-primary-600/30 hover:bg-primary-700 transition-all duration-300 flex items-center justify-center group"
                 >
                   <span>Ücretsiz Başlayın</span>
@@ -590,10 +590,10 @@ export function Home() {
             className="mt-16 text-center"
           >
             <Link
-              to="/features"
+              to="/ozellikler"
               className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-white dark:bg-slate-800 shadow-lg border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium transition-all duration-300 hover:shadow-xl group"
             >
-              <span>Tüm Özellikleri Keşfedin</span>
+              <span>Tüm Özellikleri Keşfet</span>
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-200" />
             </Link>
           </motion.div>
@@ -670,17 +670,17 @@ export function Home() {
                 className="mt-10 flex flex-col sm:flex-row gap-4 justify-center"
               >
                 <Link
-                  to="/pricing"
-                  className="px-7 py-3.5 rounded-full bg-white text-primary-600 font-medium shadow-lg hover:bg-slate-100 transition-all duration-300 flex items-center justify-center group"
+                  to="/fiyatlandirma"
+                  className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-full text-center font-semibold shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group"
                 >
-                  <span>Fiyatları İncele</span>
+                  <span>Hemen Başla</span>
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform duration-200" />
                 </Link>
                 <Link
-                  to="/register"
-                  className="px-7 py-3.5 rounded-full bg-white/20 text-white font-medium border border-white/30 shadow-sm hover:bg-white/30 transition-all duration-300 flex items-center justify-center"
+                  to="/kayit"
+                  className="px-8 py-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-full text-center font-semibold shadow-md hover:shadow-lg transition-all duration-200"
                 >
-                  <span>Ücretsiz Hesap Oluştur</span>
+                  Ücretsiz Hesap Oluştur
                 </Link>
               </motion.div> 
             </div>

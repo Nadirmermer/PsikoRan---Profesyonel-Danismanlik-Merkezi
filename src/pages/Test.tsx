@@ -544,7 +544,7 @@ export function Test() {
         }
         
         // Ruh sağlığı uzmanı olarak erişimde, test sonuçları sayfasına yönlendir
-        navigate(`/clients/${clientId}?tab=test-results`);
+        navigateToClientDetails();
       } catch (dbError) {
         console.error('Database error:', dbError);
         setError('Veritabanı hatası. Lütfen tekrar deneyin veya yöneticinize bildirin.');
@@ -652,6 +652,10 @@ export function Test() {
     setSelectedModules([]);
   }
 
+  const navigateToClientDetails = () => {
+    navigate(`/danisanlar/${clientId}?tab=test-results`);
+  };
+
   // ============================================================================
   // CONDITIONAL RENDERING
   // ============================================================================
@@ -686,10 +690,10 @@ export function Test() {
           {!professional && !token && (
             <div className="mt-4">
               <button
-                onClick={() => navigate('/login')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="w-full py-3 px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow transition-colors duration-200"
+                onClick={() => navigate('/giris')}
               >
-                Giriş Yap
+                Teste Devam Etmek İçin Giriş Yapın
               </button>
             </div>
           )}

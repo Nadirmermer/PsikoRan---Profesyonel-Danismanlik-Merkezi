@@ -4,25 +4,25 @@ Allow: /
 
 # SEO için önemli sayfalar
 Allow: /blog/
-Allow: /features
-Allow: /pricing
+Allow: /ozellikler
+Allow: /fiyatlandirma
 Allow: /demo
-Allow: /contact
-Allow: /help
+Allow: /iletisim
+Allow: /yardim
 Allow: /blog-post/*
 
 # Giriş/Yönetim sayfaları (arama motorları tarafından indekslenmemeli)
-Disallow: /dashboard
-Disallow: /professionals
-Disallow: /clients
-Disallow: /appointments
-Disallow: /payments
-Disallow: /settings
-Disallow: /blog-admin
+Disallow: /panel
+Disallow: /uzmanlar
+Disallow: /danisanlar
+Disallow: /randevular
+Disallow: /odemeler
+Disallow: /ayarlar
+Disallow: /blog-yonetim
 Disallow: /admin/
 Disallow: /api/
 Disallow: /internal/
-Disallow: /dashboard/private/
+Disallow: /panel/private/
 Disallow: /video-gorusme-ozel/
 Disallow: /test-sonuclari/
 Disallow: /danisan-raporlari/
