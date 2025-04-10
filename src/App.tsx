@@ -115,6 +115,14 @@ function AnimatedRoutes() {
             </AuthGuard>
           }
         />
+        <Route 
+          path="/admin/blog"
+          element={
+            <AuthGuard requireAdmin>
+              <BlogAdmin />
+            </AuthGuard>
+          }
+        />
         <Route path="/giris" element={<Login />} />
         <Route path="/kayit" element={<Register />} />
         <Route path="/asistan-olustur" element={<CreateAssistant />} />
@@ -224,16 +232,6 @@ function AnimatedRoutes() {
             <AuthGuard>
               <Layout>
                 <Settings />
-              </Layout>
-            </AuthGuard>
-          }
-        />
-        <Route
-          path="/blog-yonetim"
-          element={
-            <AuthGuard>
-              <Layout>
-                <BlogAdmin />
               </Layout>
             </AuthGuard>
           }

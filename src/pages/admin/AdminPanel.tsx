@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../lib/auth'; // Gerekirse admin bilgilerini almak için
-import { LogOut, Users, User, Building, Mail, Phone, CreditCard, AlertTriangle, CheckCircle, MoreVertical, XCircle, Power, Edit, Sun, Moon } from 'lucide-react';
+import { LogOut, Users, User, Building, Mail, Phone, CreditCard, AlertTriangle, CheckCircle, MoreVertical, XCircle, Power, Edit, Sun, Moon, FileText, PenTool } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner'; // Reverted path
@@ -111,7 +111,7 @@ const getStatusVariant = (status: SubscriptionStatus | undefined | null): "defau
     }
 }
 
-export function AdminPanel() {
+export default function AdminPanel() {
   const { admin, user: adminUser, signOut } = useAuth();
   const { theme, setTheme, isDarkMode } = useTheme(); // Use the theme hook
   const navigate = useNavigate();
@@ -123,6 +123,7 @@ export function AdminPanel() {
   const [cancellingSubscriptionId, setCancellingSubscriptionId] = useState<string | null>(null); // Yeni state
   const [showCancelConfirm, setShowCancelConfirm] = useState(false); // Yeni state
   const [selectedSubscriptionToCancel, setSelectedSubscriptionToCancel] = useState<Subscription | null>(null); // Yeni state
+  const [activeTab, setActiveTab] = useState<'assistants' | 'blog'>('assistants'); // Aktif sekme state'i eklendi
 
   // Theme toggle function
   const toggleTheme = () => {
@@ -329,251 +330,302 @@ export function AdminPanel() {
   // --- Bitiş: Abonelik İptali ---
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-      <header className="bg-white dark:bg-slate-800 shadow-sm sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-slate-800 dark:text-slate-200">
-            Yönetim Paneli
-          </h1>
-          <div className="flex items-center space-x-2">
-             {admin && <span className="text-sm font-medium hidden sm:block text-slate-600 dark:text-slate-400 mr-2">Hoşgeldin, {admin.full_name || admin.email || 'Admin'}</span>}
-             <Button
-               variant="ghost"
-               size="icon"
-               onClick={toggleTheme}
-               title={isDarkMode ? 'Açık Mod' : 'Koyu Mod'}
-             >
-               {isDarkMode ? <Sun className="h-5 w-5 text-amber-500" /> : <Moon className="h-5 w-5 text-slate-500" />}
-             </Button>
-             <Button variant="ghost" size="icon" onClick={handleSignOut} title="Çıkış Yap">
-               <LogOut className="h-5 w-5" />
-             </Button>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white">
+      {/* Header */}
+      <header className="bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Admin Paneli</h1>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              aria-label="Tema Değiştir"
+            >
+              {isDarkMode ? (
+                <Sun className="h-5 w-5 text-amber-500" />
+              ) : (
+                <Moon className="h-5 w-5 text-slate-600" />
+              )}
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="px-4 py-2 flex items-center text-sm space-x-1 font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/30 rounded-md hover:bg-red-100 dark:hover:bg-red-800/30 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Çıkış Yap</span>
+            </button>
           </div>
         </div>
       </header>
 
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h2 className="text-2xl font-semibold mb-6 text-slate-800 dark:text-slate-200">Kayıtlı Klinikler / Asistanlar</h2>
-        
-        {loading && (
-          <div className="flex justify-center items-center p-10">
+        {/* Sekmeler */}
+        <div className="mb-6 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex space-x-6">
+            <button
+              onClick={() => setActiveTab('assistants')}
+              className={`py-3 px-1 font-medium flex items-center space-x-2 border-b-2 ${
+                activeTab === 'assistants' 
+                  ? 'border-primary-500 text-primary-600 dark:text-primary-400' 
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <Users className="h-5 w-5" />
+              <span>Danışmanlar ve Profesyoneller</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('blog')}
+              className={`py-3 px-1 font-medium flex items-center space-x-2 border-b-2 ${
+                activeTab === 'blog' 
+                  ? 'border-primary-500 text-primary-600 dark:text-primary-400' 
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <FileText className="h-5 w-5" />
+              <span>Blog Yönetimi</span>
+            </button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
             <LoadingSpinner size="large" />
           </div>
-        )}
-
-        {error && (
-          <div className="p-4 mb-6 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-600/30" role="alert">
-            <span className="font-medium">Hata:</span> {error}
+        ) : error ? (
+          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-100 dark:border-red-800/30 text-center text-red-800 dark:text-red-300">
+            {error}
           </div>
-        )}
-
-        {!loading && !error && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {assistants.length === 0 ? (
-              <p className="text-center text-slate-500 dark:text-slate-400 col-span-full">Henüz kayıtlı asistan/klinik bulunmuyor.</p>
-            ) : (
-              assistants.map(assistant => (
-                <Card key={assistant.id} className="flex flex-col">
-                  <CardHeader className="flex flex-row items-start justify-between pb-4">
-                    <div>
-                        <CardTitle className="text-lg flex items-center">
-                           <Building className="h-5 w-5 mr-2 text-primary-600 dark:text-primary-400" />
-                           {assistant.clinic_name || 'İsimsiz Klinik'}
-                        </CardTitle>
-                        <CardDescription className="mt-1 flex items-center text-sm">
-                            <User className="h-4 w-4 mr-1.5 text-slate-400 dark:text-slate-500"/>
-                            {assistant.full_name}
-                        </CardDescription>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
-                           <MoreVertical className="h-5 w-5 text-slate-500 dark:text-slate-400" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Yönetim İşlemleri</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                            disabled={!assistant.subscription || assistant.subscription.status === 'cancelled' || !!cancellingSubscriptionId} 
-                            onClick={() => assistant.subscription && promptCancelSubscription(assistant.subscription)}
-                            className="text-red-600 dark:text-red-500 focus:bg-red-50 dark:focus:bg-red-900/50 focus:text-red-700 dark:focus:text-red-400"
-                        >
-                           <XCircle className="mr-2 h-4 w-4" />
-                          <span>Aboneliği İptal Et</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem disabled>
-                           <Edit className="mr-2 h-4 w-4" />
-                           <span>Aboneliği Düzenle</span>
-                        </DropdownMenuItem>
-                         <DropdownMenuItem disabled>
-                           <Power className="mr-2 h-4 w-4" />
-                           <span>Hesabı Askıya Al</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </CardHeader>
-
-                  <CardContent className="flex-grow space-y-4">
-                     <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
-                       {assistant.email && (
-                         <div className="flex items-center">
-                          <Mail className="h-4 w-4 mr-2 text-slate-400 dark:text-slate-500 flex-shrink-0"/> <span className="truncate">{assistant.email}</span>
-                         </div>
-                       )}
-                       {assistant.phone && (
-                          <div className="flex items-center">
-                           <Phone className="h-4 w-4 mr-2 text-slate-400 dark:text-slate-500 flex-shrink-0"/> <span>{assistant.phone}</span>
+        ) : (
+          <>
+            {/* Aktif sekmeye göre içerik */}
+            {activeTab === 'assistants' && (
+              <div>
+                <h2 className="text-2xl font-bold mb-6">Danışmanlar ve Profesyoneller</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {assistants.length === 0 ? (
+                    <p className="text-center text-slate-500 dark:text-slate-400 col-span-full">Henüz kayıtlı asistan/klinik bulunmuyor.</p>
+                  ) : (
+                    assistants.map(assistant => (
+                      <Card key={assistant.id} className="flex flex-col">
+                        <CardHeader className="flex flex-row items-start justify-between pb-4">
+                          <div>
+                              <CardTitle className="text-lg flex items-center">
+                                 <Building className="h-5 w-5 mr-2 text-primary-600 dark:text-primary-400" />
+                                 {assistant.clinic_name || 'İsimsiz Klinik'}
+                              </CardTitle>
+                              <CardDescription className="mt-1 flex items-center text-sm">
+                                  <User className="h-4 w-4 mr-1.5 text-slate-400 dark:text-slate-500"/>
+                                  {assistant.full_name}
+                              </CardDescription>
                           </div>
-                       )}
-                    </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="-mt-2 -mr-2">
+                                 <MoreVertical className="h-5 w-5 text-slate-500 dark:text-slate-400" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Yönetim İşlemleri</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                  disabled={!assistant.subscription || assistant.subscription.status === 'cancelled' || !!cancellingSubscriptionId} 
+                                  onClick={() => assistant.subscription && promptCancelSubscription(assistant.subscription)}
+                                  className="text-red-600 dark:text-red-500 focus:bg-red-50 dark:focus:bg-red-900/50 focus:text-red-700 dark:focus:text-red-400"
+                              >
+                                 <XCircle className="mr-2 h-4 w-4" />
+                                <span>Aboneliği İptal Et</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem disabled>
+                                 <Edit className="mr-2 h-4 w-4" />
+                                 <span>Aboneliği Düzenle</span>
+                              </DropdownMenuItem>
+                               <DropdownMenuItem disabled>
+                                 <Power className="mr-2 h-4 w-4" />
+                                 <span>Hesabı Askıya Al</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </CardHeader>
 
-                    <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                      <h4 className="text-sm font-medium mb-2 text-slate-800 dark:text-slate-200">Abonelik</h4>
-                      {assistant.subscription ? (
-                          <div className="space-y-1.5 text-sm">
-                              <div className="flex justify-between items-center">
-                                  <span className="text-slate-500 dark:text-slate-400">Durum:</span>
-                                   <Badge variant={getStatusVariant(assistant.subscription.status)} className="capitalize">
-                                        {translateSubscriptionStatus(assistant.subscription.status)}
-                                   </Badge>
-                              </div>
-                              <div className="flex justify-between">
-                                  <span className="text-slate-500 dark:text-slate-400">Plan:</span>
-                                  <span className="font-medium text-slate-700 dark:text-slate-300">
-                                      {translatePlanName(assistant.subscription.plan_type)} ({assistant.subscription.billing_cycle === 'annual' ? 'Yıllık' : 'Aylık'})
-                                  </span>
-                              </div>
-                               <div className="flex justify-between">
-                                  <span className="text-slate-500 dark:text-slate-400">Dönem Sonu:</span>
-                                  <span className="font-medium text-slate-700 dark:text-slate-300">
-                                      {formatDate(assistant.subscription.status === 'trial' ? assistant.subscription.trial_end : assistant.subscription.current_period_end)}
-                                  </span>
-                              </div>
-                              {assistant.subscription.cancel_at_period_end && (
-                                   <div className="flex justify-between text-yellow-600 dark:text-yellow-400 font-medium">
-                                       <span className="flex items-center"><AlertTriangle className="w-4 h-4 mr-1"/>İptal:</span>
-                                       <span>Dönem sonunda</span>
-                                   </div>
-                              )}
+                        <CardContent className="flex-grow space-y-4">
+                           <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
+                             {assistant.email && (
+                               <div className="flex items-center">
+                                <Mail className="h-4 w-4 mr-2 text-slate-400 dark:text-slate-500 flex-shrink-0"/> <span className="truncate">{assistant.email}</span>
+                               </div>
+                             )}
+                             {assistant.phone && (
+                                <div className="flex items-center">
+                                 <Phone className="h-4 w-4 mr-2 text-slate-400 dark:text-slate-500 flex-shrink-0"/> <span>{assistant.phone}</span>
+                                </div>
+                             )}
                           </div>
-                      ) : (
-                          <p className="text-sm text-slate-500 dark:text-slate-400 italic">Aktif abonelik bulunmuyor.</p>
-                      )}
-                    </div>
 
-                    {assistant.pending_payments && assistant.pending_payments.length > 0 && (
-                       <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                          <h4 className="text-sm font-medium mb-2 text-yellow-700 dark:text-yellow-400 flex items-center">
-                             <AlertTriangle className="h-4 w-4 mr-1.5" />
-                             Onay Bekleyen Havale(ler)
-                          </h4>
-                          <ul className="space-y-2">
-                            {assistant.pending_payments.map(payment => (
-                                <li key={payment.id} className="p-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-md border border-yellow-200 dark:border-yellow-800/40 flex justify-between items-center">
-                                    <div>
-                                        <p className="text-xs font-medium text-yellow-900 dark:text-yellow-200">Ref: {payment.bank_transfer_reference || '-'}</p>
-                                        <p className="text-xs text-yellow-700 dark:text-yellow-400">{formatDate(payment.created_at)}</p>
+                          <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                            <h4 className="text-sm font-medium mb-2 text-slate-800 dark:text-slate-200">Abonelik</h4>
+                            {assistant.subscription ? (
+                                <div className="space-y-1.5 text-sm">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-slate-500 dark:text-slate-400">Durum:</span>
+                                         <Badge variant={getStatusVariant(assistant.subscription.status)} className="capitalize">
+                                              {translateSubscriptionStatus(assistant.subscription.status)}
+                                         </Badge>
                                     </div>
-                                    <Button
-                                        variant="default"
-                                        size="sm"
-                                        onClick={() => handleApproveTransfer(payment)}
-                                        disabled={updatingPaymentId === payment.id}
-                                        className="whitespace-nowrap"
-                                    >
-                                         {updatingPaymentId === payment.id ? (
-                                            <LoadingSpinner size="small" />
-                                         ) : (
-                                            <CheckCircle className="w-3.5 h-3.5 mr-1"/>
-                                         )}
-                                        Onayla
-                                    </Button>
-                                </li>
-                            ))}
-                          </ul>
-                       </div>
-                    )}
-
-                    <Accordion type="single" collapsible className="w-full pt-4 border-t border-slate-200 dark:border-slate-700">
-                      <AccordionItem value="item-1">
-                        <AccordionTrigger className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                          <span className="flex items-center">
-                             <Users className="h-4 w-4 mr-1.5 text-slate-500 dark:text-slate-400" />
-                              Bağlı Uzmanlar ({professionalsByAssistant[assistant.id]?.length || 0})
-                          </span>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                         {(professionalsByAssistant[assistant.id] && professionalsByAssistant[assistant.id].length > 0) ? (
-                            <ul className="space-y-2 pt-2">
-                                {professionalsByAssistant[assistant.id].map(professional => (
-                                <li key={professional.id} className="p-2 bg-slate-50 dark:bg-slate-800/50 rounded-md border border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
-                                    <div>
-                                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{professional.full_name}</p>
-                                    {professional.title && <p className="text-xs text-slate-500 dark:text-slate-400">{professional.title}</p>}
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-500 dark:text-slate-400">Plan:</span>
+                                        <span className="font-medium text-slate-700 dark:text-slate-300">
+                                            {translatePlanName(assistant.subscription.plan_type)} ({assistant.subscription.billing_cycle === 'annual' ? 'Yıllık' : 'Aylık'})
+                                        </span>
                                     </div>
-                                    {professional.email && <span className="text-xs text-slate-600 dark:text-slate-400 hidden sm:block truncate max-w-[150px]" title={professional.email}>{professional.email}</span>}
-                                </li>
-                                ))}
-                            </ul>
+                                     <div className="flex justify-between">
+                                        <span className="text-slate-500 dark:text-slate-400">Dönem Sonu:</span>
+                                        <span className="font-medium text-slate-700 dark:text-slate-300">
+                                            {formatDate(assistant.subscription.status === 'trial' ? assistant.subscription.trial_end : assistant.subscription.current_period_end)}
+                                        </span>
+                                    </div>
+                                    {assistant.subscription.cancel_at_period_end && (
+                                         <div className="flex justify-between text-yellow-600 dark:text-yellow-400 font-medium">
+                                             <span className="flex items-center"><AlertTriangle className="w-4 h-4 mr-1"/>İptal:</span>
+                                             <span>Dönem sonunda</span>
+                                         </div>
+                                    )}
+                                </div>
                             ) : (
-                            <p className="text-sm text-slate-500 dark:text-slate-400 italic px-3 py-2">Bu asistana bağlı uzman bulunmuyor.</p>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 italic">Aktif abonelik bulunmuyor.</p>
                             )}
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
+                          </div>
 
-                  </CardContent>
-                </Card>
-              ))
+                          {assistant.pending_payments && assistant.pending_payments.length > 0 && (
+                             <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                                <h4 className="text-sm font-medium mb-2 text-yellow-700 dark:text-yellow-400 flex items-center">
+                                   <AlertTriangle className="h-4 w-4 mr-1.5" />
+                                   Onay Bekleyen Havale(ler)
+                                </h4>
+                                <ul className="space-y-2">
+                                  {assistant.pending_payments.map(payment => (
+                                      <li key={payment.id} className="p-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-md border border-yellow-200 dark:border-yellow-800/40 flex justify-between items-center">
+                                          <div>
+                                              <p className="text-xs font-medium text-yellow-900 dark:text-yellow-200">Ref: {payment.bank_transfer_reference || '-'}</p>
+                                              <p className="text-xs text-yellow-700 dark:text-yellow-400">{formatDate(payment.created_at)}</p>
+                                          </div>
+                                          <Button
+                                              variant="default"
+                                              size="sm"
+                                              onClick={() => handleApproveTransfer(payment)}
+                                              disabled={updatingPaymentId === payment.id}
+                                              className="whitespace-nowrap"
+                                          >
+                                               {updatingPaymentId === payment.id ? (
+                                                  <LoadingSpinner size="small" />
+                                               ) : (
+                                                  <CheckCircle className="w-3.5 h-3.5 mr-1"/>
+                                               )}
+                                              Onayla
+                                          </Button>
+                                      </li>
+                                  ))}
+                                </ul>
+                             </div>
+                          )}
+
+                          <Accordion type="single" collapsible className="w-full pt-4 border-t border-slate-200 dark:border-slate-700">
+                            <AccordionItem value="item-1">
+                              <AccordionTrigger className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                                <span className="flex items-center">
+                                   <Users className="h-4 w-4 mr-1.5 text-slate-500 dark:text-slate-400" />
+                                    Bağlı Uzmanlar ({professionalsByAssistant[assistant.id]?.length || 0})
+                                </span>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                               {(professionalsByAssistant[assistant.id] && professionalsByAssistant[assistant.id].length > 0) ? (
+                                  <ul className="space-y-2 pt-2">
+                                      {professionalsByAssistant[assistant.id].map(professional => (
+                                      <li key={professional.id} className="p-2 bg-slate-50 dark:bg-slate-800/50 rounded-md border border-slate-200 dark:border-slate-700/50 flex justify-between items-center">
+                                          <div>
+                                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{professional.full_name}</p>
+                                          {professional.title && <p className="text-xs text-slate-500 dark:text-slate-400">{professional.title}</p>}
+                                          </div>
+                                          {professional.email && <span className="text-xs text-slate-600 dark:text-slate-400 hidden sm:block truncate max-w-[150px]" title={professional.email}>{professional.email}</span>}
+                                      </li>
+                                      ))}
+                                  </ul>
+                                  ) : (
+                                  <p className="text-sm text-slate-500 dark:text-slate-400 italic px-3 py-2">Bu asistana bağlı uzman bulunmuyor.</p>
+                                  )}
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
+
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </div>
             )}
-          </div>
+
+            {activeTab === 'blog' && (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold">Blog Yönetimi</h2>
+                  <Button 
+                    onClick={() => navigate('/admin/blog')} 
+                    className="flex items-center space-x-2"
+                  >
+                    <PenTool className="h-4 w-4" />
+                    <span>Blog Editörüne Git</span>
+                  </Button>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Blog Yazıları Yönetimi</CardTitle>
+                    <CardDescription>
+                      Blog yazılarını oluşturmak, düzenlemek ve yayınlamak için Blog Editörü sayfasını kullanabilirsiniz.
+                    </CardDescription>
+                  </CardHeader>
+                  
+                  <CardFooter>
+                    <Button onClick={() => navigate('/admin/blog')} className="w-full">
+                      Blog Editörünü Aç
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </div>
+            )}
+          </>
         )}
 
-        {admin && !loading && (
-          <Card className="mt-8">
-             <CardHeader>
-                <CardTitle className="text-base">Oturum Açan Admin (Debug)</CardTitle>
-             </CardHeader>
-             <CardContent>
-                <pre className="text-xs text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 p-3 rounded overflow-x-auto">
-                {JSON.stringify(admin, null, 2)}
-                </pre>
-             </CardContent>
-          </Card>
-        )}
+        {/* Abonelik İptal Onay Diyaloğu */}
+        <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Aboneliği İptal Etmeyi Onayla</AlertDialogTitle>
+              <AlertDialogDescription>
+                Bu işlem seçili aboneliğin dönem sonunda yenilenmesini engelleyecektir.
+                ({selectedSubscriptionToCancel?.assistant_id ? `Asistan ID: ${selectedSubscriptionToCancel.assistant_id}` : ''})
+                Devam etmek istediğinizden emin misiniz?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={!!cancellingSubscriptionId}>Vazgeç</AlertDialogCancel>
+              <Button
+                  variant="destructive"
+                  onClick={handleCancelSubscription}
+                  disabled={!!cancellingSubscriptionId}
+              >
+                   {cancellingSubscriptionId === selectedSubscriptionToCancel?.id ? (
+                      <LoadingSpinner size="small" />
+                   ) : (
+                      <XCircle className="mr-2 h-4 w-4" />
+                   )}
+                  Evet, Dönem Sonunda İptal Et
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
-
-      <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Aboneliği İptal Etmeyi Onayla</AlertDialogTitle>
-            <AlertDialogDescription>
-              Bu işlem seçili aboneliğin dönem sonunda yenilenmesini engelleyecektir.
-              ({selectedSubscriptionToCancel?.assistant_id ? `Asistan ID: ${selectedSubscriptionToCancel.assistant_id}` : ''})
-              Devam etmek istediğinizden emin misiniz?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={!!cancellingSubscriptionId}>Vazgeç</AlertDialogCancel>
-            <Button
-                variant="destructive"
-                onClick={handleCancelSubscription}
-                disabled={!!cancellingSubscriptionId}
-            >
-                 {cancellingSubscriptionId === selectedSubscriptionToCancel?.id ? (
-                    <LoadingSpinner size="small" />
-                 ) : (
-                    <XCircle className="mr-2 h-4 w-4" />
-                 )}
-                Evet, Dönem Sonunda İptal Et
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
     </div>
   );
-}
-
-export default AdminPanel; 
+} 
