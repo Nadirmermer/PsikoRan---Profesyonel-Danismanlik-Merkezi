@@ -86,12 +86,63 @@ function copyRecursiveSync(src: string, dest: string): void {
   }
 }
 
+// WebP optimizasyon plugin'i
+const webpOptimizePlugin = () => {
+  return {
+    name: 'webp-optimize-plugin',
+    writeBundle: async () => {
+      try {
+        console.log('WebP dönüşümü başlatılıyor...');
+        
+        // sharp paketini kullanarak PNG ve JPG dosyalarını WebP'ye dönüştür
+        const { default: sharp } = await import('sharp');
+        
+        const assetsDir = 'public/assets';
+        if (fs.existsSync(assetsDir)) {
+          // PNG dosyalarını WebP'ye dönüştür
+          const processImagesInDir = (dir) => {
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            
+            for (const entry of entries) {
+              const fullPath = resolve(dir, entry.name);
+              
+              if (entry.isDirectory()) {
+                processImagesInDir(fullPath);
+              } else if (/\.(png|jpe?g)$/i.test(entry.name)) {
+                // WebP dosyasının yolunu oluştur
+                const webpPath = fullPath.replace(/\.(png|jpe?g)$/i, '.webp');
+                
+                // Eğer dosya zaten varsa işleme gerek yok
+                if (!fs.existsSync(webpPath)) {
+                  console.log(`Dönüştürülüyor: ${fullPath} -> ${webpPath}`);
+                  sharp(fullPath)
+                    .webp({ quality: 80 })
+                    .toFile(webpPath)
+                    .catch(err => console.error(`${entry.name} dönüştürülürken hata:`, err));
+                }
+              }
+            }
+          };
+          
+          processImagesInDir(assetsDir);
+          console.log('WebP dönüşümü tamamlandı');
+        } else {
+          console.warn('Assets dizini bulunamadı');
+        }
+      } catch (error) {
+        console.error('WebP dönüşüm hatası:', error);
+      }
+    }
+  };
+};
+
 // https://vitejs.dev/config/
 export default defineConfig({
   base: '/',
   plugins: [
     react(),
-    copyAssetsPlugin()
+    copyAssetsPlugin(),
+    webpOptimizePlugin()
   ],
   server: {
     port: 3000,

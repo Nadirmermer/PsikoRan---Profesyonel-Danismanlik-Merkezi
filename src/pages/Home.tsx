@@ -388,9 +388,9 @@ export function Home() {
                   <OptimizedImage
                     src={post.cover_image}
                     alt={post.title}
-                    width={800}
-                    height={450}
-                    quality={80}
+                    width={600}
+                    height={400}
+                    quality={75}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     crossOrigin="anonymous"
                     fallbackSrc="/assets/images/logo_1.png"

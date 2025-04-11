@@ -57,8 +57,9 @@ export function transformImageUrl(imageUrl: string, width: number = 800, height?
     params.append('width', width.toString());
     if (height) params.append('height', height.toString());
     params.append('quality', quality.toString());
+    params.append('format', 'webp'); // WebP formatını açıkça belirt
     
-    // WebP otomatik olarak kullanılacak (tarayıcı destekliyorsa)
+    // WebP formatında ve optimize edilmiş URL döndür
     return `${imageUrl}?${params.toString()}`;
   }
   

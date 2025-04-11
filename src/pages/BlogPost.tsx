@@ -239,9 +239,9 @@ export function BlogPost() {
               <OptimizedImage
                 src={post.cover_image || '/assets/images/blog-placeholder.jpg'}
                 alt={post.title}
-                width={1200}
-                height={675}
-                quality={90}
+                width={1024}
+                height={576}
+                quality={85}
                 className="w-full h-full object-cover"
                 fallbackSrc="/assets/images/blog-placeholder.jpg"
               />
