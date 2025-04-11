@@ -28,6 +28,7 @@ export const JitsiMeetingLauncher: React.FC<Omit<JitsiMeetingProps, 'isOpen'>> =
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [displayMode, setDisplayMode] = useState<'embedded' | 'external'>(props.preferredMode || 'embedded');
   const [showModeSelection, setShowModeSelection] = useState(false);
+  const isMobile = window.innerWidth < 768;
   
   // Toplantı başlatma fonksiyonu
   const startMeeting = (mode: 'embedded' | 'external') => {
@@ -41,6 +42,9 @@ export const JitsiMeetingLauncher: React.FC<Omit<JitsiMeetingProps, 'isOpen'>> =
       // Gömülü modda modal aç
       setIsModalOpen(true);
     }
+    
+    // Mod seçim ekranını kapat
+    setShowModeSelection(false);
   };
 
   const handleClose = () => {
@@ -50,29 +54,38 @@ export const JitsiMeetingLauncher: React.FC<Omit<JitsiMeetingProps, 'isOpen'>> =
 
   // Görüşme mod seçim ekranını göster
   const showJitsiOptions = () => {
-    setShowModeSelection(true);
+    // Mobil cihazlarda otomatik olarak uygun modu seçelim
+    if (isMobile) {
+      // Mobil cihazlarda genellikle harici mod daha iyi çalışır
+      startMeeting('external');
+    } else {
+      setShowModeSelection(true);
+    }
   };
 
   // Seçim menüsü
   if (showModeSelection) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-xl p-6 max-w-md w-full text-white">
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-gradient-to-br from-blue-900/95 to-indigo-900/95 rounded-xl p-6 max-w-md w-full text-white shadow-xl border border-white/10">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold">Görüşme Katılım Seçenekleri</h2>
             <button 
               onClick={() => setShowModeSelection(false)}
-              className="p-2 rounded-full hover:bg-black/20"
+              className="p-2 rounded-full hover:bg-black/20 transition-colors"
+              aria-label="Kapat"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
           
           <div className="space-y-4">
-            <div className="bg-black/20 rounded-lg p-4 hover:bg-black/30 cursor-pointer transition-colors"
-                 onClick={() => startMeeting('embedded')}>
+            <div 
+              className="bg-black/20 hover:bg-black/30 rounded-lg p-4 cursor-pointer transition-all transform hover:scale-[1.02] border border-white/5 shadow-md"
+              onClick={() => startMeeting('embedded')}
+            >
               <div className="flex items-center">
-                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center mr-4 shadow-lg">
                   <Video className="h-6 w-6" />
                 </div>
                 <div className="flex-1">
@@ -82,10 +95,12 @@ export const JitsiMeetingLauncher: React.FC<Omit<JitsiMeetingProps, 'isOpen'>> =
               </div>
             </div>
             
-            <div className="bg-black/20 rounded-lg p-4 hover:bg-black/30 cursor-pointer transition-colors"
-                 onClick={() => startMeeting('external')}>
+            <div 
+              className="bg-black/20 hover:bg-black/30 rounded-lg p-4 cursor-pointer transition-all transform hover:scale-[1.02] border border-white/5 shadow-md"
+              onClick={() => startMeeting('external')}
+            >
               <div className="flex items-center">
-                <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mr-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-purple-700 rounded-full flex items-center justify-center mr-4 shadow-lg">
                   <ExternalLink className="h-6 w-6" />
                 </div>
                 <div className="flex-1">
@@ -96,7 +111,7 @@ export const JitsiMeetingLauncher: React.FC<Omit<JitsiMeetingProps, 'isOpen'>> =
             </div>
           </div>
           
-          <div className="mt-6 text-xs text-blue-200 bg-blue-800/20 p-3 rounded-lg">
+          <div className="mt-6 text-xs text-blue-200 bg-blue-800/40 p-3 rounded-lg border border-blue-700/30">
             <p>Not: Tarayıcı güvenlik ayarlarınız nedeniyle gömülü mod çalışmazsa, yeni sekme modu otomatik olarak açılacaktır.</p>
           </div>
         </div>
@@ -109,7 +124,8 @@ export const JitsiMeetingLauncher: React.FC<Omit<JitsiMeetingProps, 'isOpen'>> =
     <>
       <button 
         onClick={showJitsiOptions}
-        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
+        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center shadow-md hover:shadow-lg transform hover:scale-[1.02] active:scale-[0.98]"
+        aria-label="Görüşmeye Katıl"
       >
         <Video className="mr-2 h-4 w-4" />
         <span>Görüşmeye Katıl</span>
@@ -196,6 +212,8 @@ const JitsiMeeting: React.FC<JitsiMeetingProps> = ({
       console.log('Jitsi API başarıyla yüklendi');
       setIsApiReady(true);
       setIsApiLoading(false);
+      // Başarılı yüklemeyi oturum depolamasında sakla
+      sessionStorage.setItem('jitsiApiLoaded', 'true');
     };
     
     const onScriptError = (e: Event | string) => {
@@ -261,6 +279,29 @@ const JitsiMeeting: React.FC<JitsiMeetingProps> = ({
           disableDeepLinking: true,
           startWithAudioMuted: false,
           startWithVideoMuted: false,
+          // Performans iyileştirmeleri
+          resolution: 720,
+          constraints: {
+            video: {
+              height: {
+                ideal: 720,
+                max: 720,
+                min: 240
+              }
+            }
+          },
+          // Düşük bant genişliği optimizasyonu
+          enableLayerSuspension: true,
+          p2p: {
+            enabled: true,
+            preferH264: true,
+            disableH264: false
+          },
+          // Toplantı optimizasyonları
+          disableAudioLevels: true,
+          enableNoAudioDetection: false,
+          enableNoisyMicDetection: true,
+          startSilent: false
         },
         interfaceConfigOverwrite: {
           DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
@@ -274,6 +315,17 @@ const JitsiMeeting: React.FC<JitsiMeetingProps> = ({
             'livestreaming', 'settings', 'raisehand', 'videoquality', 'tileview',
             'download', 'help', 'mute-everyone', 'security'
           ],
+          // UI iyileştirmeleri
+          DEFAULT_BACKGROUND: '#1A1B1D',
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          SHOW_BRAND_WATERMARK: false,
+          GENERATE_ROOMNAMES_ON_WELCOME_PAGE: false,
+          VERTICAL_FILMSTRIP: true,
+          CLOSE_PAGE_GUEST_HINT: false,
+          DISPLAY_WELCOME_PAGE_CONTENT: false,
+          DISPLAY_WELCOME_PAGE_TOOLBAR_ADDITIONAL_CONTENT: false,
+          VIDEO_LAYOUT_FIT: 'both'
         },
         userInfo: {
           displayName: userInfo?.displayName || displayName || 'Kullanıcı',
@@ -300,6 +352,23 @@ const JitsiMeeting: React.FC<JitsiMeetingProps> = ({
         setShowFallback(true);
       });
 
+      // Yeni olay dinleyicileri
+      jitsiApi.addListener('participantJoined', (participant) => {
+        console.log('Katılımcı katıldı:', participant);
+      });
+
+      jitsiApi.addListener('videoQualityChanged', (quality) => {
+        console.log('Video kalitesi değişti:', quality);
+      });
+
+      jitsiApi.addListener('cameraError', (error) => {
+        console.error('Kamera hatası:', error);
+      });
+
+      jitsiApi.addListener('micError', (error) => {
+        console.error('Mikrofon hatası:', error);
+      });
+
       return () => {
         if (jitsiApi) {
           jitsiApi.dispose();
@@ -312,142 +381,197 @@ const JitsiMeeting: React.FC<JitsiMeetingProps> = ({
   }, [isApiReady, roomName, displayName, userInfo]);
 
   // Tam ekran stillerini oluştur
+  const isMobile = window.innerWidth < 768; // Mobil cihaz kontrolü
+  
   const containerStyles = {
-    width: isFullscreen ? '100%' : width,
-    height: isFullscreen ? '100vh' : height,
-    position: isFullscreen ? 'fixed' : 'fixed',
-    top: isFullscreen ? 0 : '50%',
-    left: isFullscreen ? 0 : '50%',
-    transform: isFullscreen ? 'none' : 'translate(-50%, -50%)',
-    zIndex: 9999,
-    borderRadius: isFullscreen ? 0 : '0.75rem',
+    width: isFullscreen || isMobile ? '100vw' : width,
+    height: isFullscreen || isMobile ? '100vh' : height,
+    position: 'fixed' as 'fixed',
+    top: isFullscreen || isMobile ? 0 : '50%',
+    left: isFullscreen || isMobile ? 0 : '50%',
+    transform: isFullscreen || isMobile ? 'none' : 'translate(-50%, -50%)',
+    zIndex: 99999,
+    borderRadius: isFullscreen || isMobile ? 0 : '0.75rem',
+    margin: 0,
+    padding: 0,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    overflow: 'hidden',
+    boxShadow: isFullscreen || isMobile ? 'none' : '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
   } as React.CSSProperties;
+
+  // Jitsi container stili
+  const jitsiContainerStyle = {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    minHeight: 0, // Önemli: flex-shrink için
+    position: 'relative' as const,
+  };
+  
+  // Mobil için ekstra stiller
+  const mobileHeaderStyle = isMobile ? {
+    padding: '0.75rem',
+  } : {};
 
   // Hata durumunda yedek görünümü göster
   if (showFallback) {
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-    <div 
-        className="jitsi-meeting-container overflow-hidden bg-gradient-to-br from-blue-900 to-indigo-900 text-white flex flex-col rounded-2xl shadow-xl"
-        style={{width: '90%', maxWidth: '600px', height: 'auto'}}
-    >
-      {/* Başlık */}
-      <div className="bg-black/30 p-4 flex justify-between items-center">
-        <div>
-          <h3 className="font-bold text-lg">Görüşme: {roomName}</h3>
-          <p className="text-sm text-blue-200">
-            {userInfo?.displayName || displayName}
-          </p>
-        </div>
-          <div className="flex items-center space-x-2">
-        <button
-              onClick={onClose}
-              className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg text-sm transition-colors"
-              title="Kapat"
-            >
-              <X className="h-5 w-5" />
-        </button>
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center" style={{ zIndex: 99999 }}>
+        <div 
+          className="jitsi-meeting-container overflow-hidden bg-gradient-to-br from-blue-900 to-indigo-900 text-white flex flex-col rounded-2xl shadow-xl"
+          style={{width: '90%', maxWidth: '600px', height: 'auto'}}
+        >
+          {/* Başlık */}
+          <div className="bg-black/30 p-4 flex justify-between items-center">
+            <div>
+              <h3 className="font-bold text-lg">Görüşme: {roomName}</h3>
+              <p className="text-sm text-blue-200">
+                {userInfo?.displayName || displayName}
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={onClose}
+                className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg text-sm transition-colors"
+                title="Kapat"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
-      </div>
-      
-      {/* Ana içerik */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-black/20 rounded-2xl p-8 max-w-lg w-full">
+          
+          {/* Ana içerik */}
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+            <div className="bg-black/20 rounded-2xl p-8 max-w-lg w-full">
               <div className="w-16 h-16 bg-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <AlertTriangle className="w-8 h-8" />
-          </div>
-          
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+              
               <h2 className="text-xl font-bold mb-4">API Yükleme Hatası</h2>
-          <div className="text-blue-100 space-y-4 mb-8">
-            <p>
-                  Tarayıcı güvenlik kısıtlamaları nedeniyle Jitsi görüşme API'si yüklenemedi. Bu geliştirme ortamında normal bir durumdur.
-            </p>
-            <p className="text-sm bg-blue-800/30 p-3 rounded-lg">
-                  <strong>Çözüm:</strong> Görüşmeyi yeni sekmede açarak devam edebilirsiniz.
-            </p>
-          </div>
-          
-          <div className="space-y-3">
-            <button 
-              onClick={openInNewTab}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center"
-            >
-              <ExternalLink className="mr-2 h-5 w-5" />
-                  Yeni Sekmede Aç
-            </button>
-            
-            <button 
-              onClick={onClose}
-              className="w-full bg-gray-700 hover:bg-gray-600 text-white/90 py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center"
-            >
-              <X className="mr-2 h-5 w-5" />
-              Kapat
-            </button>
+              <div className="text-blue-100 space-y-4 mb-8">
+                <p>
+                      Tarayıcı güvenlik kısıtlamaları nedeniyle Jitsi görüşme API'si yüklenemedi. Bu geliştirme ortamında normal bir durumdur.
+                </p>
+                <p className="text-sm bg-blue-800/30 p-3 rounded-lg">
+                      <strong>Çözüm:</strong> Görüşmeyi yeni sekmede açarak devam edebilirsiniz.
+                </p>
+              </div>
+              
+              <div className="space-y-3">
+                <button 
+                  onClick={openInNewTab}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center"
+                >
+                  <ExternalLink className="mr-2 h-5 w-5" />
+                    Yeni Sekmede Aç
+                </button>
+                
+                <button 
+                  onClick={onClose}
+                  className="w-full bg-gray-700 hover:bg-gray-600 text-white/90 py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center"
+                >
+                  <X className="mr-2 h-5 w-5" />
+                  Kapat
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
     );
   }
 
   // Normal görünüm - Jitsi iFrame'i için konteyner
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-lg flex items-center justify-center" style={{ zIndex: 99999 }}>
       <div 
-        className="jitsi-meeting-container overflow-hidden bg-gradient-to-br from-blue-900 to-indigo-900 shadow-xl rounded-xl"
+        className="jitsi-meeting-container overflow-hidden bg-gradient-to-br from-blue-900/90 to-indigo-900/90 shadow-2xl rounded-xl dark:bg-gradient-to-br dark:from-gray-900/90 dark:to-gray-800/90"
         style={containerStyles}
       >
-        {/* Başlık bar */}
-        <div className="bg-black/30 p-3 flex justify-between items-center">
+        {/* Başlık bar - Mobil dostu */}
+        <div className="bg-black/30 backdrop-blur-sm flex justify-between items-center" style={mobileHeaderStyle}>
           <div className="flex items-center">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center mr-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 flex items-center justify-center mr-2 shadow-lg">
               <Video className="h-4 w-4 text-white" />
             </div>
-            <h3 className="font-bold text-white">Görüşme: {roomName}</h3>
+            <h3 className="font-bold text-white dark:text-gray-100 truncate" style={{ maxWidth: isMobile ? '160px' : '300px' }}>
+              Görüşme: {roomName}
+            </h3>
           </div>
+          
           <div className="flex items-center space-x-2">
+            {/* Bağlantı durumu göstergesi */}
+            <div className="hidden md:flex items-center mr-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></div>
+              <span className="text-xs text-green-300">Bağlı</span>
+            </div>
+            
+            {/* Butonlar */}
             <button
               onClick={toggleFullscreen}
-              className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-lg text-sm transition-colors"
+              className="bg-gray-800/70 hover:bg-gray-700 dark:bg-gray-700/70 dark:hover:bg-gray-600 text-white p-2 rounded-lg text-sm transition-colors shadow-md"
               title={isFullscreen ? "Tam ekrandan çık" : "Tam ekran yap"}
+              aria-label={isFullscreen ? "Tam ekrandan çık" : "Tam ekran yap"}
             >
               <Maximize className="h-5 w-5" />
             </button>
-          <button 
-            onClick={onClose}
-              className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg text-sm transition-colors"
-              title="Kapat"
-          >
+            
+            <button 
+              onClick={onClose}
+              className="bg-red-600/90 hover:bg-red-700 dark:bg-red-500/90 dark:hover:bg-red-600 text-white p-2 rounded-lg text-sm transition-colors shadow-md"
+              title="Görüşmeyi Sonlandır"
+              aria-label="Görüşmeyi Sonlandır"
+            >
               <X className="h-5 w-5" />
-          </button>
+            </button>
           </div>
         </div>
 
+        {/* Yükleniyor veya Jitsi Görüşmesi */}
         {!isApiReady ? (
-          <div className="w-full h-full flex flex-col items-center justify-center p-6 text-white">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-xl font-semibold">Görüşme hazırlanıyor...</p>
-            <p className="text-sm mt-2 text-blue-200">Bu işlem tarayıcı güvenlik ayarlarınıza bağlı olarak biraz zaman alabilir.</p>
-            <div className="mt-6 flex space-x-3">
-              <button 
-                onClick={openInNewTab}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center"
-              >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                <span>Yeni Sekmede Aç</span>
-              </button>
-              <button 
-                onClick={onClose}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center"
-              >
-                <X className="mr-2 h-4 w-4" />
-                <span>İptal Et</span>
-              </button>
-            </div>
+          <div className="w-full h-full flex flex-col items-center justify-center p-6 text-white dark:text-gray-100">
+            <div className="w-16 h-16 border-4 border-blue-500 dark:border-blue-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-xl font-semibold animate-pulse">Görüşme hazırlanıyor...</p>
+            <p className="text-sm mt-2 text-blue-200 dark:text-blue-300 max-w-md text-center">
+              Bu işlem tarayıcı güvenlik ayarlarınıza bağlı olarak biraz zaman alabilir. Lütfen bekleyin.
+            </p>
           </div>
         ) : (
-          <div ref={jitsiContainerRef} className="w-full h-full"></div>
+          <>
+            <div ref={jitsiContainerRef} style={jitsiContainerStyle}></div>
+            
+            {/* Mobil için ekstra kontroller - ekranın altında */}
+            {isMobile && (
+              <div className="bg-black/50 backdrop-blur-sm py-2 px-4 flex justify-center">
+                <div className="flex space-x-3">
+                  <button 
+                    onClick={() => api?.executeCommand('toggleAudio')}
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-700 text-white"
+                    aria-label="Mikrofonu Aç/Kapat"
+                  >
+                    <Mic className="h-5 w-5" />
+                  </button>
+                  
+                  <button 
+                    onClick={() => api?.executeCommand('toggleVideo')}
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-700 text-white"
+                    aria-label="Kamerayı Aç/Kapat"
+                  >
+                    <Video className="h-5 w-5" />
+                  </button>
+                  
+                  <button 
+                    onClick={onClose}
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-red-600 text-white"
+                    aria-label="Görüşmeyi Sonlandır"
+                  >
+                    <Phone className="h-5 w-5 transform rotate-135" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
