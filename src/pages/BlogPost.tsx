@@ -6,6 +6,7 @@ import { fetchBlogPostBySlug, formatBlogDate, processProfessionalNames, generate
 import { MainLayout } from '../components/layout/MainLayout';
 import { Helmet } from 'react-helmet-async';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import OptimizedImage from '../components/OptimizedImage';
 
 // Blog yazısı tipi
 interface BlogPostType {
@@ -233,28 +234,18 @@ export function BlogPost() {
               </p>
             </motion.header>
 
-            {/* Blog görseli */}
-            <motion.figure 
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="mb-10 rounded-2xl overflow-hidden shadow-xl dark:shadow-primary-900/10"
-            >
-              <img 
+            {/* Cover Image */}
+            <div className="relative w-full h-64 sm:h-72 md:h-96 rounded-xl overflow-hidden mb-8 shadow-lg">
+              <OptimizedImage
                 src={post.cover_image || '/assets/images/blog-placeholder.jpg'}
                 alt={post.title}
-                className="w-full object-cover h-64 sm:h-80 lg:h-96"
-                loading="lazy"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = '/assets/images/blog-placeholder.jpg';
-                  target.onerror = () => {
-                    target.src = '/assets/images/logo_1.png';
-                    target.onerror = null;
-                  };
-                }}
+                width={1200}
+                height={675}
+                quality={90}
+                className="w-full h-full object-cover"
+                fallbackSrc="/assets/images/blog-placeholder.jpg"
               />
-            </motion.figure>
+            </div>
 
             {/* Blog içeriği */}
             <motion.div 

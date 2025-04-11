@@ -721,62 +721,50 @@ export function BlogAdmin() {
   }, [user]);
 
   const fetchPosts = async () => {
-    setIsLoading(true);
-    
     try {
-      // Kullanıcı türüne göre farklı sorgular yapılandır
-      let query = supabase
-        .from('blog_posts')
-        .select('*')
-        .order('created_at', { ascending: false });
-        
-      if (userType === 'admin') {
-        // Admin kullanıcıları tüm blog yazılarını görebilir veya
-        // sadece kendilerinin yazdıklarını görmek isterlerse:
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user) {
-          // Eğer adminin sadece kendi yazılarını görmesini istiyorsanız:
-          // query = query.eq('author_id', userData.user.id);
-          
-          // Eğer adminin tüm yazıları görmesini istiyorsanız, query'de değişiklik yapılmaz
-        }
-      } else if (userType === 'professional') {
-        // Ruh sağlığı uzmanları sadece kendi blog yazılarını görebilir
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user) {
-          query = query.eq('author_id', userData.user.id);
-        }
-      } else if (userType === 'assistant') {
-        // Asistanlar yalnızca bağlı oldukları ruh sağlığı uzmanlarının blog yazılarını görebilir
-        if (linkedProfessionals.length > 0) {
-          // Bağlı uzmanların user_id'lerini alıyoruz
-          const professionalUserIds = await Promise.all(
-            linkedProfessionals.map(async (prof) => {
-              const { data } = await supabase
-                .from('professionals')
-                .select('user_id')
-                .eq('id', prof.id)
-                .single();
-              return data?.user_id;
-            })
-          );
-          
-          // Null olmayan user_id'leri filtreleyelim
-          const validUserIds = professionalUserIds.filter(id => id);
-          
-          if (validUserIds.length > 0) {
-            query = query.in('author_id', validUserIds);
-          }
-        }
+      setIsLoading(true);
+      
+      // Mevcut kullanıcının kim olduğunu kontrol et
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) throw userError;
+      
+      // Admin kontrolü
+      const { data: adminData } = await supabase
+        .from('admins')
+        .select('id')
+        .eq('user_id', userData.user.id)
+        .single();
+      
+      const isAdmin = !!adminData;
+      
+      // Admin veya normal kullanıcı için uygun sorguyu oluştur
+      let query = supabase.from('blog_posts').select('*');
+      
+      if (isAdmin) {
+        // Admin ise tüm blog yazılarını getir
+        // Herhangi bir kısıtlama ekleme
+      } else {
+        // Admin olmayan kullanıcılar için, RLS politikaları ile filtreleme yapılır
+        // Ruh sağlığı uzmanları sadece kendi yazılarını görür
+        // Asistanlar kendi kliniğindeki uzmanların yazılarını görür
       }
       
-      const { data, error: fetchError } = await query;
-        
-      if (fetchError) throw fetchError;
+      // Yazıları tarihe göre sırala
+      query = query.order('published_at', { ascending: false });
       
-      setPosts(data || []);
-    } catch (err) {
-      console.error('Blog yazıları yüklenirken hata oluştu:', err);
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      const parsedPosts = data.map((post: any) => ({
+        ...post,
+        tags: Array.isArray(post.tags) ? post.tags : JSON.parse(post.tags || '[]')
+      }));
+      
+      setPosts(parsedPosts);
+    } catch (error) {
+      console.error('Error fetching blog posts:', error);
       setError('Blog yazıları yüklenirken bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
     } finally {
       setIsLoading(false);

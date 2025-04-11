@@ -40,6 +40,32 @@ export const sampleBlogPosts: BlogPost[] = [
 ];
 
 /**
+ * Blog görsellerini WebP formatına dönüştüren ve optimize eden yardımcı fonksiyon
+ * @param imageUrl Resim URL'si
+ * @param width Resim genişliği (varsayılan: 800)
+ * @param height Resim yüksekliği (opsiyonel)
+ * @param quality Resim kalitesi (varsayılan: 80)
+ * @returns Optimize edilmiş resim URL'si
+ */
+export function transformImageUrl(imageUrl: string, width: number = 800, height?: number, quality: number = 80): string {
+  if (!imageUrl) return imageUrl;
+  
+  // Supabase storage URL'si mi kontrol et
+  if (imageUrl.includes('supabase.co/storage/v1/object/public')) {
+    // URL parametrelerini oluştur
+    const params = new URLSearchParams();
+    params.append('width', width.toString());
+    if (height) params.append('height', height.toString());
+    params.append('quality', quality.toString());
+    
+    // WebP otomatik olarak kullanılacak (tarayıcı destekliyorsa)
+    return `${imageUrl}?${params.toString()}`;
+  }
+  
+  return imageUrl;
+}
+
+/**
  * Blog yazılarını getirir
  * @param limit Kaç adet blog yazısı getirileceği (opsiyonel, varsayılan tüm yazılar)
  * @returns Blog yazıları listesi
@@ -61,7 +87,11 @@ export async function fetchBlogPosts(limit?: number): Promise<BlogPost[]> {
     if (error) throw error;
     
     if (data && data.length > 0) {
-      return data as BlogPost[];
+      // Resimleri optimize et
+      return data.map(post => ({
+        ...post,
+        cover_image: transformImageUrl(post.cover_image)
+      })) as BlogPost[];
     } else {
       // Veri yoksa örnek verileri döndür
       return limit ? sampleBlogPosts.slice(0, limit) : sampleBlogPosts;
@@ -97,7 +127,11 @@ export async function fetchBlogPostsByCategory(category: string, limit?: number)
     if (error) throw error;
     
     if (data && data.length > 0) {
-      return data as BlogPost[];
+      // Resimleri optimize et
+      return data.map(post => ({
+        ...post,
+        cover_image: transformImageUrl(post.cover_image)
+      })) as BlogPost[];
     } else {
       // Veri yoksa ilgili kategorideki örnek verileri döndür
       const filteredPosts = sampleBlogPosts.filter(post => post.category === category);
@@ -126,7 +160,12 @@ export async function fetchBlogPostBySlug(slug: string): Promise<BlogPost | null
     if (error) throw error;
     
     if (data && data.length > 0) {
-      return data[0] as BlogPost;
+      // Resmi optimize et
+      const post = data[0] as BlogPost;
+      return {
+        ...post,
+        cover_image: transformImageUrl(post.cover_image, 1200) // Daha büyük resim
+      };
     } else {
       // Veri yoksa slug'a uygun örnek veriyi döndür
       const samplePost = sampleBlogPosts.find(post => post.slug === slug);

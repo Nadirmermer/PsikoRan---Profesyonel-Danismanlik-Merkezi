@@ -9,6 +9,7 @@ import { TurkLiraIcon } from '../components/icons/TurkLiraIcon';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Helmet } from 'react-helmet-async';
+import OptimizedImage from '../components/OptimizedImage';
 
 // Blog yazısı tipi tanımı
 interface BlogPost {
@@ -71,7 +72,7 @@ export function Home() {
   const formattedDate = format(currentDate, 'yyyy-MM-dd', { locale: tr });
     
   useEffect(() => {
-    document.title = "PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi";
+    document.title = "PsikoRan - Psikoterapist Randevu Sistemi";
     loadBlogPosts();
   }, []);
     
@@ -89,7 +90,7 @@ export function Home() {
   return (
     <MainLayout>
       <Helmet>
-        <title>PsikoRan - Psikoterapist Randevu ve Danışan Yönetim Sistemi | Online Terapi Platformu</title>
+        <title>PsikoRan - Psikoterapist Randevu Sistemi</title>
         <meta name="description" content="PsikoRan, psikoterapistler için özel olarak tasarlanmış profesyonel bir randevu ve danışan yönetim sistemidir. Online terapi seansları, psikolojik test uygulamaları, danışan takibi ve raporlama araçlarıyla danışmanlık süreçlerinizi dijitalleştirin." />
         <meta name="keywords" content="psikoterapist, psikolog, psikoloji, terapi, online terapi, danışmanlık, randevu sistemi, danışan yönetimi, psikolojik testler, bireysel terapi, çift terapisi, aile terapisi, uzaktan terapi, psikoterapi, bilişsel davranışçı terapi" />
         <link rel="canonical" href="https://psikoran.com/" />
@@ -161,17 +162,12 @@ export function Home() {
                 <span className="text-sm font-medium text-primary-700 dark:text-primary-300">Ruh Sağlığı Profesyonelleri İçin</span>
               </motion.div>
               
-              <motion.h1 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.2 }}
-                className="text-4xl sm:text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 leading-tight tracking-tight"
-              >
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 leading-tight tracking-tight">
                 Danışma Süreçlerinizi <span className="relative whitespace-nowrap text-primary-600 dark:text-primary-400">
                   <svg aria-hidden="true" viewBox="0 0 418 42" className="absolute left-0 top-full h-[.58em] w-full fill-primary-400/30 dark:fill-primary-500/30" preserveAspectRatio="none"><path d="M203.371.916c-26.013-2.078-76.686 1.963-124.73 9.946L67.3 12.749C35.421 18.062 18.2 21.766 6.004 25.934 1.244 27.561.828 27.778.874 28.61c.07 1.214.828 1.121 9.595-1.176 9.072-2.377 17.15-3.92 39.246-7.496C123.565 7.986 157.869 4.492 195.942 5.046c7.461.108 19.25 1.696 19.17 2.582-.107 1.183-7.874 4.31-25.75 10.366-21.992 7.45-35.43 12.534-36.701 13.884-2.173 2.308-.202 4.407 4.442 4.734 2.654.187 3.263.157 15.593-.78 35.401-2.686 57.944-3.488 88.365-3.143 46.327.526 75.721 2.23 130.788 7.584 19.787 1.924 20.814 1.98 24.557 1.332l.066-.011c1.201-.203 1.53-1.825.399-2.335-2.911-1.31-4.893-1.604-22.048-3.261-57.509-5.556-87.871-7.36-132.059-7.842-23.239-.254-33.617-.116-50.627.674-11.629.54-42.371 2.494-46.696 2.967-2.359.259 8.133-3.625 26.504-9.81 23.239-7.825 27.934-10.149 28.304-14.005.417-4.348-3.529-6-16.878-7.066Z"></path></svg>
                   <span className="relative">Dijitalleştirin</span>
                 </span>
-              </motion.h1>
+              </h1>
               
               <motion.p 
                 initial={{ opacity: 0, y: 20 }}
@@ -389,16 +385,15 @@ export function Home() {
                 className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 group hover:shadow-xl transition-all duration-300"
               >
                 <Link to={`/blog/${post.slug}`} className="block h-48 overflow-hidden">
-                  <img
+                  <OptimizedImage
                     src={post.cover_image}
                     alt={post.title}
+                    width={800}
+                    height={450}
+                    quality={80}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     crossOrigin="anonymous"
-                    loading="lazy"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/assets/images/logo_1.png';
-                    }}
+                    fallbackSrc="/assets/images/logo_1.png"
                   />
                 </Link>
                 <div className="p-6">

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { fetchBlogPosts, formatBlogDate, generateBlogListJsonLd } from '../lib/blog';
 import { Helmet } from 'react-helmet-async';
 import { MainLayout } from '../components/layout/MainLayout';
+import OptimizedImage from '../components/OptimizedImage';
 
 // Blog post tipi tanımlayalım
 interface BlogPost {
@@ -232,26 +233,20 @@ export function Blog() {
               >
                 <Link to={`/blog/${post.slug}`} className="block">
                   <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={post.cover_image || '/assets/images/blog-placeholder.jpg'}
-                    alt={post.title}
+                    <OptimizedImage
+                      src={post.cover_image || '/assets/images/blog-placeholder.jpg'}
+                      alt={post.title}
+                      width={800}
+                      height={450}
+                      quality={80}
                       className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                      loading="lazy"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = '/assets/images/blog-placeholder.jpg';
-                        // Eğer yerel görsel de yüklenmezse logo_1.png'yi kullan
-                        target.onerror = () => {
-                          target.src = '/assets/images/logo_1.png';
-                          target.onerror = null;
-                        };
-                      }}
+                      fallbackSrc="/assets/images/blog-placeholder.jpg"
                     />
                     <div className="absolute top-3 left-3">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getCategoryColor(post.category)}`}>
                         {post.category}
                       </span>
-                </div>
+                    </div>
                   </div>
                 </Link>
                   

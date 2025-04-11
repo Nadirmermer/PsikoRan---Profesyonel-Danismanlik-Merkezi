@@ -227,6 +227,16 @@ function AnimatedRoutes() {
           }
         />
         <Route
+          path="/blog-yonetim"
+          element={
+            <AuthGuard>
+              <Layout>
+                <BlogAdmin />
+              </Layout>
+            </AuthGuard>
+          }
+        />
+        <Route
           path="/ayarlar"
           element={
             <AuthGuard>
