@@ -1193,7 +1193,7 @@ const CreateAppointmentModal: React.FC<CreateAppointmentModalProps> = ({
         status: "scheduled",
         notes: notes,
         is_online: isOnline,
-        meeting_url: isOnline ? `https://meet.example.com/${selectedProfessionalId}-${Date.now()}` : null
+        meeting_url: isOnline ? `https://psikoran.xyz/${selectedProfessionalId}-${Date.now()}` : null
       };
       
       // Randevuyu veritabanına ekle

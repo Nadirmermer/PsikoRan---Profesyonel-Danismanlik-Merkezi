@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Video, Mic, MicOff, VideoOff, Monitor, MessageSquare, Phone, ExternalLink, Maximize, X } from 'react-feather';
+import { Video, Mic, MicOff, VideoOff, Monitor, MessageSquare, Phone, ExternalLink, Maximize, X, AlertTriangle } from 'react-feather';
 
 // Jitsi Meet API'si için tiplemeler
 declare global {
@@ -35,7 +35,7 @@ export const JitsiMeetingLauncher: React.FC<Omit<JitsiMeetingProps, 'isOpen'>> =
     
     if (mode === 'external') {
       // Doğrudan yeni sekmede aç
-      const url = `https://meet.jit.si/${props.roomName}`;
+      const url = `https://psikoran.xyz/${props.roomName}`;
       window.open(url, '_blank');
     } else {
       // Gömülü modda modal aç
@@ -150,7 +150,7 @@ const JitsiMeeting: React.FC<JitsiMeetingProps> = ({
 
   // Jitsi görüşmesini yeni sekmede açma fonksiyonu
   const openInNewTab = () => {
-    const url = `https://meet.jit.si/${roomName}`;
+    const url = `https://psikoran.xyz/${roomName}`;
     window.open(url, '_blank');
     if (onClose) onClose();
   };
@@ -189,7 +189,7 @@ const JitsiMeeting: React.FC<JitsiMeetingProps> = ({
 
     // Jitsi API script dosyasını ekle
     const script = document.createElement('script');
-    script.src = 'https://meet.jit.si/external_api.js';
+    script.src = 'https://psikoran.xyz/external_api.js';
     script.async = true;
     
     const onScriptLoad = () => {
@@ -204,7 +204,7 @@ const JitsiMeeting: React.FC<JitsiMeetingProps> = ({
       setLoadAttempts(prev => prev + 1);
       
       // Hata CSP kaynaklı olabilir
-      if (e instanceof Event && (e.target as HTMLScriptElement).src.includes('meet.jit.si')) {
+      if (e instanceof Event && (e.target as HTMLScriptElement).src.includes('psikoran.xyz')) {
         detectCSPError();
       } else {
         // Diğer hatalar için yeni yükleme denemesi yap
@@ -224,7 +224,7 @@ const JitsiMeeting: React.FC<JitsiMeetingProps> = ({
       if (e.message && (
           e.message.includes('Content Security Policy') || 
           e.message.includes('CSP')
-        ) && e.filename && e.filename.includes('meet.jit.si')
+        ) && e.filename && e.filename.includes('psikoran.xyz')
       ) {
         detectCSPError();
       }
@@ -250,7 +250,7 @@ const JitsiMeeting: React.FC<JitsiMeetingProps> = ({
     if (!isApiReady || !jitsiContainerRef.current) return;
     
     try {
-      const domain = 'meet.jit.si';
+      const domain = 'psikoran.xyz';
       const options = {
         roomName: roomName,
         width: '100%',
@@ -328,13 +328,13 @@ const JitsiMeeting: React.FC<JitsiMeetingProps> = ({
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div 
-        className="jitsi-meeting-container overflow-hidden bg-gradient-to-br from-blue-900 to-indigo-900 text-white flex flex-col"
-        style={{width: '90%', maxWidth: '1000px', height: '80vh'}}
+        className="jitsi-meeting-container overflow-hidden bg-gradient-to-br from-blue-900 to-indigo-900 text-white flex flex-col rounded-2xl shadow-xl"
+        style={{width: '90%', maxWidth: '600px', height: 'auto'}}
     >
       {/* Başlık */}
       <div className="bg-black/30 p-4 flex justify-between items-center">
         <div>
-          <h3 className="font-bold text-lg">Görüşme Odası: {roomName}</h3>
+          <h3 className="font-bold text-lg">Görüşme: {roomName}</h3>
           <p className="text-sm text-blue-200">
             {userInfo?.displayName || displayName}
           </p>
@@ -353,17 +353,17 @@ const JitsiMeeting: React.FC<JitsiMeetingProps> = ({
       {/* Ana içerik */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
         <div className="bg-black/20 rounded-2xl p-8 max-w-lg w-full">
-              <div className="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Video className="w-12 h-12" />
+              <div className="w-16 h-16 bg-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="w-8 h-8" />
           </div>
           
-              <h2 className="text-2xl font-bold mb-4">Görüşme Başlatılamadı</h2>
-          <div className="text-blue-200 space-y-4 mb-8">
+              <h2 className="text-xl font-bold mb-4">API Yükleme Hatası</h2>
+          <div className="text-blue-100 space-y-4 mb-8">
             <p>
-                  Jitsi görüşmesi başlatılırken bir sorun oluştu. Tarayıcınızın güvenlik ayarları nedeniyle iframe içinde görüşme başlatılamıyor.
+                  Tarayıcı güvenlik kısıtlamaları nedeniyle Jitsi görüşme API'si yüklenemedi. Bu geliştirme ortamında normal bir durumdur.
             </p>
             <p className="text-sm bg-blue-800/30 p-3 rounded-lg">
-                  <strong>Çözüm:</strong> Lütfen aşağıdaki butona tıklayarak görüşmeyi yeni sekmede açın.
+                  <strong>Çözüm:</strong> Görüşmeyi yeni sekmede açarak devam edebilirsiniz.
             </p>
           </div>
           
@@ -380,34 +380,30 @@ const JitsiMeeting: React.FC<JitsiMeetingProps> = ({
               onClick={onClose}
               className="w-full bg-gray-700 hover:bg-gray-600 text-white/90 py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center"
             >
-              <Phone className="mr-2 h-5 w-5 transform rotate-135" />
-              İptal Et
+              <X className="mr-2 h-5 w-5" />
+              Kapat
             </button>
           </div>
         </div>
       </div>
-      
-      {/* Alt Kontroller */}
-      <div className="bg-black/30 p-4 flex justify-between items-center">
-        <div className="text-sm text-blue-200">
-              <span>Sorun devam ederse, internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    </div>
+  </div>
     );
   }
 
   // Normal görünüm - Jitsi iFrame'i için konteyner
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
       <div 
-        className="jitsi-meeting-container overflow-hidden bg-gradient-to-br from-blue-900 to-indigo-900"
+        className="jitsi-meeting-container overflow-hidden bg-gradient-to-br from-blue-900 to-indigo-900 shadow-xl rounded-xl"
         style={containerStyles}
       >
         {/* Başlık bar */}
         <div className="bg-black/30 p-3 flex justify-between items-center">
-          <div>
+          <div className="flex items-center">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center mr-2">
+              <Video className="h-4 w-4 text-white" />
+            </div>
             <h3 className="font-bold text-white">Görüşme: {roomName}</h3>
           </div>
           <div className="flex items-center space-x-2">

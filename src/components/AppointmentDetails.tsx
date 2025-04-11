@@ -41,7 +41,7 @@ import {
 // Import required components
 import AppointmentShareModal from './AppointmentShareModal';
 import AppointmentActions from './AppointmentActions';
-import { JitsiMeetingLauncher } from './JitsiMeeting';
+import { JitsiMeetingLauncher, JitsiMeeting } from './JitsiMeeting';
 import MeetingTimer from './MeetingTimer';
 
 // Import client detail components
@@ -86,6 +86,8 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
   const [pastAppointments, setPastAppointments] = useState<any[]>([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [loadingAppointments, setLoadingAppointments] = useState(false);
+  const [isJitsiModalOpen, setIsJitsiModalOpen] = useState(false);
+  const [jitsiRoomName, setJitsiRoomName] = useState('');
 
   // Fetch appointment data
   useEffect(() => {
@@ -936,6 +938,48 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
               <div 
                 onClick={() => {
                   // Bu pencerede aç (JitsiMeetingLauncher bileşenine geç)
+                  const extractRoomName = (url?: string): string => {
+                    if (!url) return '';
+                    
+                    try {
+                      // If URL format
+                      if (url.startsWith('http')) {
+                        const urlObj = new URL(url);
+                        // Get the last path segment (e.g., https://psikoran.xyz/odaismi -> odaismi)
+                        const pathParts = urlObj.pathname.split('/').filter(Boolean);
+                        return pathParts[pathParts.length - 1] || '';
+                      } 
+                      // If direct room name
+                      return url;
+                    } catch (error) {
+                      console.error('Meeting URL parsing error:', error);
+                      return url;
+                    }
+                  };
+
+                  const roomName = extractRoomName(appointment.meeting_url);
+                  setShowJoinOptions(false);
+                  
+                  // JitsiMeetingLauncher bileşenini gösterecek bir state ekleyebilirsiniz
+                  setIsJitsiModalOpen(true);
+                  setJitsiRoomName(roomName);
+                }}
+                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:shadow-md cursor-pointer transition-all duration-300"
+              >
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                    <Maximize2 className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Bu Pencerede Aç</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Görüşme bu sayfada gömülü olarak açılır</p>
+                  </div>
+                </div>
+              </div>
+
+              <div 
+                onClick={() => {
+                  // Yeni pencerede aç
                   window.open(appointment.meeting_url, '_blank');
                   setShowJoinOptions(false);
                 }}
@@ -949,9 +993,9 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
                     <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Yeni Pencerede Aç</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Görüşme yeni bir sekmede açılır</p>
                   </div>
-            </div>
-          </div>
-          
+                </div>
+              </div>
+
               <div 
                 onClick={() => {
                   // Linki kopyala
@@ -967,20 +1011,35 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
                 <div className="flex items-center">
                   <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
                     <Clipboard className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
+                  </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Linki Kopyala</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Görüşme linkini panoya kopyalar</p>
+                  </div>
+                </div>
               </div>
-              </div>
-              </div>
-              </div>
-            
+            </div>
+
             <div className="mt-6 text-xs bg-amber-50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-300 p-3 rounded-lg border border-amber-100 dark:border-amber-800/20">
               <p>Not: Tarayıcı güvenlik ayarlarınız nedeniyle açılır pencere engellenirse, linki kopyalayıp tarayıcınıza manuel olarak yapıştırın.</p>
             </div>
           </motion.div>
         </div>
+      )}
+
+      {/* Jitsi Görüşme Modalı */}
+      {isJitsiModalOpen && jitsiRoomName && (
+        <JitsiMeeting
+          roomName={jitsiRoomName}
+          displayName={professional?.full_name || "Uzman"}
+          userInfo={{
+            displayName: professional?.full_name || "Uzman",
+            email: professional?.email
+          }}
+          isOpen={isJitsiModalOpen}
+          onClose={() => setIsJitsiModalOpen(false)}
+          preferredMode="embedded"
+        />
       )}
 
       {/* Danışan Detay Paneli */}

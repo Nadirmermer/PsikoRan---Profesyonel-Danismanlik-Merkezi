@@ -145,8 +145,8 @@
       img-src 'self' data: https://*.googleusercontent.com https://www.facebook.com https://psikoran.com https://*.supabase.co;
       font-src 'self' https://fonts.gstatic.com;
       connect-src 'self' https://www.google-analytics.com https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.supabase.co wss://*.supabase.co;
-      frame-src 'self' https://www.youtube.com https://meet.jit.si https://*.jitsi.net https://*.jitsi.org;
-      media-src 'self' https://meet.jit.si;
+      frame-src 'self' https://www.youtube.com https://psikoran.xyz https://*.jitsi.net https://*.jitsi.org;
+      media-src 'self' https://psikoran.xyz;
       object-src 'none';
       base-uri 'self';
       form-action 'self';
