@@ -100,7 +100,7 @@ const webpOptimizePlugin = () => {
         const assetsDir = 'public/assets';
         if (fs.existsSync(assetsDir)) {
           // PNG dosyalarını WebP'ye dönüştür
-          const processImagesInDir = (dir) => {
+          const processImagesInDir = (dir: string) => {
             const entries = fs.readdirSync(dir, { withFileTypes: true });
             
             for (const entry of entries) {
