@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, BrowserRouter } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
@@ -65,6 +65,180 @@ interface AppointmentNote {
   createdByName?: string;
 }
 
+// JitsiMeetExternalAPI için TypeScript tanımlaması
+declare global {
+  interface Window {
+    JitsiMeetExternalAPI: any;
+  }
+}
+
+// JitsiMeeting komponenti
+const JitsiMeeting = ({ roomName, domain, displayName, onClose }: { 
+  roomName: string;
+  domain: string;
+  displayName?: string;
+  onClose: () => void;
+}) => {
+  const jitsiContainerRef = useRef<HTMLDivElement>(null);
+  const apiRef = useRef<any>(null);
+  const [apiLoaded, setApiLoaded] = useState(false);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+
+  // external_api.js'i dinamik olarak yükle
+  useEffect(() => {
+    const loadScript = () => {
+      return new Promise<void>((resolve, reject) => {
+        console.log('Jitsi API kontrol ediliyor: Domain =', domain);
+        
+        // Eğer script zaten yüklenmişse tekrar yükleme işlemi yok
+        if (typeof window.JitsiMeetExternalAPI !== 'undefined') {
+          console.log('Jitsi API zaten yüklenmiş, API kullanıma hazır');
+          setScriptLoaded(true);
+          resolve();
+          return;
+        }
+
+        // API yüklenmediyse hata ver (index.html'de yüklenmesi gerekiyor)
+        console.error('Jitsi API bulunamadı! index.html dosyasında API script tag\'i olduğundan emin olun.');
+        
+        // 3 saniye bekleyelim, belki API yüklenme gecikmesi vardır
+        setTimeout(() => {
+          if (typeof window.JitsiMeetExternalAPI !== 'undefined') {
+            console.log('Gecikmiş API yüklemesi başarılı');
+            setScriptLoaded(true);
+            resolve();
+          } else {
+            reject(new Error('Jitsi API yüklenemedi'));
+          }
+        }, 3000);
+      });
+    };
+
+    loadScript().catch(err => console.error('Jitsi API kullanılamıyor:', err));
+
+    return () => {
+      // Component unmount olduğunda temizlik işlemleri
+      console.log('Jitsi komponent unmount ediliyor, temizlik yapılıyor');
+      if (apiRef.current) {
+        apiRef.current.dispose();
+      }
+    };
+  }, [domain]);
+
+  // Jitsi API başlat
+  useEffect(() => {
+    if (!scriptLoaded || !jitsiContainerRef.current) {
+      console.log('API başlatma koşulları sağlanmadı:', { scriptLoaded, containerRef: !!jitsiContainerRef.current });
+      return;
+    }
+
+    console.log("Jitsi API başlatılıyor. Parametreler:", { domain, roomName });
+
+    try {
+      // API yapılandırma seçeneklerini logla
+      const options = {
+        roomName: roomName,
+        width: '100%',
+        height: '100%',
+        parentNode: jitsiContainerRef.current,
+        interfaceConfigOverwrite: {
+          TOOLBAR_BUTTONS: [
+            'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+            'fodeviceselection', 'hangup', 'profile', 'chat', 'settings', 'raisehand',
+            'videoquality', 'filmstrip', 'tileview', 'download', 'help'
+          ],
+          SHOW_JITSI_WATERMARK: false,
+          SHOW_WATERMARK_FOR_GUESTS: false,
+          DEFAULT_REMOTE_DISPLAY_NAME: 'Katılımcı',
+          DEFAULT_LOCAL_DISPLAY_NAME: displayName || 'Ben',
+        },
+        configOverwrite: {
+          startWithAudioMuted: true,
+          startWithVideoMuted: true,
+          disableDeepLinking: true,
+          prejoinPageEnabled: false,
+          enableClosePage: false,
+          disableAudioLevels: true,
+          enableNoisyMicDetection: false
+        }
+      };
+
+      // DOM elementlerini içeren options nesnesini direkt loglamak yerine sadece önemli konfigürasyon değerlerini logluyoruz
+      console.log("Jitsi yapılandırması:", {
+        roomName: options.roomName,
+        interfaceConfig: { 
+          buttons: options.interfaceConfigOverwrite.TOOLBAR_BUTTONS.length,
+          watermark: options.interfaceConfigOverwrite.SHOW_JITSI_WATERMARK
+        },
+        config: options.configOverwrite
+      });
+      
+      // API mevcudiyetini kontrol et
+      if (typeof window.JitsiMeetExternalAPI !== 'function') {
+        console.error('JitsiMeetExternalAPI global fonksiyonu bulunamadı! Yükleme başarısız olmuş olabilir.');
+        throw new Error('JitsiMeetExternalAPI fonksiyonu bulunamadı');
+      }
+      
+      console.log("API constructor çağrılıyor...");
+      
+      // @ts-ignore: Jitsi tipi için TypeScript hatası
+      const api = new window.JitsiMeetExternalAPI(domain, options);
+      
+      console.log("API başarıyla oluşturuldu!");
+      
+      // Olayları dinle
+      api.addEventListeners({
+        readyToClose: () => {
+          console.log('Jitsi olayı: toplantı kapatıldı');
+          onClose();
+        },
+        videoConferenceLeft: () => {
+          console.log('Jitsi olayı: toplantıdan ayrıldı');
+          onClose();
+        },
+        participantJoined: (participant: any) => {
+          console.log('Jitsi olayı: katılımcı girdi:', participant);
+        },
+        participantLeft: (participant: any) => {
+          console.log('Jitsi olayı: katılımcı ayrıldı:', participant);
+        },
+        videoConferenceJoined: (participant: any) => {
+          console.log('Jitsi olayı: toplantıya katıldınız:', participant);
+        },
+        error: (error: any) => {
+          console.error('Jitsi API hatası:', error);
+        }
+      });
+
+      console.log("API olay dinleyicileri eklendi");
+      apiRef.current = api;
+      setApiLoaded(true);
+    } catch (error) {
+      console.error('Jitsi API başlatılırken hata oluştu:', error);
+      // DOM elementleri içeren hata nesnesini direkt JSON.stringify ile loglamak yerine sadece önemli bilgileri logluyoruz
+      console.log('Hata detayları:', {
+        errorType: error instanceof Error ? error.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error)
+      });
+      // Hata durumunda kullanıcıya bilgi ver
+      alert('Jitsi toplantısı başlatılırken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin veya yeni sekmede açmayı tercih edin.');
+      onClose(); // Hata durumunda modalı kapat
+    }
+  }, [scriptLoaded, roomName, domain, displayName, onClose]);
+
+  return (
+    <div className="w-full h-full">
+      {!apiLoaded && (
+        <div className="flex justify-center items-center h-full">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <p className="ml-3 text-blue-500">Görüşme başlatılıyor...</p>
+        </div>
+      )}
+      <div ref={jitsiContainerRef} className="w-full h-full"></div>
+    </div>
+  );
+};
+
 // Main component
 export default function AppointmentDetails({ id: propId, isEditing }: AppointmentDetailsProps) {
   const { id: urlId } = useParams<{ id: string }>();
@@ -85,6 +259,7 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
   const [pastAppointments, setPastAppointments] = useState<any[]>([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [loadingAppointments, setLoadingAppointments] = useState(false);
+  const [showJitsiIframe, setShowJitsiIframe] = useState(false);
   
   // Fetch appointment data
   useEffect(() => {
@@ -207,8 +382,6 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
     if (appointment?.is_online && appointment?.meeting_url) {
       // Check if the meeting URL is valid
       try {
-      
-        
         // Doğrudan katılım seçeneklerini göster
         setShowJoinOptions(true);
       } catch (error) {
@@ -322,6 +495,46 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
   // Check if the meeting is joinable (online, has meeting URL)
   const canJoinOnline = appointment?.is_online && appointment?.meeting_url;
 
+  // Extract Jitsi domain and room from meeting URL
+  const extractJitsiInfo = (url: string) => {
+    try {
+      if (!url || !url.trim()) {
+        console.error('Geçersiz Jitsi URL: Boş URL');
+        return { domain: '', room: '' };
+      }
+
+      // URL'nin geçerli formatta olduğundan emin ol
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+      }
+
+      const meetingUrl = new URL(url);
+      const domain = meetingUrl.hostname;
+      
+      // Odayı URL'den çıkar (yol kısmındaki ilk segment)
+      let path = meetingUrl.pathname.split('/').filter(Boolean);
+      let room = path.length > 0 ? path[0] : '';
+      
+      // Room boş ise rastgele oda adı oluştur
+      if (!room) {
+        room = 'meeting_' + Math.random().toString(36).substring(2, 10);
+        console.warn('Oda adı bulunamadı, rastgele oda oluşturuldu:', room);
+      }
+      
+      console.log('Jitsi bilgileri:', { domain, room });
+      
+      if (!domain) {
+        console.error('Geçersiz Jitsi URL: Domain bulunamadı');
+        return { domain: '', room: '' };
+      }
+      
+      return { domain, room };
+    } catch (error) {
+      console.error('Jitsi URL ayrıştırma hatası:', error);
+      return { domain: '', room: '' };
+    }
+  };
+
   // Rendering loading state
   if (loading) {
     return <LoadingSpinner fullPage size="medium" showLoadingText={true} loadingText="Randevu detayları yükleniyor..." />;
@@ -369,6 +582,70 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
       </div>
     );
   }
+
+  // Jitsi meeting modal
+  const renderJitsiModal = () => {
+    if (!showJitsiIframe || !appointment?.meeting_url) return null;
+    
+    const { domain, room } = extractJitsiInfo(appointment.meeting_url);
+    
+    if (!domain || !room) {
+      console.error('Geçersiz toplantı URL formatı:', appointment.meeting_url);
+      alert('Geçersiz toplantı URL formatı. Toplantıya katılınamıyor.');
+      setShowJitsiIframe(false);
+      return null;
+    }
+    
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="w-full h-full md:w-4/5 md:h-4/5 md:rounded-2xl overflow-hidden bg-white shadow-xl flex flex-col">
+          <div className="bg-gray-100 dark:bg-gray-800 py-3 px-4 flex justify-between items-center">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+              {appointment.client?.full_name || 'Danışan'} ile Görüşme
+            </h3>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {domain} | {room}
+              </span>
+              <button
+                onClick={() => {
+                  // Yeni pencerede aç
+                  window.open(appointment.meeting_url, '_blank');
+                  setShowJitsiIframe(false);
+                }}
+                className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                title="Yeni pencerede aç"
+              >
+                <ExternalLink className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              </button>
+              <button
+                onClick={() => setShowJitsiIframe(false)}
+                className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 bg-gray-800 relative">
+            <JitsiMeeting 
+              domain={domain} 
+              roomName={room} 
+              displayName={professional?.full_name || assistant?.full_name || "Anonim"} 
+              onClose={() => setShowJitsiIframe(false)} 
+            />
+            <div className="absolute bottom-4 right-4 left-4 flex flex-col items-center pointer-events-none space-y-2">
+              <div className="px-3 py-1.5 bg-black/60 text-white text-xs rounded-full backdrop-blur-sm animate-fadeOut">
+                <p>İlk başta kamera ve mikrofon kapalıdır. Görüntü ve ses paylaşmak için toplantıda alt kısımdaki kamera/mikrofon ikonlarına tıklayınız.</p>
+              </div>
+              <div className="px-3 py-1.5 bg-black/60 text-white text-xs rounded-full backdrop-blur-sm animate-fadeOut">
+                <p>Tarayıcı izinleri ile ilgili sorun yaşarsanız yeni pencerede açmayı deneyebilirsiniz</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Implement main UI here in the next sections
   return (
@@ -911,6 +1188,24 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
             <div className="space-y-4">
               <div 
                 onClick={() => {
+                  setShowJoinOptions(false);
+                  setShowJitsiIframe(true);
+                }}
+                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:shadow-md cursor-pointer transition-all duration-300"
+              >
+                <div className="flex items-center">
+                  <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
+                    <Maximize2 className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Bu Pencerede Aç</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Görüşme bu sayfada modal olarak açılır</p>
+                  </div>
+                </div>
+              </div>
+
+              <div 
+                onClick={() => {
                   // Yeni pencerede aç
                   window.open(appointment.meeting_url, '_blank');
                   setShowJoinOptions(false);
@@ -958,6 +1253,9 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
           </motion.div>
         </div>
       )}
+
+      {/* Jitsi iframe modalı */}
+      {renderJitsiModal()}
 
       {/* Danışan Detay Paneli */}
       {showClientPanel && appointment?.client?.id && (
