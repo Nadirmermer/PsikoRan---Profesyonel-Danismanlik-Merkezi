@@ -67,8 +67,9 @@
   }
 }
 
+/* Animasyonlar */
 @keyframes fadeOut {
-  0%, 80% {
+  0%, 70% {
     opacity: 1;
   }
   100% {
@@ -77,6 +78,52 @@
   }
 }
 
+@keyframes slideInUp {
+  0% {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Genel animasyon sınıfları */
 .animate-fadeOut {
   animation: fadeOut 10s ease-in-out forwards;
+}
+
+.animate-slideInUp {
+  animation: slideInUp 0.3s ease-out forwards;
+}
+
+/* Gecikme sınıfları */
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+.delay-500 {
+  animation-delay: 500ms;
+}
+
+.delay-700 {
+  animation-delay: 700ms;
+}
+
+.delay-1000 {
+  animation-delay: 1000ms;
+}
+
+/* Diğer yardımcı sınıflar */
+.backdrop-blur-xl {
+  backdrop-filter: blur(24px);
+}
+
+.backdrop-blur-2xl {
+  backdrop-filter: blur(40px);
 }

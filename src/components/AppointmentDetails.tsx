@@ -83,42 +83,45 @@ const JitsiMeeting = ({ roomName, domain, displayName, onClose }: {
   const apiRef = useRef<any>(null);
   const [apiLoaded, setApiLoaded] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState<'initial' | 'loading' | 'success' | 'error'>('initial');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // external_api.js'i dinamik olarak yükle
   useEffect(() => {
     const loadScript = () => {
       return new Promise<void>((resolve, reject) => {
-        console.log('Jitsi API kontrol ediliyor: Domain =', domain);
+        setLoadingStatus('loading');
         
         // Eğer script zaten yüklenmişse tekrar yükleme işlemi yok
         if (typeof window.JitsiMeetExternalAPI !== 'undefined') {
-          console.log('Jitsi API zaten yüklenmiş, API kullanıma hazır');
           setScriptLoaded(true);
           resolve();
           return;
         }
 
         // API yüklenmediyse hata ver (index.html'de yüklenmesi gerekiyor)
-        console.error('Jitsi API bulunamadı! index.html dosyasında API script tag\'i olduğundan emin olun.');
         
         // 3 saniye bekleyelim, belki API yüklenme gecikmesi vardır
         setTimeout(() => {
           if (typeof window.JitsiMeetExternalAPI !== 'undefined') {
-            console.log('Gecikmiş API yüklemesi başarılı');
             setScriptLoaded(true);
             resolve();
           } else {
+            setLoadingStatus('error');
+            setErrorMessage('Jitsi API yüklenemedi. Lütfen sayfayı yenileyip tekrar deneyin.');
             reject(new Error('Jitsi API yüklenemedi'));
           }
         }, 3000);
       });
     };
 
-    loadScript().catch(err => console.error('Jitsi API kullanılamıyor:', err));
+    loadScript().catch(err => {
+      // Sadece kritik hataları logla
+      console.error('Jitsi API yüklenemedi:', err);
+    });
 
     return () => {
       // Component unmount olduğunda temizlik işlemleri
-      console.log('Jitsi komponent unmount ediliyor, temizlik yapılıyor');
       if (apiRef.current) {
         apiRef.current.dispose();
       }
@@ -128,11 +131,8 @@ const JitsiMeeting = ({ roomName, domain, displayName, onClose }: {
   // Jitsi API başlat
   useEffect(() => {
     if (!scriptLoaded || !jitsiContainerRef.current) {
-      console.log('API başlatma koşulları sağlanmadı:', { scriptLoaded, containerRef: !!jitsiContainerRef.current });
       return;
     }
-
-    console.log("Jitsi API başlatılıyor. Parametreler:", { domain, roomName });
 
     try {
       // API yapılandırma seçeneklerini logla
@@ -162,64 +162,47 @@ const JitsiMeeting = ({ roomName, domain, displayName, onClose }: {
           enableNoisyMicDetection: false
         }
       };
-
-      // DOM elementlerini içeren options nesnesini direkt loglamak yerine sadece önemli konfigürasyon değerlerini logluyoruz
-      console.log("Jitsi yapılandırması:", {
-        roomName: options.roomName,
-        interfaceConfig: { 
-          buttons: options.interfaceConfigOverwrite.TOOLBAR_BUTTONS.length,
-          watermark: options.interfaceConfigOverwrite.SHOW_JITSI_WATERMARK
-        },
-        config: options.configOverwrite
-      });
       
       // API mevcudiyetini kontrol et
       if (typeof window.JitsiMeetExternalAPI !== 'function') {
-        console.error('JitsiMeetExternalAPI global fonksiyonu bulunamadı! Yükleme başarısız olmuş olabilir.');
         throw new Error('JitsiMeetExternalAPI fonksiyonu bulunamadı');
       }
-      
-      console.log("API constructor çağrılıyor...");
       
       // @ts-ignore: Jitsi tipi için TypeScript hatası
       const api = new window.JitsiMeetExternalAPI(domain, options);
       
-      console.log("API başarıyla oluşturuldu!");
-      
       // Olayları dinle
       api.addEventListeners({
         readyToClose: () => {
-          console.log('Jitsi olayı: toplantı kapatıldı');
           onClose();
         },
         videoConferenceLeft: () => {
-          console.log('Jitsi olayı: toplantıdan ayrıldı');
           onClose();
         },
-        participantJoined: (participant: any) => {
-          console.log('Jitsi olayı: katılımcı girdi:', participant);
+        participantJoined: () => {
+          // Katılımcı girdi
         },
-        participantLeft: (participant: any) => {
-          console.log('Jitsi olayı: katılımcı ayrıldı:', participant);
+        participantLeft: () => {
+          // Katılımcı ayrıldı
         },
-        videoConferenceJoined: (participant: any) => {
-          console.log('Jitsi olayı: toplantıya katıldınız:', participant);
+        videoConferenceJoined: () => {
+          // Toplantıya katıldı
+          setLoadingStatus('success');
         },
         error: (error: any) => {
           console.error('Jitsi API hatası:', error);
+          setLoadingStatus('error');
+          setErrorMessage('Toplantı sırasında bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin.');
         }
       });
 
-      console.log("API olay dinleyicileri eklendi");
       apiRef.current = api;
       setApiLoaded(true);
     } catch (error) {
       console.error('Jitsi API başlatılırken hata oluştu:', error);
-      // DOM elementleri içeren hata nesnesini direkt JSON.stringify ile loglamak yerine sadece önemli bilgileri logluyoruz
-      console.log('Hata detayları:', {
-        errorType: error instanceof Error ? error.name : typeof error,
-        errorMessage: error instanceof Error ? error.message : String(error)
-      });
+      setLoadingStatus('error');
+      setErrorMessage('Toplantı başlatılırken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin.');
+      
       // Hata durumunda kullanıcıya bilgi ver
       alert('Jitsi toplantısı başlatılırken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin veya yeni sekmede açmayı tercih edin.');
       onClose(); // Hata durumunda modalı kapat
@@ -228,13 +211,44 @@ const JitsiMeeting = ({ roomName, domain, displayName, onClose }: {
 
   return (
     <div className="w-full h-full">
-      {!apiLoaded && (
-        <div className="flex justify-center items-center h-full">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-          <p className="ml-3 text-blue-500">Görüşme başlatılıyor...</p>
+      {loadingStatus === 'loading' && (
+        <div className="flex flex-col justify-center items-center h-full bg-gray-900">
+          <div className="animate-pulse mb-4">
+            <div className="w-16 h-16 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
+          </div>
+          <p className="text-blue-400 text-lg animate-pulse">Görüşme başlatılıyor...</p>
+          <p className="text-gray-400 text-sm mt-2">Bu işlem birkaç saniye sürebilir</p>
         </div>
       )}
-      <div ref={jitsiContainerRef} className="w-full h-full"></div>
+      
+      {loadingStatus === 'error' && (
+        <div className="flex flex-col justify-center items-center h-full bg-gray-900 p-4">
+          <div className="mb-4 bg-red-100 dark:bg-red-900/30 rounded-full p-4">
+            <AlertTriangle className="h-12 w-12 text-red-500" />
+          </div>
+          <h3 className="text-xl font-bold text-red-500 mb-2">Bağlantı Hatası</h3>
+          <p className="text-gray-200 text-center mb-6">{errorMessage || 'Toplantıya bağlanırken bir sorun oluştu.'}</p>
+          <div className="flex space-x-4">
+            <button 
+              onClick={onClose} 
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white"
+            >
+              Kapat
+            </button>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white"
+            >
+              Yenile
+            </button>
+          </div>
+        </div>
+      )}
+      
+      <div 
+        ref={jitsiContainerRef} 
+        className={`w-full h-full ${loadingStatus === 'loading' || loadingStatus === 'error' ? 'hidden' : ''}`}
+      ></div>
     </div>
   );
 };
@@ -499,7 +513,6 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
   const extractJitsiInfo = (url: string) => {
     try {
       if (!url || !url.trim()) {
-        console.error('Geçersiz Jitsi URL: Boş URL');
         return { domain: '', room: '' };
       }
 
@@ -518,13 +531,9 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
       // Room boş ise rastgele oda adı oluştur
       if (!room) {
         room = 'meeting_' + Math.random().toString(36).substring(2, 10);
-        console.warn('Oda adı bulunamadı, rastgele oda oluşturuldu:', room);
       }
       
-      console.log('Jitsi bilgileri:', { domain, room });
-      
       if (!domain) {
-        console.error('Geçersiz Jitsi URL: Domain bulunamadı');
         return { domain: '', room: '' };
       }
       
@@ -590,7 +599,6 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
     const { domain, room } = extractJitsiInfo(appointment.meeting_url);
     
     if (!domain || !room) {
-      console.error('Geçersiz toplantı URL formatı:', appointment.meeting_url);
       alert('Geçersiz toplantı URL formatı. Toplantıya katılınamıyor.');
       setShowJitsiIframe(false);
       return null;
@@ -598,47 +606,53 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
     
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div className="w-full h-full md:w-4/5 md:h-4/5 md:rounded-2xl overflow-hidden bg-white shadow-xl flex flex-col">
-          <div className="bg-gray-100 dark:bg-gray-800 py-3 px-4 flex justify-between items-center">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-              {appointment.client?.full_name || 'Danışan'} ile Görüşme
-            </h3>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {domain} | {room}
-              </span>
-              <button
-                onClick={() => {
-                  // Yeni pencerede aç
-                  window.open(appointment.meeting_url, '_blank');
-                  setShowJitsiIframe(false);
-                }}
-                className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                title="Yeni pencerede aç"
-              >
-                <ExternalLink className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-              </button>
+        <div className="w-full h-full md:w-[95%] md:h-[90%] lg:w-[90%] lg:h-[85%] md:rounded-2xl overflow-hidden bg-white dark:bg-gray-900 shadow-2xl flex flex-col">
+          {/* Header */}
+          <div className="bg-white dark:bg-gray-800 py-3 px-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center space-x-3">
+              <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <Video className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate max-w-[150px] sm:max-w-xs">
+                {appointment.client?.full_name || 'Danışan'} ile Görüşme
+              </h3>
+            </div>
+            
+            <div className="flex items-center space-x-1 sm:space-x-2">
+              
               <button
                 onClick={() => setShowJitsiIframe(false)}
-                className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+                title="Kapat"
               >
-                <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                <X className="h-5 w-5 text-gray-600 dark:text-gray-300" />
               </button>
             </div>
           </div>
-          <div className="flex-1 bg-gray-800 relative">
+          
+          {/* Jitsi Content */}
+          <div className="flex-1 bg-black relative">
             <JitsiMeeting 
               domain={domain} 
               roomName={room} 
               displayName={professional?.full_name || assistant?.full_name || "Anonim"} 
               onClose={() => setShowJitsiIframe(false)} 
             />
+            
+            {/* Info Messages */}
             <div className="absolute bottom-4 right-4 left-4 flex flex-col items-center pointer-events-none space-y-2">
-              <div className="px-3 py-1.5 bg-black/60 text-white text-xs rounded-full backdrop-blur-sm animate-fadeOut">
+              <div className="px-4 py-2 bg-black/70 text-white text-xs sm:text-sm rounded-xl backdrop-blur-sm animate-fadeOut max-w-xs sm:max-w-md text-center">
                 <p>İlk başta kamera ve mikrofon kapalıdır. Görüntü ve ses paylaşmak için toplantıda alt kısımdaki kamera/mikrofon ikonlarına tıklayınız.</p>
               </div>
-              <div className="px-3 py-1.5 bg-black/60 text-white text-xs rounded-full backdrop-blur-sm animate-fadeOut">
+              <div className="px-4 py-2 bg-black/70 text-white text-xs sm:text-sm rounded-xl backdrop-blur-sm animate-fadeOut max-w-xs sm:max-w-md text-center">
                 <p>Tarayıcı izinleri ile ilgili sorun yaşarsanız yeni pencerede açmayı deneyebilirsiniz</p>
+              </div>
+            </div>
+
+            {/* Mobile Hint */}
+            <div className="absolute top-4 left-4 pointer-events-none md:hidden">
+              <div className="px-3 py-1.5 bg-black/70 text-white text-xs rounded-xl backdrop-blur-sm animate-fadeOut delay-500">
+                <p>Ekranı yatay çevirmeniz daha iyi görüntü sağlar</p>
               </div>
             </div>
           </div>
@@ -744,7 +758,7 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
                           setShowMobileMenu(false);
                           setShowConfirmDelete(true);
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center"
+                        className="w-full text-left px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center"
                         role="menuitem"
                       >
                         <Trash2 className="mr-3 h-4 w-4" />
@@ -770,17 +784,17 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
         >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 md:mb-0">
-              {appointment.client?.full_name ? `Randevu: ${appointment.client.full_name}` : 'Randevu Detayları'}
+              {appointment.client?.full_name ? ` ${appointment.client.full_name}` : 'Randevu Detayları'}
             </h1>
             
             <div className="flex flex-wrap gap-2">
               {canJoinOnline && (
                                 <button 
                   onClick={joinMeeting}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none"
+                  className="inline-flex items-center px-4 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 group"
                                 >
-                  <Video className="h-4 w-4 mr-2" />
-                  Görüşmeye Katıl
+                  <Video className="h-5 w-5 mr-2 group-hover:animate-pulse" />
+                  <span>Görüşmeye Katıl</span>
                                 </button>
               )}
                               
@@ -1034,96 +1048,180 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
             transition={{ duration: 0.2 }}
             className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6 relative"
           >
-          <button
+            <button
               onClick={() => setShowShareModal(false)}
               className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          >
+            >
               <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-          </button>
+            </button>
             
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Randevuyu Paylaş</h3>
+            <div className="mb-6">
+              <div className="flex items-center justify-center">
+                <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                  <Share2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-4 text-center">Randevu Bilgilerini Paylaş</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-center text-sm mt-1">Güvenli bir şekilde randevu bilgilerini paylaşabilirsiniz</p>
+            </div>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Randevu Linki</label>
-                <div className="mt-1 flex rounded-md shadow-sm">
-                  <input
-                    type="text"
-                    readOnly
-                    className="flex-1 min-w-0 block w-full px-3 py-2 rounded-l-md sm:text-sm border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
-                    value={`${window.location.origin}/randevular/${appointmentId}`}
-                  />
-        <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/randevular/${appointmentId}`)
-                        .then(() => alert('Link kopyalandı'))
-                        .catch(err => console.error('Kopyalama hatası:', err));
-                    }}
-                    className="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-r-md hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-                  >
-                    <Clipboard className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-
-              {canJoinOnline && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Toplantı Linki</label>
-                  <div className="mt-1 flex rounded-md shadow-sm">
-                    <input
-                      type="text"
-                      readOnly
-                      className="flex-1 min-w-0 block w-full px-3 py-2 rounded-l-md sm:text-sm border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
-                      value={appointment.meeting_url || ''}
-                    />
-          <button
-                      onClick={() => {
-                        if (appointment.meeting_url) {
-                          navigator.clipboard.writeText(appointment.meeting_url)
-                            .then(() => alert('Toplantı linki kopyalandı'))
-                            .catch(err => console.error('Kopyalama hatası:', err));
-                        }
-                      }}
-                      className="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-r-md hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-                    >
-                      <Clipboard className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-              )}
-
-              <div className="pt-4">
-        <button
+            <div className="space-y-5">
+              {/* Paylaşım Seçenekleri - Daha belirgin butonlar */}
+              <div className="grid grid-cols-1 gap-3">
+                <button
                   onClick={() => {
-                    // Whatsapp ile paylaşma
-                    const text = `${appointment.client?.full_name || 'Danışan'} ile randevu: ${formatDate(appointment.start_time)} ${formatTime(appointment.start_time)} - ${formatTime(appointment.end_time)}${appointment.meeting_url ? `\nToplantı linki: ${appointment.meeting_url}` : ''}`;
+                    // Profesyonel ve güvenilir WhatsApp paylaşım metni
+                    const clinicName = professional?.clinic_name || "Kliniğimiz";
+                    const startDate = formatDate(appointment.start_time);
+                    const startTime = formatTime(appointment.start_time);
+                    const endTime = formatTime(appointment.end_time);
+                    
+                    let text = `*${clinicName} Randevu Bilgileri*\n\n`;
+                    text += `Sayın ${appointment.client?.full_name || 'Danışan'},\n\n`;
+                    text += `${startDate} tarihinde saat ${startTime} - ${endTime} arasında randevunuz bulunmaktadır.\n\n`;
+                    
+                    if (appointment.professional?.full_name) {
+                      text += `Uzman: ${appointment.professional.full_name}\n`;
+                    }
+                    
+                    if (appointment.is_online && appointment.meeting_url) {
+                      text += `\n*Çevrimiçi Görüşme Bilgileri:*\nGörüşme saatinde aşağıdaki linke tıklayarak katılabilirsiniz:\n${appointment.meeting_url}\n`;
+                    } else if (appointment.room?.name) {
+                      text += `\n*Görüşme Yeri:*\n${appointment.room.name}\n`;
+                    }
+                    
+                    text += `\nSorunuz olursa bize ulaşabilirsiniz.\nRandevunuzda görüşmek üzere.`;
+                    
                     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
                     window.open(whatsappUrl, '_blank');
                   }}
-                  className="inline-flex w-full justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none"
+                  className="flex items-center justify-center px-4 py-3 rounded-xl shadow-sm text-white bg-green-600 hover:bg-green-700 transition-colors"
                 >
-                  <span>WhatsApp ile Paylaş</span>
-        </button>
-      </div>
-
-        <div>
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center mb-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="mr-2">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                      </svg>
+                      <span className="font-medium">WhatsApp ile Paylaş</span>
+                    </div>
+                    <span className="text-xs text-green-100">Profesyonel mesaj şablonu ile</span>
+                  </div>
+                </button>
+                
+                {appointment.is_online && appointment.meeting_url && (
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                    <div className="flex items-center mb-2">
+                      <Video className="h-5 w-5 text-blue-500 mr-2" />
+                      <h4 className="font-medium text-gray-800 dark:text-gray-200">Görüşme Linki</h4>
+                    </div>
+                    <div className="flex">
+                      <input
+                        type="text"
+                        readOnly
+                        className="flex-1 min-w-0 block w-full px-3 py-2 rounded-l-lg text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                        value={appointment.meeting_url || ''}
+                      />
+                      <button
+                        onClick={() => {
+                          if (appointment.meeting_url) {
+                            navigator.clipboard.writeText(appointment.meeting_url)
+                              .then(() => {
+                                // Kopyalama başarılı bildirimi
+                                const button = document.getElementById('copyMeetingButton');
+                                if (button) {
+                                  button.innerHTML = '<span class="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>Kopyalandı</span>';
+                                  setTimeout(() => {
+                                    if (button) {
+                                      button.innerHTML = '<span class="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg>Kopyala</span>';
+                                    }
+                                  }, 2000);
+                                }
+                              })
+                              .catch(err => console.error('Kopyalama hatası:', err));
+                          }
+                        }}
+                        id="copyMeetingButton"
+                        className="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-r-lg hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none text-sm"
+                      >
+                        <span className="flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                            <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                          </svg>
+                          Kopyala
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
                 <button
                   onClick={() => {
-                    // E-posta ile paylaşma
-                    const subject = `Randevu: ${appointment.client?.full_name || 'Danışan'} - ${formatDate(appointment.start_time)}`;
-                    const body = `Randevu Detayları:\n\nTarih: ${formatDate(appointment.start_time)}\nSaat: ${formatTime(appointment.start_time)} - ${formatTime(appointment.end_time)}\nUzman: ${appointment.professional?.full_name || 'Belirtilmemiş'}\nDanışan: ${appointment.client?.full_name || 'Belirtilmemiş'}\n${appointment.is_online ? `\nToplantı Linki: ${appointment.meeting_url || 'Belirtilmemiş'}` : `\nLokasyon: ${appointment.room?.name || 'Belirtilmemiş'}`}`;
+                    // E-posta ile paylaşma - Daha profesyonel içerik
+                    const clinicName = professional?.clinic_name || "Kliniğimiz";
+                    const subject = `${clinicName} - ${appointment.client?.full_name || 'Danışan'} Randevu Bilgileri`;
+                    
+                    let body = `Sayın ${appointment.client?.full_name || 'Danışan'},\n\n`;
+                    body += `${formatDate(appointment.start_time)} tarihinde saat ${formatTime(appointment.start_time)} - ${formatTime(appointment.end_time)} arasında randevunuz bulunmaktadır.\n\n`;
+                    
+                    if (appointment.professional?.full_name) {
+                      body += `Uzman: ${appointment.professional.full_name}\n`;
+                    }
+                    
+                    if (appointment.is_online && appointment.meeting_url) {
+                      body += `\nÇevrimiçi Görüşme Bilgileri:\nGörüşme saatinde aşağıdaki linke tıklayarak katılabilirsiniz:\n${appointment.meeting_url}\n`;
+                    } else if (appointment.room?.name) {
+                      body += `\nGörüşme Yeri:\n${appointment.room.name}\n`;
+                    }
+                    
+                    body += `\nSorunuz olursa bize ulaşabilirsiniz.\nRandevunuzda görüşmek üzere.`;
+                    
                     const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                     window.open(mailtoUrl, '_blank');
                   }}
-                  className="inline-flex w-full justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none"
+                  className="flex items-center justify-center px-4 py-3 rounded-xl text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
-                  <span>E-posta ile Paylaş</span>
+                  <div className="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                      <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    <span className="font-medium">E-posta ile Paylaş</span>
+                  </div>
                 </button>
+                
+                <div className="text-center mt-2">
+                  <button
+                    onClick={() => {
+                      // Randevu kimliği ile URL'yi panoya kopyala
+                      const url = `${window.location.origin}/randevular/${appointmentId}`;
+                      navigator.clipboard.writeText(url)
+                        .then(() => {
+                          alert('Randevu linki kopyalandı');
+                        })
+                        .catch(err => console.error('Kopyalama hatası:', err));
+                    }}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                  >
+                    Randevu linkini kopyala
+                  </button>
+                </div>
               </div>
+              
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-xs text-blue-800 dark:text-blue-300">
+                  <div className="flex">
+                    <Bell className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <p>
+                      Paylaşılan bilgiler kişiseldir ve yalnızca ilgili danışan ile paylaşılmalıdır.
+                    </p>
+                  </div>
                 </div>
+              </div>
+            </div>
           </motion.div>
-                </div>
-              )}
+        </div>
+      )}
 
       {/* Silme Onay Modalı */}
       {showConfirmDelete && (
@@ -1149,7 +1247,7 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
             <div className="flex justify-end space-x-4">
                 <button
                 onClick={() => setShowConfirmDelete(false)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none"
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none"
                 >
                 İptal
                 </button>
@@ -1173,82 +1271,121 @@ export default function AppointmentDetails({ id: propId, isEditing }: Appointmen
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full overflow-hidden"
           >
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Görüşmeye Katıl</h3>
-              <button
-                onClick={() => setShowJoinOptions(false)}
-                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              </button>
-            </div>
+            <div className="p-6">
+              <div className="flex items-center justify-center mb-5">
+                <div className="h-16 w-16 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-md">
+                  <Video className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              
+              <h3 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-2">Görüşmeye Katıl</h3>
+              <p className="text-center text-gray-500 dark:text-gray-400 mb-6">
+                {appointment.client?.full_name || 'Danışan'} ile görüşmeniz başlamak üzere
+              </p>
             
-            <div className="space-y-4">
-              <div 
-                onClick={() => {
-                  setShowJoinOptions(false);
-                  setShowJitsiIframe(true);
-                }}
-                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:shadow-md cursor-pointer transition-all duration-300"
-              >
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                    <Maximize2 className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+              <div className="space-y-4">
+                <button 
+                  onClick={() => {
+                    setShowJoinOptions(false);
+                    setShowJitsiIframe(true);
+                  }}
+                  className="relative w-full group overflow-hidden rounded-xl transition-all duration-300"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/80 to-purple-600/80 transform group-hover:scale-[1.02] transition-transform duration-300"></div>
+                  <div className="relative p-4 flex items-center">
+                    <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mr-4">
+                      <Maximize2 className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-white text-lg">Bu sayfada aç</h4>
+                      <p className="text-white/80 text-sm">Aynı sayfada görüşmeye başla</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Bu Pencerede Aç</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Görüşme bu sayfada modal olarak açılır</p>
+                </button>
+
+                <button 
+                  onClick={() => {
+                    window.open(appointment.meeting_url, '_blank');
+                    setShowJoinOptions(false);
+                  }}
+                  className="relative w-full group overflow-hidden rounded-xl transition-all duration-300"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-teal-500/80 to-emerald-600/80 transform group-hover:scale-[1.02] transition-transform duration-300"></div>
+                  <div className="relative p-4 flex items-center">
+                    <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mr-4">
+                      <ExternalLink className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-white text-lg">Yeni pencerede aç</h4>
+                      <p className="text-white/80 text-sm">Tam ekran deneyimi için yeni sekmede aç</p>
+                    </div>
                   </div>
-                </div>
+                </button>
+
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(appointment.meeting_url)
+                      .then(() => {
+                        // Butonu güncelle
+                        const button = document.getElementById('copyLinkButton');
+                        if (button) {
+                          const originalContent = button.innerHTML;
+                          button.innerHTML = `
+                            <div class="relative p-4 flex items-center">
+                              <div class="bg-white/20 backdrop-blur-sm rounded-lg p-3 mr-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                              </div>
+                              <div class="flex-1">
+                                <h4 class="font-semibold text-white text-lg">Kopyalandı!</h4>
+                                <p class="text-white/80 text-sm">Link panoya kopyalandı</p>
+                              </div>
+                            </div>
+                          `;
+                          
+                          setTimeout(() => {
+                            if (button) button.innerHTML = originalContent;
+                          }, 2000);
+                        }
+                        
+                        setShowJoinOptions(false);
+                      })
+                      .catch(err => console.error('Kopyalama hatası:', err));
+                  }}
+                  id="copyLinkButton"
+                  className="relative w-full group overflow-hidden rounded-xl transition-all duration-300"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/80 to-violet-600/80 transform group-hover:scale-[1.02] transition-transform duration-300"></div>
+                  <div className="relative p-4 flex items-center">
+                    <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 mr-4">
+                      <Clipboard className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-white text-lg">Linki kopyala</h4>
+                      <p className="text-white/80 text-sm">Görüşme linkini panoya kopyala</p>
+                    </div>
+                  </div>
+                </button>
               </div>
 
-              <div 
-                onClick={() => {
-                  // Yeni pencerede aç
-                  window.open(appointment.meeting_url, '_blank');
-                  setShowJoinOptions(false);
-                }}
-                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:shadow-md cursor-pointer transition-all duration-300"
-              >
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                    <Video className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Görüşmeye Katıl</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Görüşme sayfası yeni bir sekmede açılır</p>
-                  </div>
-                </div>
+              <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 flex items-start">
+                <AlertCircle className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5 mr-3" />
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  Görüşme başladığında kamera ve mikrofon ayarlarınızı kontrol etmeyi unutmayın.
+                </p>
               </div>
-
-              <div 
-                onClick={() => {
-                  // Linki kopyala
-                  navigator.clipboard.writeText(appointment.meeting_url)
-                    .then(() => {
-                      alert('Toplantı linki kopyalandı');
-                      setShowJoinOptions(false);
-                    })
-                    .catch(err => console.error('Kopyalama hatası:', err));
-                }}
-                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 p-4 hover:shadow-md cursor-pointer transition-all duration-300"
-              >
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mr-4 flex-shrink-0">
-                    <Clipboard className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Linki Kopyala</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Görüşme linkini panoya kopyalar</p>
-                  </div>
-                </div>
+              
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowJoinOptions(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Vazgeç
+                </button>
               </div>
-            </div>
-
-            <div className="mt-6 text-xs bg-amber-50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-300 p-3 rounded-lg border border-amber-100 dark:border-amber-800/20">
-              <p>Not: Tarayıcı güvenlik ayarlarınız nedeniyle açılır pencere engellenirse, linki kopyalayıp tarayıcınıza manuel olarak yapıştırın.</p>
             </div>
           </motion.div>
         </div>
