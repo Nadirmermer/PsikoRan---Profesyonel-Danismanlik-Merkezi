@@ -1,5 +1,5 @@
 // PsikoRan Service Worker
-const CACHE_VERSION = 'v1.2';
+const CACHE_VERSION = 'v1.3';
 const CACHE_NAME = `psikoran-${CACHE_VERSION}`;
 
 // Önbelleğe alınacak temel dosyaların listesi
@@ -40,7 +40,8 @@ self.addEventListener('message', (event) => {
     'http://localhost:3000', // Geliştirme ortamı
     'http://localhost:5173',  // Vite geliştirme ortamı
     'https://psikoran.com', // Üretim ortamı
-    'https://www.psikoran.com' // www ile üretim ortamı
+    'https://www.psikoran.com', // www ile üretim ortamı
+    'https://psikoran.xyz' // Jitsi VPS sunucusu
   ];
 
   // Mesaj kaynağını doğrula
@@ -97,6 +98,39 @@ self.addEventListener('fetch', (event) => {
 
   // Supabase isteklerini atlayalım
   if (event.request.url.includes('supabase.co')) {
+    return;
+  }
+  
+  // Jitsi isteklerini atlayalım ve doğrudan ağ üzerinden yükleyelim
+  if (event.request.url.includes('psikoran.xyz')) {
+    event.respondWith(
+      fetch(event.request, { 
+        // CORS politikaları için ayarlar
+        mode: 'cors',
+        credentials: 'same-origin',
+        headers: {
+          'Access-Control-Allow-Origin': '*'
+        }
+      })
+      .catch(error => {
+        console.error('Jitsi API yüklenirken hata:', error);
+        // Yükleme başarısız olduğunda özel bir yanıt gönder
+        if (event.request.url.includes('external_api.js')) {
+          return new Response(
+            `console.error('Service Worker: Jitsi API yüklenemedi.');
+            // Otomatik yönlendirmeyi kaldırdık
+            if (window.onJitsiAPIError && typeof window.onJitsiAPIError === 'function') {
+              window.onJitsiAPIError('Jitsi API yüklenemedi. Lütfen internet bağlantınızı kontrol edin.');
+            }`,
+            { 
+              status: 200, 
+              headers: { 'Content-Type': 'application/javascript' }
+            }
+          );
+        }
+        return new Response(null, { status: 503, statusText: 'Service Unavailable' });
+      })
+    );
     return;
   }
 

@@ -17,11 +17,11 @@
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" href="/assets/favicon/favicon-32x32.png" sizes="32x32" />
     <link rel="icon" type="image/png" href="/assets/favicon/favicon-16x16.png" sizes="16x16" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-p51k0r4n2025' https://www.googletagmanager.com https://*.google-analytics.com https://psikoran.xyz; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.emailjs.com https://meet.jit.si wss://meet.jit.si https://psikoran.xyz wss://psikoran.xyz https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https://*.supabase.co https://*.amazonaws.com https://meet.jit.si https://psikoran.xyz https://*.google-analytics.com https://*.googletagmanager.com https://www.google.com https://www.google.tr; frame-src 'self' https://meet.jit.si https://psikoran.xyz https://*.googletagmanager.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests; block-all-mixed-content">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://cdnjs.cloudflare.com https://psikoran.xyz https://*.psikoran.xyz; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.emailjs.com https://psikoran.xyz https://*.psikoran.xyz wss://psikoran.xyz wss://*.psikoran.xyz https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.psikoran.xyz; font-src 'self' data: https://fonts.gstatic.com https://*.psikoran.xyz; img-src 'self' data: https://*.supabase.co https://*.amazonaws.com https://psikoran.xyz https://*.psikoran.xyz https://*.google-analytics.com https://*.googletagmanager.com https://www.google.com https://www.google.tr blob:; frame-src 'self' https://psikoran.xyz https://*.psikoran.xyz https://*.googletagmanager.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests; block-all-mixed-content; worker-src 'self' blob:">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
@@ -37,7 +37,7 @@
     <meta name="apple-mobile-web-app-title" content="PsikoRan" />
     
     <!-- Kritik görselleri önceden yükle -->
-    <link rel="preload" as="image" href="/assets/favicon/logo.png" imagesizes="64px" fetchpriority="high">
+    <link rel="preload" href="/assets/favicon/logo.png" as="image" type="image/png" fetchpriority="high">
     
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-152x152.png" sizes="152x152" />
     <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-180x180.png" sizes="180x180" />
@@ -111,6 +111,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
     <link rel="preconnect" href="https://www.google-analytics.com" crossorigin />
+    <link rel="preconnect" href="https://psikoran.xyz" crossorigin />
+    <link rel="preconnect" href="wss://psikoran.xyz" crossorigin />
+    <link rel="dns-prefetch" href="https://psikoran.xyz" />
     
     <!-- Kritik CSS stylesheets -->
     <link rel="stylesheet" href="/assets/style.css">
