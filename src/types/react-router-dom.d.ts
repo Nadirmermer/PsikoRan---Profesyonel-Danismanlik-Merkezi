@@ -3,6 +3,7 @@ import * as React from 'react';
 export interface NavigateProps {
   to: string;
   replace?: boolean;
+  state?: any;
 }
 
 export const Routes: React.FC<{ children?: React.ReactNode }>;

@@ -32,12 +32,12 @@ interface ReadTimeProps {
   textClassName?: string;
 }
 
-const ReadTime: React.FC<ReadTimeProps> = ({ 
+const ReadTime = ({ 
   minutes, 
   className = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300",
   iconClassName = "h-3 w-3 mr-1",
   textClassName = ""
-}) => {
+}: ReadTimeProps) => {
   const displayMinutes = minutes || 5;
   
   return (

@@ -24,4 +24,11 @@ declare module 'react' {
     initialState: S,
     initializer?: (arg: I) => S
   ): [S, (action: any) => void];
+
+  // Lazy & Context
+  export function lazy<T extends FC<any>>(factory: () => Promise<{ default: T }>): T;
+  export function createContext<T>(defaultValue: T): {
+    Provider: FC<{ value: T; children?: ReactNode }>;
+    Consumer: FC<{ children: (value: T) => ReactNode }>;
+  } & { _currentValue?: T };
 }
