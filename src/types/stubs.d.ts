@@ -2,74 +2,86 @@
 // These are NOT a replacement for the real types – when the actual `@types/*`
 // packages are installed they will take precedence.
 
+import * as React from 'react';
+
+// Helper alias for generic icon component
+type IconComponent = React.FC<React.SVGProps<SVGSVGElement>>;
+
 declare module 'react-router-dom' {
-  import { ComponentType } from 'react';
-  export const Routes: ComponentType<any>;
-  export const Route: ComponentType<any>;
-  export const Link: ComponentType<any>;
-  export const Navigate: ComponentType<any>;
-  export function useLocation(): any;
-  export function useNavigate(): any;
-  export function useParams<T = any>(): T;
-  export const BrowserRouter: ComponentType<any>;
-  const reactRouterDom: any;
-  export default reactRouterDom;
+  import * as React from 'react';
+
+  export interface NavigateProps {
+    to: string;
+    replace?: boolean;
+  }
+
+  export const Routes: React.FC<{ children?: React.ReactNode }>;
+  export const Route: React.FC<any>;
+  export const Link: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }>;
+  export const Navigate: React.FC<NavigateProps>;
+  export function useLocation(): Location;
+  export function useNavigate(): (to: string, opts?: { replace?: boolean }) => void;
+  export function useParams<T = Record<string, string | undefined>>(): T;
+  export const BrowserRouter: React.FC<{ children?: React.ReactNode }>;
 }
 
 declare module 'framer-motion' {
-  import { ComponentType } from 'react';
-  export const motion: any;
-  export const AnimatePresence: ComponentType<any>;
-  const framerMotion: any;
-  export default framerMotion;
+  import * as React from 'react';
+
+  // We expose motion as an object whose keys are html/svg tag names returning motion components.
+  export const motion: Record<string, React.FC<any>> & {
+    // fallback generic component
+    <P extends {}>(component: React.ComponentType<P>): React.ComponentType<P>;
+  };
+
+  export interface AnimatePresenceProps {
+    children?: React.ReactNode;
+  }
+  export const AnimatePresence: React.FC<AnimatePresenceProps>;
 }
 
 declare module 'lucide-react' {
-  import { ComponentType } from 'react';
-  // In practise lucide-react exports hundreds of icons. We expose a generic one
-  // so TS doesn\'t fail when the full type package isn\'t present yet.
-  export const ArrowLeft: ComponentType<any>;
-  export const Calendar: ComponentType<any>;
-  export const Clock: ComponentType<any>;
-  export const User: ComponentType<any>;
-  export const MapPin: ComponentType<any>;
-  export const Video: ComponentType<any>;
-  export const Edit: ComponentType<any>;
-  export const Trash2: ComponentType<any>;
-  export const AlertTriangle: ComponentType<any>;
-  export const Share2: ComponentType<any>;
-  export const FileText: ComponentType<any>;
-  export const Printer: ComponentType<any>;
-  export const Bell: ComponentType<any>;
-  export const X: ComponentType<any>;
-  export const ExternalLink: ComponentType<any>;
-  export const Phone: ComponentType<any>;
-  export const Clipboard: ComponentType<any>;
-  export const CheckCircle: ComponentType<any>;
-  export const XCircle: ComponentType<any>;
-  export const Users: ComponentType<any>;
-  export const MessageSquare: ComponentType<any>;
-  export const Paperclip: ComponentType<any>;
-  export const Layers: ComponentType<any>;
-  export const ChevronDown: ComponentType<any>;
-  export const BarChart: ComponentType<any>;
-  export const FileCheck: ComponentType<any>;
-  export const AlertCircle: ComponentType<any>;
-  export const Tag: ComponentType<any>;
-  export const Menu: ComponentType<any>;
-  export const Maximize2: ComponentType<any>;
-  export const Copy: ComponentType<any>;
-  export const Twitter: ComponentType<any>;
-  export const Facebook: ComponentType<any>;
-  export const Linkedin: ComponentType<any>;
-  export const Heart: ComponentType<any>;
-  export const ArrowRight: ComponentType<any>;
-  export const UserPlus: ComponentType<any>;
-  export default {};
+  export const ArrowLeft: IconComponent;
+  export const Calendar: IconComponent;
+  export const Clock: IconComponent;
+  export const User: IconComponent;
+  export const MapPin: IconComponent;
+  export const Video: IconComponent;
+  export const Edit: IconComponent;
+  export const Trash2: IconComponent;
+  export const AlertTriangle: IconComponent;
+  export const Share2: IconComponent;
+  export const FileText: IconComponent;
+  export const Printer: IconComponent;
+  export const Bell: IconComponent;
+  export const X: IconComponent;
+  export const ExternalLink: IconComponent;
+  export const Phone: IconComponent;
+  export const Clipboard: IconComponent;
+  export const CheckCircle: IconComponent;
+  export const XCircle: IconComponent;
+  export const Users: IconComponent;
+  export const MessageSquare: IconComponent;
+  export const Paperclip: IconComponent;
+  export const Layers: IconComponent;
+  export const ChevronDown: IconComponent;
+  export const BarChart: IconComponent;
+  export const FileCheck: IconComponent;
+  export const AlertCircle: IconComponent;
+  export const Tag: IconComponent;
+  export const Menu: IconComponent;
+  export const Maximize2: IconComponent;
+  export const Copy: IconComponent;
+  export const Twitter: IconComponent;
+  export const Facebook: IconComponent;
+  export const Linkedin: IconComponent;
+  export const Heart: IconComponent;
+  export const ArrowRight: IconComponent;
+  export const UserPlus: IconComponent;
 }
 
 declare module 'react-helmet-async' {
-  import { ComponentType } from 'react';
-  export const Helmet: ComponentType<any>;
-  export const HelmetProvider: ComponentType<any>;
+  import * as React from 'react';
+  export const Helmet: React.FC<{ children?: React.ReactNode }>;
+  export const HelmetProvider: React.FC<{ children?: React.ReactNode }>;
 }
