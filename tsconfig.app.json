@@ -15,6 +15,10 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "jsxImportSource": "react",
+    "typeRoots": [
+      "./src/types",
+      "./node_modules/@types"
+    ],
 
     /* Linting */
     "strict": false,

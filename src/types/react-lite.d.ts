@@ -10,6 +10,7 @@ declare module 'react' {
   }
   export type JSXElementConstructor<P> = ((props: P) => any) | (new (props: P) => any);
   export const Fragment: FC<{ children?: ReactNode }>;
+  export const Suspense: FC<{ fallback?: ReactNode, children?: ReactNode }>;
 
   // Basic hook stubs
   export function useState<S = any>(initialState: S | (() => S)): [S, (value: S) => void];
