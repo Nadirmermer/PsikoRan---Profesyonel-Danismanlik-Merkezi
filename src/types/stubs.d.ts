@@ -58,6 +58,13 @@ declare module 'lucide-react' {
   export const Tag: ComponentType<any>;
   export const Menu: ComponentType<any>;
   export const Maximize2: ComponentType<any>;
+  export const Copy: ComponentType<any>;
+  export const Twitter: ComponentType<any>;
+  export const Facebook: ComponentType<any>;
+  export const Linkedin: ComponentType<any>;
+  export const Heart: ComponentType<any>;
+  export const ArrowRight: ComponentType<any>;
+  export const UserPlus: ComponentType<any>;
   export default {};
 }
 
