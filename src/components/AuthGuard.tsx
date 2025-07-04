@@ -1,9 +1,10 @@
 import { Navigate, useLocation } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { useAuth } from '../lib/auth';
 import { LoadingSpinner } from './ui/LoadingSpinner';
 
 interface AuthGuardProps {
-  children: React.ReactNode;
+  children: ReactNode;
   requireProfessional?: boolean;
   requireAssistant?: boolean;
   requireAdmin?: boolean;
