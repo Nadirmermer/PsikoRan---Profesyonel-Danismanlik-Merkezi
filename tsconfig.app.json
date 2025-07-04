@@ -30,7 +30,9 @@
     /* Alias */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "react/jsx-runtime": ["./src/types/jsx-runtime"],
+      "react/jsx-dev-runtime": ["./src/types/jsx-dev-runtime"]
     },
     
     /* Type Checking */
