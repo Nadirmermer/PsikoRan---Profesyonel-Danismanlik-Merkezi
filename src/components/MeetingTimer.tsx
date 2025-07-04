@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { sendNotification } from '../utils/notificationUtils';
 import { useAuth } from '../lib/auth';
 import { Clock, BellOff, Bell } from 'react-feather'; // İkonları import et
@@ -9,11 +9,11 @@ interface MeetingTimerProps {
   appointmentId?: string; // Bildirim için kullanılacak randevu ID'si
 }
 
-const MeetingTimer: React.FC<MeetingTimerProps> = ({ 
+const MeetingTimer = ({ 
   startTime, 
   duration = 60, // Varsayılan seans süresi: 60 dakika
   appointmentId
-}) => {
+}: MeetingTimerProps) => {
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const notified45Ref = useRef(false);
   const notified50Ref = useRef(false);
