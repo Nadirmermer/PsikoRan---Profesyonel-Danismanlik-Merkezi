@@ -55,7 +55,7 @@ const MeetingTimer = ({
   }, [startTime, notificationsEnabled]);
 
   // Seans süresi bildirimi gönderen fonksiyon
-  const sendSessionNotification = async (remainingMinutes: number) => {
+  const sendSessionNotification = async (remainingMinutes: number): Promise<void> => {
     if (!user) return;
     
     let userType: 'professional' | 'assistant' | 'client' = 'client';
