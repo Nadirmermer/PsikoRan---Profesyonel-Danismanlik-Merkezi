@@ -28,17 +28,27 @@ import { supabase } from './lib/supabase';
 const TestResultPage = React.lazy(() => import('./pages/test-results/TestResult'));
 
 // Global loading state için context oluştur
-export const LoadingContext = React.createContext({
+interface LoadingContextValue {
+  isLoading: boolean;
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
+}
+export const LoadingContext = React.createContext<LoadingContextValue>({
   isLoading: false,
-  setIsLoading: (loading: boolean) => {},
+  setIsLoading: () => {},
 });
 
 // PWA durumu için context oluştur
-export const PWAContext = React.createContext({
-  isOnline: true, 
+interface PWAContextValue {
+  isOnline: boolean;
+  isPWA: boolean;
+  isInstallPromptShown: boolean;
+  setIsInstallPromptShown: React.Dispatch<React.SetStateAction<boolean>>;
+}
+export const PWAContext = React.createContext<PWAContextValue>({
+  isOnline: true,
   isPWA: false,
   isInstallPromptShown: false,
-  setIsInstallPromptShown: (shown: boolean) => {}
+  setIsInstallPromptShown: () => {},
 });
 
 // Herkese açık yolların listesi

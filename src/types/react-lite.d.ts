@@ -31,4 +31,8 @@ declare module 'react' {
     Provider: FC<{ value: T; children?: ReactNode }>;
     Consumer: FC<{ children: (value: T) => ReactNode }>;
   } & { _currentValue?: T };
+
+  // State helpers
+  export type Dispatch<A> = (value: A) => void;
+  export type SetStateAction<S> = S | ((prevState: S) => S);
 }
