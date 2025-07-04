@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Clock, User, Tag, Share2, Copy, Twitter, Facebook, Linkedin, Heart, ExternalLink, ArrowRight, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { fetchBlogPostBySlug, formatBlogDate, processProfessionalNames, generateBlogJsonLd } from '../lib/blog';
+import { sanitizeHtml } from '../utils/sanitizeHtml';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Helmet } from 'react-helmet-async';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
@@ -132,9 +133,11 @@ export function BlogPost() {
 
   // Blog içeriğini HTML olarak render et
   const renderContent = (content: string) => {
-    // Uzmanlara otomatik link ekle
+    // Uzman isimlerini otomatik linkler ile zenginleştir
     const processedContent = processProfessionalNames(content);
-    return { __html: processedContent };
+    // İçeriği DomPurify ile temizle
+    const safeHtml = sanitizeHtml(processedContent);
+    return { __html: safeHtml };
   };
 
   if (loading) {

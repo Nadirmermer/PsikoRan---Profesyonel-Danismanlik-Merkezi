@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { sendNotification } from '../utils/notificationUtils';
 import { useAuth } from '../lib/auth';
 import { Clock, BellOff, Bell } from 'react-feather'; // İkonları import et
@@ -15,9 +15,9 @@ const MeetingTimer: React.FC<MeetingTimerProps> = ({
   appointmentId
 }) => {
   const [elapsedTime, setElapsedTime] = useState<number>(0);
-  const [notified50Min, setNotified50Min] = useState<boolean>(false);
-  const [notified55Min, setNotified55Min] = useState<boolean>(false);
-  const [notified45Min, setNotified45Min] = useState<boolean>(false); // Yeni bildirim durumu
+  const notified45Ref = useRef(false);
+  const notified50Ref = useRef(false);
+  const notified55Ref = useRef(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true); // Bildirimleri açma/kapama
   const { user, professional, assistant } = useAuth();
 
@@ -26,38 +26,33 @@ const MeetingTimer: React.FC<MeetingTimerProps> = ({
     const initialElapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
     setElapsedTime(initialElapsed > 0 ? initialElapsed : 0);
 
-    // Zamanlayıcıyı başlat
     const timerInterval = setInterval(() => {
       const newElapsedTime = Math.floor((Date.now() - startTime.getTime()) / 1000);
       setElapsedTime(newElapsedTime);
       
-      if (!notificationsEnabled) return; // Bildirimler devre dışı bırakılmışsa gönderme
+      if (!notificationsEnabled) return;
       
-      // Seans süresi bildirimleri
       const elapsedMinutes = Math.floor(newElapsedTime / 60);
       
-      // 45 dakika bildirim kontrolü - yeni eklenen
-      if (elapsedMinutes >= 45 && elapsedMinutes < 46 && !notified45Min) {
-        sendSessionNotification(15); // 15 dakika kaldı bildirimi
-        setNotified45Min(true);
+      if (elapsedMinutes >= 45 && !notified45Ref.current) {
+        sendSessionNotification(15);
+        notified45Ref.current = true;
       }
       
-      // 50 dakika bildirim kontrolü
-      if (elapsedMinutes >= 50 && elapsedMinutes < 51 && !notified50Min) {
-        sendSessionNotification(10); // 10 dakika kaldı bildirimi
-        setNotified50Min(true);
+      if (elapsedMinutes >= 50 && !notified50Ref.current) {
+        sendSessionNotification(10);
+        notified50Ref.current = true;
       }
       
-      // 55 dakika bildirim kontrolü
-      if (elapsedMinutes >= 55 && elapsedMinutes < 56 && !notified55Min) {
-        sendSessionNotification(5); // 5 dakika kaldı bildirimi
-        setNotified55Min(true);
+      if (elapsedMinutes >= 55 && !notified55Ref.current) {
+        sendSessionNotification(5);
+        notified55Ref.current = true;
       }
     }, 1000);
 
-    // Bileşenden çıkıldığında zamanlayıcıyı temizle
+    // Temizleme
     return () => clearInterval(timerInterval);
-  }, [startTime, notified45Min, notified50Min, notified55Min, notificationsEnabled]);
+  }, [startTime, notificationsEnabled]);
 
   // Seans süresi bildirimi gönderen fonksiyon
   const sendSessionNotification = async (remainingMinutes: number) => {

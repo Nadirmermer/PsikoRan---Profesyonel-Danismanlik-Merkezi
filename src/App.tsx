@@ -270,35 +270,40 @@ export function App() {
   const [showCookieBanner, setShowCookieBanner] = useState(false);
   
   useEffect(() => {
-    // Uygulama başlangıç işlemleri
+    // Temizleme fonksiyonunu dış scope'ta tutarak useEffect'in return'ünde çağıracağız
+    let removeNetworkListener: (() => void) | undefined;
+
     const initApp = async () => {
+      // Tema ayarlarını ve PWA durumunu ilk yüklemede hazırla
       initializeTheme();
       setIsPWA(getDisplayMode() === 'standalone');
-      
-      // Network dinleyicileri
-      const removeNetworkListener = listenForNetworkChanges(
-        () => setIsOnline(true), 
-        () => setIsOnline(false) 
-      );
-      // Install prompt dinleyicisi
-      listenForInstallPrompt(); // Sadece çağrı yapılıyor, dönüş değeri kullanılmıyor
 
-      // Cookie banner kontrolü
+      // Ağ bağlantısı dinleyicilerini başlat ve referansını sakla
+      removeNetworkListener = listenForNetworkChanges(
+        () => setIsOnline(true),
+        () => setIsOnline(false)
+      );
+
+      // PWA yükleme istemi ve çerez banner kontrolleri
+      listenForInstallPrompt();
+
       const cookieConsent = localStorage.getItem('cookie_consent');
       if (!cookieConsent) {
         setShowCookieBanner(true);
       }
-      
-      setIsInitialLoading(false);
 
-      // Temizleme fonksiyonu - Sadece network listener için
-      return () => {
-        if (typeof removeNetworkListener === 'function') removeNetworkListener();
-        // removeInstallListener ile ilgili kısım kaldırıldı
-      };
+      setIsInitialLoading(false);
     };
 
+    // Asenkron başlatmayı çağır
     initApp();
+
+    // useEffect cleanup – component unmount olduğunda listener'ı kaldır
+    return () => {
+      if (typeof removeNetworkListener === 'function') {
+        removeNetworkListener();
+      }
+    };
   }, [initializeTheme]);
 
   const handleAcceptCookies = () => {
