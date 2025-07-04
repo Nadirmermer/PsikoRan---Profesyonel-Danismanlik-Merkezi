@@ -108,3 +108,21 @@ declare namespace NodeJS {
     [key: string]: string | undefined;
   }
 }
+
+// ----------------------------------------------------------------------------------
+
+// React 17+ automatic JSX transform runtime modules (prevent missing-module errors)
+declare module 'react/jsx-runtime' {
+  export namespace JSX {
+    interface Element {}
+    interface IntrinsicElements {
+      [elemName: string]: any;
+    }
+  }
+  const jsxRuntime: any;
+  export default jsxRuntime;
+}
+
+declare module 'react/jsx-dev-runtime' {
+  export * from 'react/jsx-runtime';
+}
