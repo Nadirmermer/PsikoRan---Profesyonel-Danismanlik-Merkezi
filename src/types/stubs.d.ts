@@ -25,6 +25,10 @@ declare module 'react-router-dom' {
   export const BrowserRouter: React.FC<{ children?: React.ReactNode }>;
 }
 
+export {};
+
+// ----------------------------------------------------------------------------------
+
 declare module 'framer-motion' {
   import * as React from 'react';
 
@@ -39,6 +43,10 @@ declare module 'framer-motion' {
   }
   export const AnimatePresence: React.FC<AnimatePresenceProps>;
 }
+
+export {};
+
+// ----------------------------------------------------------------------------------
 
 declare module 'lucide-react' {
   export const ArrowLeft: IconComponent;
@@ -80,8 +88,23 @@ declare module 'lucide-react' {
   export const UserPlus: IconComponent;
 }
 
+export {};
+
+// ----------------------------------------------------------------------------------
+
 declare module 'react-helmet-async' {
   import * as React from 'react';
   export const Helmet: React.FC<{ children?: React.ReactNode }>;
   export const HelmetProvider: React.FC<{ children?: React.ReactNode }>;
+}
+
+export {};
+
+// ----------------------------------------------------------------------------------
+
+// Minimal NodeJS namespace to satisfy env references when @types/node is absent
+declare namespace NodeJS {
+  interface ProcessEnv {
+    [key: string]: string | undefined;
+  }
 }
